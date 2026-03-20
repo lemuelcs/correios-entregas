@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../stores/auth.store';
+import { api } from '../services/api';
 import type { Role } from '../types/api.types';
 
 const HOME_BY_ROLE: Record<Role, string> = {
@@ -19,6 +20,7 @@ const HOME_BY_ROLE: Record<Role, string> = {
 export function useAuthGuard(requiredRole?: Role) {
   const navigate = useNavigate();
   const { user, accessToken } = useAuthStore();
+  const hydrating = useRef(false);
 
   useEffect(() => {
     // Not authenticated at all
@@ -27,13 +29,30 @@ export function useAuthGuard(requiredRole?: Role) {
       return;
     }
 
-    // Token exists but user hasn't been hydrated yet — wait for it
-    if (!user) {
+    // Token exists but user hasn't been hydrated yet — fetch /auth/me
+    if (!user && !hydrating.current) {
+      hydrating.current = true;
+      api
+        .get<any>('/auth/me')
+        .then((data) => {
+          const u = data.user ?? data;
+          useAuthStore.setState({ user: u });
+        })
+        .catch(() => {
+          // Token is invalid/expired — redirect to login
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          useAuthStore.setState({ user: null, accessToken: null });
+          navigate('/login', { replace: true });
+        })
+        .finally(() => {
+          hydrating.current = false;
+        });
       return;
     }
 
     // Role check
-    if (requiredRole && user.role !== requiredRole) {
+    if (user && requiredRole && user.role !== requiredRole) {
       const home = HOME_BY_ROLE[user.role] ?? '/login';
       navigate(home, { replace: true });
     }
