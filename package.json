@@ -15,8 +15,12 @@
     "db:migrate": "cd backend && npx prisma migrate dev",
     "db:seed": "cd backend && npx prisma db seed",
     "db:studio": "cd backend && npx prisma studio",
-    "docker:up": "docker compose -f infra/docker-compose.yml up -d",
-    "docker:down": "docker compose -f infra/docker-compose.yml down"
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:up:infra": "docker compose -f infra/docker-compose.yml up -d",
+    "docker:down:infra": "docker compose -f infra/docker-compose.yml down"
   },
   "devDependencies": {
     "turbo": "^2.5.0"

@@ -1,9 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
   --color-correios-blue: #003399;
-  --color-correios-yellow: #FFD600;
-  --color-correios-blue-light: #D6E4FF;
-  --color-correios-blue-mid: #1A56CC;
-  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --color-correios-blue-dark: #002266;
+  --color-correios-blue-mid: #1a56cc;
+  --color-correios-blue-light: #d6e4ff;
+  --color-correios-blue-50: #e6ebf7;
+  --color-correios-yellow: #ffd600;
+  --color-correios-yellow-dark: #e6c000;
+  --color-correios-yellow-50: #fffde0;
+  --color-correios-surface: #f3f5fa;
+  --color-correios-border: #d9e0ef;
+  --color-correios-success: #16a34a;
+  --color-correios-warning: #d97706;
+  --color-correios-danger: #dc2626;
+  --color-correios-info: #2563eb;
+  --font-family-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+:root {
+  color: #0f172a;
+  background:
+    radial-gradient(circle at top, rgba(214, 228, 255, 0.78), transparent 36%),
+    linear-gradient(180deg, #f8fbff 0%, #f3f5fa 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: #0f172a;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(0, 51, 153, 0.16);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c7d2e5;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes slide-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.surface-enter {
+  animation: slide-in-up 260ms ease-out;
 }

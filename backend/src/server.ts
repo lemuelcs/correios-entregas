@@ -8,6 +8,15 @@ async function main() {
   await prisma.$connect();
   console.log('✓ Database connected');
 
+  // Start workers if Redis is available
+  try {
+    const { startWorkers } = await import('./workers');
+    startWorkers();
+    console.log('✓ Workers started');
+  } catch (err) {
+    console.warn('⚠ Workers not started (Redis may not be available):', (err as Error).message);
+  }
+
   app.listen(PORT, () => {
     console.log(`✓ API running on http://localhost:${PORT}`);
     console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -22,6 +31,13 @@ main().catch((err) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down...');
+  try {
+    const { stopWorkers } = await import('./workers');
+    await stopWorkers();
+    console.log('✓ Workers stopped');
+  } catch {
+    // Workers may not have been started
+  }
   await prisma.$disconnect();
   process.exit(0);
 });

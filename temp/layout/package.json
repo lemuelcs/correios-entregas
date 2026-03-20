@@ -1,0 +1,25 @@
+{
+  "name": "correios-entregas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:gestao":      "vite src/gestao --config vite.gestao.config.js",
+    "dev:carteiro":    "vite src/carteiro --config vite.carteiro.config.js",
+    "dev:destinatario":"vite src/destinatario --config vite.destinatario.config.js",
+    "build:gestao":    "vite build --config vite.gestao.config.js",
+    "build:carteiro":  "vite build --config vite.carteiro.config.js",
+    "build:destinatario":"vite build --config vite.destinatario.config.js"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.3.1"
+  }
+}

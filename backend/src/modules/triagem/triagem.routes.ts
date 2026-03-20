@@ -1,33 +1,17 @@
 import { Router } from 'express';
 import { authenticate, requireRole } from '../../shared/middleware/auth.middleware';
+import { triagemController } from './triagem.controller';
 
 const router = Router();
 
 router.use(authenticate);
 router.use(requireRole('GESTOR'));
 
-router.post('/configurar-sessao', async (_req, res) => {
-  res.json({ message: 'TODO: Configurar sessão de triagem' });
-});
-
-router.post('/simular', async (_req, res) => {
-  res.json({ message: 'TODO: Simular dimensionamento' });
-});
-
-router.get('/sort-plan/:rotaId', async (_req, res) => {
-  res.json({ message: 'TODO: Sort Plan da rota' });
-});
-
-router.post('/sort-plan/:rotaId/validar', async (_req, res) => {
-  res.json({ message: 'TODO: Validar Sort Plan' });
-});
-
-router.post('/imprimir-etiquetas/:rotaId', async (_req, res) => {
-  res.json({ message: 'TODO: Gerar PDF etiquetas LIFO' });
-});
-
-router.get('/status', async (_req, res) => {
-  res.json({ message: 'TODO: Status de triagem' });
-});
+router.post('/configurar-sessao', (req, res, next) => triagemController.configurarSessao(req, res, next));
+router.post('/simular', (req, res, next) => triagemController.simular(req, res, next));
+router.get('/sort-plan/:rotaId', (req, res, next) => triagemController.getSortPlan(req, res, next));
+router.post('/sort-plan/:rotaId/validar', (req, res, next) => triagemController.validarSortPlan(req, res, next));
+router.post('/imprimir-etiquetas/:rotaId', (req, res, next) => triagemController.imprimirEtiquetas(req, res, next));
+router.get('/status', (req, res, next) => triagemController.getStatus(req, res, next));
 
 export { router as triagemRoutes };

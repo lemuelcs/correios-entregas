@@ -13,6 +13,9 @@ import { carteiroRoutes } from './modules/carteiro/carteiro.routes';
 import { destinatarioRoutes } from './modules/destinatario/destinatario.routes';
 import { monitoramentoRoutes } from './modules/monitoramento/monitoramento.routes';
 import { reconciliacaoRoutes } from './modules/reconciliacao/reconciliacao.routes';
+import { sseManager } from './modules/monitoramento/sse.manager';
+import { authenticate } from './shared/middleware/auth.middleware';
+import { sgodExporter } from './integrations/sgod/sgod.exporter';
 
 const app = express();
 
@@ -28,6 +31,16 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// SSE endpoint
+app.get('/events', authenticate, (req, res) => {
+  const unidadeId = req.user?.unidadeId;
+  if (!unidadeId) {
+    res.status(400).json({ error: 'Unidade nao definida' });
+    return;
+  }
+  sseManager.addClient(unidadeId, res);
+});
+
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/unidades', unidadeRoutes);
@@ -40,6 +53,16 @@ app.use('/api/v1/carteiro', carteiroRoutes);
 app.use('/api/v1/destinatario', destinatarioRoutes);
 app.use('/api/v1/monitoramento', monitoramentoRoutes);
 app.use('/api/v1/reconciliacao', reconciliacaoRoutes);
+
+// SGOD export
+app.get('/api/v1/sgod/export/:unidadeId', authenticate, async (req, res, next) => {
+  try {
+    const data = await sgodExporter.exportar(req.params.unidadeId as string, req.query.data as string);
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Error handler (must be last)
 app.use(errorHandler);

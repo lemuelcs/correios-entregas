@@ -1,29 +1,16 @@
 import { Router } from 'express';
 import { authenticate, requireRole } from '../../shared/middleware/auth.middleware';
+import { reconciliacaoController } from './reconciliacao.controller';
 
 const router = Router();
 
 router.use(authenticate);
 router.use(requireRole('GESTOR'));
 
-router.post('/scan-retorno', async (_req, res) => {
-  res.json({ message: 'TODO: Scan retorno FC_45' });
-});
-
-router.get('/pendentes/:rotaId', async (_req, res) => {
-  res.json({ message: 'TODO: Objetos pendentes reconciliação' });
-});
-
-router.post('/finalizar-rota/:rotaId', async (_req, res) => {
-  res.json({ message: 'TODO: Finalizar rota' });
-});
-
-router.post('/agendar-nova-tentativa', async (_req, res) => {
-  res.json({ message: 'TODO: Agendar nova tentativa' });
-});
-
-router.post('/encaminhar-agencia', async (_req, res) => {
-  res.json({ message: 'TODO: Encaminhar para agência' });
-});
+router.post('/scan-retorno', (req, res, next) => reconciliacaoController.scanRetorno(req, res, next));
+router.get('/pendentes/:rotaId', (req, res, next) => reconciliacaoController.getPendentes(req, res, next));
+router.post('/finalizar-rota/:rotaId', (req, res, next) => reconciliacaoController.finalizarRota(req, res, next));
+router.post('/agendar-nova-tentativa', (req, res, next) => reconciliacaoController.agendarNovaTentativa(req, res, next));
+router.post('/encaminhar-agencia', (req, res, next) => reconciliacaoController.encaminharAgencia(req, res, next));
 
 export { router as reconciliacaoRoutes };

@@ -1,33 +1,34 @@
 import { Router } from 'express';
 import { authenticate, requireRole } from '../../shared/middleware/auth.middleware';
+import { roteirizacaoController } from './roteirizacao.controller';
 
 const router = Router();
 
 router.use(authenticate);
 router.use(requireRole('GESTOR'));
 
-router.post('/executar', async (_req, res) => {
-  res.json({ message: 'TODO: Executar roteirização' });
-});
+router.post('/executar', (req, res, next) =>
+  roteirizacaoController.executar(req, res, next),
+);
 
-router.get('/job/:jobId', async (_req, res) => {
-  res.json({ message: 'TODO: Status do job' });
-});
+router.get('/job/:jobId', (req, res, next) =>
+  roteirizacaoController.getJobStatus(req, res, next),
+);
 
-router.get('/resultado/:jobId', async (_req, res) => {
-  res.json({ message: 'TODO: Resultado do job' });
-});
+router.get('/resultado/:jobId', (req, res, next) =>
+  roteirizacaoController.getResultado(req, res, next),
+);
 
-router.post('/aprovar/:jobId', async (_req, res) => {
-  res.json({ message: 'TODO: Aprovar rotas' });
-});
+router.post('/aprovar/:jobId', (req, res, next) =>
+  roteirizacaoController.aprovar(req, res, next),
+);
 
-router.put('/rota/:rotaId/editar', async (_req, res) => {
-  res.json({ message: 'TODO: Editar rota manualmente' });
-});
+router.put('/rota/:rotaId/editar', (req, res, next) =>
+  roteirizacaoController.editarRota(req, res, next),
+);
 
-router.delete('/rota/:rotaId', async (_req, res) => {
-  res.json({ message: 'TODO: Remover rota' });
-});
+router.delete('/rota/:rotaId', (req, res, next) =>
+  roteirizacaoController.removerRota(req, res, next),
+);
 
 export { router as roteirizacaoRoutes };
