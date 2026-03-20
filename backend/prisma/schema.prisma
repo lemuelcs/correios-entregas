@@ -1,0 +1,561 @@
+// api/prisma/schema.prisma
+// PostgreSQL 18 + TimescaleDB
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ——— ENUMS ————————————————————————————————————————————————————
+
+enum TipoUnidade {
+  CDD
+  CEE
+  HIBRIDA
+}
+
+enum ModeloTriagem {
+  MANUAL
+  PTL
+  ADTA
+}
+
+enum Role {
+  GESTOR
+  CARTEIRO
+  DESTINATARIO
+}
+
+enum ModalEntrega {
+  A_PE
+  BICICLETA
+  BICICLETA_ELETRICA
+  MOTOCICLETA
+  CARRO
+  FURGAO
+  VAN
+  SPRINTER
+}
+
+enum TipoUnitizador {
+  BAG
+  SACOLA
+  CARRINHO
+  CAIXETA
+  CDL
+  CAF
+  VEICULO
+}
+
+enum StatusUnitizador {
+  DISPONIVEL
+  EM_USO
+  EM_MANUTENCAO
+  INATIVO
+}
+
+enum StatusVeiculo {
+  DISPONIVEL
+  EM_ROTA
+  MANUTENCAO
+  INATIVO
+}
+
+enum StatusObjeto {
+  AGUARDANDO_CHEGADA
+  RECEBIDO_UNIDADE
+  EM_CONFERENCIA
+  TRIADO
+  UNITIZADO
+  DISPONIVEL_COLETA
+  COLETADO_CARTEIRO
+  EM_ROTA
+  ENTREGUE
+  TENTATIVA_SEM_ATENDIMENTO
+  DEVOLVIDO_UNIDADE
+  AGUARDANDO_RETIRADA
+  DEVOLVIDO_REMETENTE
+  AVARIADO
+  EXTRAVIADO
+  CANCELADO
+}
+
+enum StatusRota {
+  CRIADA
+  DISPONIVEL
+  COLETADA
+  EM_ANDAMENTO
+  CONCLUIDA
+  FINALIZADA
+}
+
+enum StatusParada {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+}
+
+enum ModoOtimizacao {
+  ABSOLUTO
+  LARGE_VAN
+  BALANCEADO
+}
+
+enum SolverUsado {
+  VROOM
+  PYVRP
+}
+
+enum TipoAtorEvento {
+  CARTEIRO
+  GESTOR
+  SISTEMA
+  DESTINATARIO
+}
+
+enum ServicoAdicional {
+  AR_FISICO
+  AR_ELETRONICO
+  AR_DIGITAL
+  MAO_PROPRIA
+}
+
+enum TipoInteracao {
+  REAGENDAR
+  AUTORIZAR_TERCEIRO
+  REDIRECIONAR
+  MANTER_AGENCIA
+  CONTATAR_CARTEIRO
+}
+
+enum StatusInteracao {
+  PENDENTE
+  PROCESSADA
+  REJEITADA
+}
+
+enum GeocodeAccuracy {
+  ROOFTOP
+  INTERPOLATED
+  APPROXIMATE
+}
+
+// ——— MODELS ———————————————————————————————————————————————————
+
+model Unidade {
+  id            String        @id @default(uuid())
+  codigo        String        @unique
+  nome          String
+  tipo          TipoUnidade
+  logradouro    String
+  numero        String
+  complemento   String?
+  bairro        String
+  cidade        String
+  uf            String        @db.Char(2)
+  cep           String        @db.Char(8)
+  latitude      Decimal       @db.Decimal(10, 7)
+  longitude     Decimal       @db.Decimal(10, 7)
+  faixasCep     Json          @default("[]")
+  modeloTriagem ModeloTriagem @default(MANUAL)
+  configTriagem Json          @default("{}")
+  ativa         Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  usuarios    Usuario[]
+  carteiros   Carteiro[]
+  objetos     Objeto[]
+  rotas       Rota[]
+  unitizadores Unitizador[]
+  previsoes   VolumePrevisao[]
+
+  @@map("unidades")
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  unidadeId String?
+  cpf       String?  @unique
+  email     String?  @unique
+  senha     String
+  nome      String
+  role      Role
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unidade       Unidade?       @relation(fields: [unidadeId], references: [id])
+  carteiro      Carteiro?
+  refreshTokens RefreshToken[]
+  eventos       ObjetoEvento[]
+
+  @@map("usuarios")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  usuarioId String
+  expiresAt DateTime
+  revogado  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+model Carteiro {
+  id              String       @id @default(uuid())
+  usuarioId       String       @unique
+  unidadeId       String
+  matricula       String       @unique
+  modalPrincipal  ModalEntrega @default(A_PE)
+  cnh             String?
+  ativo           Boolean      @default(true)
+  familiaridadeH3 Json         @default("{}")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  usuario Usuario  @relation(fields: [usuarioId], references: [id])
+  unidade Unidade  @relation(fields: [unidadeId], references: [id])
+  pontos  PontoDia[]
+  rotas   Rota[]
+
+  @@map("carteiros")
+}
+
+model PontoDia {
+  id          String    @id @default(uuid())
+  carteiroId  String
+  data        DateTime  @db.Date
+  horaEntrada DateTime?
+  horaSaida   DateTime?
+  presente    Boolean   @default(false)
+  observacao  String?
+  createdAt   DateTime  @default(now())
+
+  carteiro Carteiro @relation(fields: [carteiroId], references: [id])
+
+  @@unique([carteiroId, data])
+  @@map("pontos_dia")
+}
+
+model Objeto {
+  id                   String             @id @default(uuid())
+  codigoRastreio       String             @unique
+  servicoCodigo        String             @db.Char(2)
+  unidadeId            String
+  destinatarioNome     String
+  destinatarioCpf      String?
+  destinatarioEmail    String?
+  destinatarioTelefone String?
+  cepDestino           String             @db.Char(8)
+  logradouro           String
+  numero               String
+  complemento          String?
+  bairro               String
+  cidade               String
+  uf                   String             @db.Char(2)
+  latitude             Decimal?           @db.Decimal(10, 7)
+  longitude            Decimal?           @db.Decimal(10, 7)
+  geocodeAccuracy      GeocodeAccuracy?
+  remetenteNome        String
+  remetenteCpfCnpj     String?
+  pesoGramas           Int
+  larguraCm            Decimal?           @db.Decimal(8, 2)
+  alturaCm             Decimal?           @db.Decimal(8, 2)
+  comprimentoCm        Decimal?           @db.Decimal(8, 2)
+  cubagem              Decimal?           @db.Decimal(10, 3)
+  servicosAdicionais   ServicoAdicional[]
+  notaFiscalChave      String?            @db.Char(44)
+  notaFiscalNumero     String?
+  statusAtual          StatusObjeto       @default(AGUARDANDO_CHEGADA)
+  unitizadorId         String?
+  rotaId               String?
+  stopSequence         Int?
+  distritoCodigo       String?
+  tentativasEntrega    Int                @default(0)
+  maxTentativas        Int                @default(2)
+  diasGuarda           Int                @default(7)
+  dataLimiteGuarda     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  unidade    Unidade       @relation(fields: [unidadeId], references: [id])
+  unitizador Unitizador?   @relation(fields: [unitizadorId], references: [id])
+  rota       Rota?         @relation(fields: [rotaId], references: [id])
+  eventos    ObjetoEvento[]
+  nps        NpsResposta?
+  interacoes InteracaoObjeto[]
+
+  @@index([codigoRastreio])
+  @@index([unidadeId, statusAtual])
+  @@index([cepDestino])
+  @@index([rotaId])
+  @@map("objetos")
+}
+
+model Unitizador {
+  id             String           @id @default(uuid())
+  codigo         String           @unique
+  qrCode         String           @unique
+  tipo           TipoUnitizador
+  unidadeId      String
+  larguraCm      Decimal?         @db.Decimal(8, 2)
+  alturaCm       Decimal?         @db.Decimal(8, 2)
+  profundidadeCm Decimal?         @db.Decimal(8, 2)
+  volumeLitros   Decimal?         @db.Decimal(10, 3)
+  capacidadeKg   Decimal?         @db.Decimal(8, 2)
+  placa          String?
+  modeloVeiculo  String?
+  modal          ModalEntrega?
+  statusVeiculo  StatusVeiculo?
+  statusAtual    StatusUnitizador @default(DISPONIVEL)
+  localizacaoAtual Json           @default("{\"tipo\":\"ESPACO_FISICO\",\"referencia\":\"\"}")
+  rotaAtualId    String?
+  parentId       String?
+  ativo          Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  unidade         Unidade              @relation(fields: [unidadeId], references: [id])
+  objetos         Objeto[]
+  historico       UnitizadorHistorico[]
+  rotaComoVeiculo Rota?                @relation("VeiculoRota")
+
+  @@index([unidadeId])
+  @@index([codigo])
+  @@map("unitizadores")
+}
+
+model UnitizadorHistorico {
+  id                  String           @id @default(uuid())
+  unitizadorId        String
+  statusAnterior      StatusUnitizador
+  statusNovo          StatusUnitizador
+  localizacaoAnterior Json
+  localizacaoNova     Json
+  ocorridoEm         DateTime         @default(now())
+  atorId              String
+  motivo              String?
+
+  unitizador Unitizador @relation(fields: [unitizadorId], references: [id])
+
+  @@index([unitizadorId])
+  @@map("unitizadores_historico")
+}
+
+model TransferenciaCarga {
+  id         String   @id @default(uuid())
+  origemIds  Json
+  destinoIds Json
+  objetoIds  Json
+  tipo       String
+  ocorridoEm DateTime @default(now())
+  atorId     String
+  observacao String?
+
+  @@map("transferencias_carga")
+}
+
+model Rota {
+  id                  String         @id @default(uuid())
+  codigo              String         @unique
+  unidadeId           String
+  carteiroId          String
+  veiculoId           String         @unique
+  statusAtual         StatusRota     @default(CRIADA)
+  modeloTriagem       ModeloTriagem
+  modoOtimizacao      ModoOtimizacao @default(ABSOLUTO)
+  solverUsado         SolverUsado    @default(VROOM)
+  totalParadas        Int            @default(0)
+  totalObjetos        Int            @default(0)
+  totalEntregues      Int            @default(0)
+  totalInsucessos     Int            @default(0)
+  totalPnovs          Int            @default(0)
+  distanciaEstimadaKm Decimal?       @db.Decimal(8, 2)
+  duracaoEstimadaMin  Int?
+  horarioDespachoAlvo DateTime?
+  iniciadoEm          DateTime?
+  concluidoEm         DateTime?
+  finalizadoEm        DateTime?
+  retornoEstimado     DateTime?
+  retornoProjetado    DateTime?
+  posicaoEstacao      String?
+  unitizadorIds       Json           @default("[]")
+  solverJobId         String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  unidade   Unidade    @relation(fields: [unidadeId], references: [id])
+  carteiro  Carteiro   @relation(fields: [carteiroId], references: [id])
+  veiculo   Unitizador @relation("VeiculoRota", fields: [veiculoId], references: [id])
+  paradas   Parada[]
+  objetos   Objeto[]
+  sortPlan  SortPlan?
+  snapshots RitmoSnapshot[]
+
+  @@index([unidadeId, statusAtual])
+  @@index([carteiroId])
+  @@map("rotas")
+}
+
+model Parada {
+  id                String       @id @default(uuid())
+  rotaId            String
+  sequencia         Int
+  latitude          Decimal      @db.Decimal(10, 7)
+  longitude         Decimal      @db.Decimal(10, 7)
+  cep               String       @db.Char(8)
+  logradouro        String?
+  statusAtual       StatusParada @default(PENDENTE)
+  estimativaChegada DateTime?
+  chegadaReal       DateTime?
+  saidaReal         DateTime?
+  entregaAgrupada   Boolean      @default(false)
+  totalObjetos      Int          @default(0)
+  totalEntregues    Int          @default(0)
+  totalInsucessos   Int          @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  rota Rota @relation(fields: [rotaId], references: [id])
+
+  @@index([rotaId])
+  @@map("paradas")
+}
+
+model ObjetoEvento {
+  id             String         @id @default(uuid())
+  objetoId       String
+  tipo           String
+  descricao      String
+  ocorridoEm     DateTime
+  registradoEm   DateTime       @default(now())
+  latitude       Decimal?       @db.Decimal(10, 7)
+  longitude      Decimal?       @db.Decimal(10, 7)
+  localDescricao String
+  atorTipo       TipoAtorEvento
+  atorId         String
+  evidencias     Json?
+  rotaId         String?
+  stopSequence   Int?
+  metadata       Json?
+
+  objeto Objeto  @relation(fields: [objetoId], references: [id])
+  ator   Usuario @relation(fields: [atorId], references: [id])
+
+  @@index([objetoId])
+  @@index([ocorridoEm])
+  @@map("objetos_eventos")
+}
+
+model SortPlan {
+  id          String        @id @default(uuid())
+  rotaId      String        @unique
+  unidadeId   String
+  geradoEm    DateTime      @default(now())
+  modelo      ModeloTriagem
+  assignments Json          @default("[]")
+  validado    Boolean       @default(false)
+
+  rota Rota @relation(fields: [rotaId], references: [id])
+
+  @@map("sort_plans")
+}
+
+model VolumePrevisao {
+  id                 String   @id @default(uuid())
+  unidadeId          String
+  faixa              String
+  quantidadeEstimada Int
+  quantidadeChegou   Int      @default(0)
+  data               DateTime @db.Date
+  atualizadoEm       DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  unidade Unidade @relation(fields: [unidadeId], references: [id])
+
+  @@unique([unidadeId, faixa, data])
+  @@map("volumes_previsao")
+}
+
+model NpsResposta {
+  id             String   @id @default(uuid())
+  objetoId       String   @unique
+  destinatarioId String
+  nota           Int
+  categoria      String
+  comentario     String?
+  respondidoEm   DateTime @default(now())
+
+  objeto Objeto @relation(fields: [objetoId], references: [id])
+
+  @@map("nps_respostas")
+}
+
+model InteracaoObjeto {
+  id             String          @id @default(uuid())
+  objetoId       String
+  destinatarioId String
+  tipo           TipoInteracao
+  dados          Json
+  status         StatusInteracao @default(PENDENTE)
+  criadoEm       DateTime        @default(now())
+  processadoEm   DateTime?
+  processadoPor  String?
+
+  objeto Objeto @relation(fields: [objetoId], references: [id])
+
+  @@index([objetoId])
+  @@map("interacoes_objeto")
+}
+
+model GpsSnapshot {
+  id         String   @id @default(uuid())
+  rotaId     String
+  carteiroId String
+  latitude   Decimal  @db.Decimal(10, 7)
+  longitude  Decimal  @db.Decimal(10, 7)
+  velocidade Decimal? @db.Decimal(5, 2)
+  ocorridoEm DateTime @default(now())
+
+  @@index([rotaId, ocorridoEm])
+  @@map("gps_snapshots")
+}
+
+model RitmoSnapshot {
+  id               String   @id @default(uuid())
+  rotaId           String
+  paradasFeitas    Int
+  objetosEntregues Int
+  sphAtual         Decimal  @db.Decimal(6, 2)
+  retornoProjetado DateTime?
+  ocorridoEm       DateTime @default(now())
+
+  rota Rota @relation(fields: [rotaId], references: [id])
+
+  @@index([rotaId, ocorridoEm])
+  @@map("ritmo_snapshots")
+}
+
+model EnderecoGeocode {
+  cep          String          @id @db.Char(8)
+  logradouro   String
+  bairro       String
+  cidade       String
+  uf           String          @db.Char(2)
+  latitude     Decimal         @db.Decimal(10, 7)
+  longitude    Decimal         @db.Decimal(10, 7)
+  accuracy     GeocodeAccuracy
+  fonte        String
+  atualizadoEm DateTime        @updatedAt
+
+  @@map("enderecos_geocode")
+}

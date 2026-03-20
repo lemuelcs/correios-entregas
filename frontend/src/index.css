@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --color-correios-blue: #003399;
+  --color-correios-yellow: #FFD600;
+  --color-correios-blue-light: #D6E4FF;
+  --color-correios-blue-mid: #1A56CC;
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+}

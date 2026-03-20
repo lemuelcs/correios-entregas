@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg17
+    container_name: correios-postgres
+    environment:
+      POSTGRES_USER: correios
+      POSTGRES_PASSWORD: correios
+      POSTGRES_DB: correios_entregas
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U correios -d correios_entregas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: correios-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  vroom:
+    image: vroomvrp/vroom-express:latest
+    container_name: correios-vroom
+    ports:
+      - "3000:3000"
+    environment:
+      VROOM_ROUTER: osrm
+    depends_on:
+      osrm:
+        condition: service_started
+
+  osrm:
+    image: osrm/osrm-backend:latest
+    container_name: correios-osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - osrmdata:/data
+    command: osrm-routed --algorithm mld /data/brazil-latest.osrm
+
+volumes:
+  pgdata:
+  redisdata:
+  osrmdata:

@@ -1,0 +1,10 @@
+{
+  "name": "Correios Entregas",
+  "short_name": "Entregas",
+  "description": "Sistema de Gestão de Distribuição dos Correios",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#003399",
+  "theme_color": "#003399",
+  "icons": []
+}
