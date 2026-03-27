@@ -13,6 +13,7 @@ import { carteiroRoutes } from './modules/carteiro/carteiro.routes';
 import { destinatarioRoutes } from './modules/destinatario/destinatario.routes';
 import { monitoramentoRoutes } from './modules/monitoramento/monitoramento.routes';
 import { reconciliacaoRoutes } from './modules/reconciliacao/reconciliacao.routes';
+import { comunicacaoRoutes } from './modules/comunicacao/comunicacao.routes';
 import { sseManager } from './modules/monitoramento/sse.manager';
 import { authenticate } from './shared/middleware/auth.middleware';
 import { sgodExporter } from './integrations/sgod/sgod.exporter';
@@ -53,6 +54,7 @@ app.use('/api/v1/carteiro', carteiroRoutes);
 app.use('/api/v1/destinatario', destinatarioRoutes);
 app.use('/api/v1/monitoramento', monitoramentoRoutes);
 app.use('/api/v1/reconciliacao', reconciliacaoRoutes);
+app.use('/api/v1/comunicacao', comunicacaoRoutes);
 
 // SGOD export
 app.get('/api/v1/sgod/export/:unidadeId', authenticate, async (req, res, next) => {

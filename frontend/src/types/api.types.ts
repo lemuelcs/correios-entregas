@@ -131,6 +131,7 @@ export interface Objeto {
   unidadeId: string;
   destinatarioNome: string;
   destinatarioCpf?: string;
+  destinatarioTelefone?: string;
   cepDestino: string;
   logradouro: string;
   numero: string;

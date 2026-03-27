@@ -17,7 +17,7 @@ interface EstruturaSummary {
   utilizacao: number; // percentage 0-100
 }
 
-interface SimulacaoResult {
+export interface SimulacaoResult {
   quantidadeObjetos: number;
   totalPosicoes: number;
   posicoesSuficientes: boolean;

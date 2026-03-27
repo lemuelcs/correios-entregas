@@ -1,0 +1,94 @@
+services:
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: evolution_api_piloto
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Servidor
+      - SERVER_URL=https://evo.correios-entregas.com
+      - SERVER_PORT=8080
+
+      # Autenticação
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+
+      # Banco de dados isolado da Evolution API
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://${DB_USER}:${DB_PASS}@postgres:5432/${DB_NAME}
+      - DATABASE_CONNECTION_CLIENT_NAME=evolution_pilot
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - DATABASE_SAVE_DATA_CHATS=true
+
+      # Redis isolado da Evolution API
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/0
+      - CACHE_REDIS_PREFIX_KEY=evo_pilot
+      - CACHE_REDIS_TTL=604800
+
+      # WhatsApp Baileys
+      - CONFIG_SESSION_PHONE_CLIENT=CorreiosEntregas
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+
+      # Webhook → Express API
+      - WEBHOOK_GLOBAL_URL=https://api.correios-entregas.com/api/v1/comunicacao/webhook/inbound
+      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=false
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_MESSAGES_UPDATE=true
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+      - WEBHOOK_EVENTS_SEND_MESSAGE=false
+
+      - TZ=America/Sao_Paulo
+
+    volumes:
+      - evo_instances:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: evolution_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - evo_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: evolution_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - evo_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  evo_instances:
+  evo_postgres:
+  evo_redis:

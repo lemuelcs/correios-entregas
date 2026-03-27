@@ -168,12 +168,13 @@ model Unidade {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  usuarios    Usuario[]
-  carteiros   Carteiro[]
-  objetos     Objeto[]
-  rotas       Rota[]
-  unitizadores Unitizador[]
-  previsoes   VolumePrevisao[]
+  usuarios      Usuario[]
+  carteiros     Carteiro[]
+  objetos       Objeto[]
+  rotas         Rota[]
+  unitizadores  Unitizador[]
+  previsoes     VolumePrevisao[]
+  pilotWaConfig PilotWaConfig?
 
   @@map("unidades")
 }
@@ -220,13 +221,15 @@ model Carteiro {
   cnh             String?
   ativo           Boolean      @default(true)
   familiaridadeH3 Json         @default("{}")
+  telefonePiloto  String?      // NúMero WhatsApp para piloto (E.164 sem "+": 5561999999999)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  usuario Usuario  @relation(fields: [usuarioId], references: [id])
-  unidade Unidade  @relation(fields: [unidadeId], references: [id])
-  pontos  PontoDia[]
-  rotas   Rota[]
+  usuario          Usuario          @relation(fields: [usuarioId], references: [id])
+  unidade          Unidade          @relation(fields: [unidadeId], references: [id])
+  pontos           PontoDia[]
+  rotas            Rota[]
+  whatsappSessions PilotWaSession[]
 
   @@map("carteiros")
 }
@@ -559,4 +562,142 @@ model EnderecoGeocode {
   atualizadoEm DateTime        @updatedAt
 
   @@map("enderecos_geocode")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// M13-PILOT – Comunicação WhatsApp (piloto sem Meta WABA)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PilotParticipantType {
+  CARTEIRO
+  DESTINATARIO
+  UNKNOWN
+}
+
+enum PilotConversationState {
+  BOT_ACTIVE
+  PROXY_ACTIVE
+  CLOSED
+  OPTED_OUT
+}
+
+enum PilotProxyStatus {
+  ACTIVE
+  ENDED
+  EXPIRED
+}
+
+// Configuração da instância Evolution API (1 por unidade piloto)
+model PilotWaConfig {
+  id               String   @id @default(uuid())
+  unidadeId        String   @unique
+  unidade          Unidade  @relation(fields: [unidadeId], references: [id])
+
+  instanceName     String   @unique
+  phoneNumber      String
+
+  botEnabled       Boolean  @default(true)
+  proxyEnabled     Boolean  @default(true)
+  maxProxyHours    Int      @default(4)
+  maxProxyMessages Int      @default(50)
+
+  optOutKeywords   Json     @default("[\"PARAR\",\"SAIR\",\"STOP\"]")
+
+  connected        Boolean  @default(false)
+  connectedAt      DateTime?
+  lastWebhookAt    DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  sessions      PilotWaSession[]
+  proxySessions PilotProxySession[]
+
+  @@map("pilot_wa_config")
+}
+
+// Sessão de conversa por número de telefone
+model PilotWaSession {
+  id               String                 @id @default(uuid())
+  instanceName     String
+  config           PilotWaConfig          @relation(fields: [instanceName], references: [instanceName])
+
+  phone            String
+  participantType  PilotParticipantType   @default(UNKNOWN)
+  carteiroId       String?
+  carteiro         Carteiro?              @relation(fields: [carteiroId], references: [id])
+
+  state            PilotConversationState @default(BOT_ACTIVE)
+  lastMessageAt    DateTime?
+  totalMessages    Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  messages PilotWaMessage[]
+
+  @@unique([instanceName, phone])
+  @@index([instanceName, state])
+  @@map("pilot_wa_sessions")
+}
+
+// Mensagens (conteúdo nullificado após 30 dias – LGPD)
+model PilotWaMessage {
+  id             String         @id @default(uuid())
+  sessionId      String
+  session        PilotWaSession @relation(fields: [sessionId], references: [id])
+
+  waMessageId    String?        @unique
+  direction      String         // INBOUND | OUTBOUND
+  messageType    String
+  content        String?        @db.Text
+  isProxied      Boolean        @default(false)
+  proxySessionId String?
+
+  createdAt      DateTime       @default(now())
+
+  @@index([sessionId, createdAt])
+  @@map("pilot_wa_messages")
+}
+
+// Sessão de proxy bidirecional carteiro ↔ destinatário
+model PilotProxySession {
+  id                   String   @id @default(uuid())
+  instanceName         String
+  config               PilotWaConfig @relation(fields: [instanceName], references: [instanceName])
+
+  carteiroPhone        String
+  carteiroId           String?
+
+  // Número do destinatário criptografado AES-256-GCM: "ivHex:authTagHex:encHex"
+  destinatarioPhoneEnc String
+
+  rotaId               String?
+  objetoId             String?
+
+  status               PilotProxyStatus @default(ACTIVE)
+  messageCount         Int              @default(0)
+  expiresAt            DateTime
+  endedAt              DateTime?
+  endReason            String?
+
+  createdAt            DateTime @default(now())
+  auditLogs            PilotProxyAudit[]
+
+  @@index([instanceName, status])
+  @@index([carteiroPhone])
+  @@map("pilot_proxy_sessions")
+}
+
+// Audit log do proxy (apenas hash – LGPD)
+model PilotProxyAudit {
+  id             String            @id @default(uuid())
+  proxySessionId String
+  proxySession   PilotProxySession @relation(fields: [proxySessionId], references: [id])
+
+  direction      String   // CARTEIRO_TO_DEST | DEST_TO_CARTEIRO
+  messageHash    String   // SHA-256 do conteúdo
+  charCount      Int?
+  createdAt      DateTime @default(now())
+
+  @@index([proxySessionId])
+  @@map("pilot_proxy_audit")
 }

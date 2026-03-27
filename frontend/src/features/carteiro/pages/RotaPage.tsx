@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useCarteiroAppStore } from '@/stores/carteiro-app.store';
 import { Badge } from '@/shared/ui/Badge';
 import { ProgressBar } from '@/shared/ui/ProgressBar';
+import { api } from '@/services/api';
 import { carteiroSummary, routeStops } from '../carteiro.data';
 
 export function RotaPage() {
@@ -85,7 +86,11 @@ export function RotaPage() {
                 Registrar insucesso
               </button>
             </div>
-            <ProxyButton />
+            <ProxyButton
+              rotaId={rotaAtual?.id}
+              objetoId={rotaAtual?.objetos?.find((o) => o.statusAtual === 'EM_ROTA')?.id}
+              destinatarioPhone={rotaAtual?.objetos?.find((o) => o.statusAtual === 'EM_ROTA')?.destinatarioTelefone}
+            />
           </div>
         ) : null}
 
@@ -151,12 +156,53 @@ function InlineStat({
   );
 }
 
-function ProxyButton() {
-  const [estado, setEstado] = useState<'idle' | 'loading' | 'ativo'>('idle');
+function ProxyButton({
+  rotaId,
+  objetoId,
+  destinatarioPhone,
+}: {
+  rotaId?: string;
+  objetoId?: string;
+  destinatarioPhone?: string;
+}) {
+  const [estado, setEstado] = useState<'idle' | 'loading' | 'ativo' | 'erro'>('idle');
+  const [proxySessionId, setProxySessionId] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
-  function iniciarProxy() {
+  async function iniciarProxy() {
+    if (!destinatarioPhone) {
+      setErro('Destinatário sem telefone cadastrado');
+      setEstado('erro');
+      return;
+    }
     setEstado('loading');
-    setTimeout(() => setEstado('ativo'), 1200);
+    setErro(null);
+    try {
+      const { sessionId } = await api.post<{ sessionId: string }>('/comunicacao/proxy/start', {
+        destinatarioPhone,
+        rotaId,
+        objetoId,
+      });
+      setProxySessionId(sessionId);
+      setEstado('ativo');
+    } catch (e: any) {
+      setErro(e?.message ?? 'Erro ao abrir canal');
+      setEstado('erro');
+    }
+  }
+
+  async function encerrarProxy() {
+    if (!proxySessionId) {
+      setEstado('idle');
+      return;
+    }
+    try {
+      await api.post(`/comunicacao/proxy/${proxySessionId}/end`, {});
+    } catch {
+      // Encerrar localmente mesmo que falhe
+    }
+    setProxySessionId(null);
+    setEstado('idle');
   }
 
   if (estado === 'ativo') {
@@ -165,10 +211,21 @@ function ProxyButton() {
         <span className="pulse-dot h-2 w-2 shrink-0 rounded-full bg-green-400" />
         <div className="flex-1">
           <p className="text-xs font-bold text-white">Canal aberto com destinatario</p>
-          <p className="text-[10px] text-white/60">Envie mensagens pelo WhatsApp</p>
+          <p className="text-[10px] text-white/60">Envie mensagens pelo seu WhatsApp</p>
         </div>
-        <button onClick={() => setEstado('idle')} className="text-xs text-white/60 hover:text-white" type="button">
+        <button onClick={encerrarProxy} className="text-xs text-white/60 hover:text-white" type="button">
           Encerrar
+        </button>
+      </div>
+    );
+  }
+
+  if (estado === 'erro') {
+    return (
+      <div className="mt-2 rounded-xl border border-red-400/40 bg-red-500/20 px-3 py-2">
+        <p className="text-xs text-red-200">{erro}</p>
+        <button onClick={() => setEstado('idle')} className="mt-1 text-[10px] text-white/60 hover:text-white" type="button">
+          Tentar novamente
         </button>
       </div>
     );
