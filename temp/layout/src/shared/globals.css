@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --blue:        #003399;
+  --blue-dark:   #002266;
+  --blue-mid:    #0040C0;
+  --blue-light:  #1A4DB3;
+  --blue-50:     #E6EBF7;
+  --blue-100:    #C0CFED;
+  --yellow:      #FFD600;
+  --yellow-dark: #E6C000;
+  --yellow-50:   #FFFDE0;
+
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger:  #DC2626;
+  --info:    #2563EB;
+
+  --text-primary:   #111827;
+  --text-secondary: #6B7280;
+  --text-muted:     #9CA3AF;
+  --border:         #E5E7EB;
+  --bg-page:        #F3F5FA;
+  --bg-card:        #FFFFFF;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Scan area animation */
+@keyframes scanLine {
+  0%   { top: 8px; }
+  100% { top: calc(100% - 8px); }
+}
+.scan-line {
+  animation: scanLine 2s linear infinite;
+}
+
+/* Badge pulse */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }

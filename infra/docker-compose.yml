@@ -1,0 +1,103 @@
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg17
+    container_name: correios-postgres
+    environment:
+      POSTGRES_USER: usr_correiosentrega
+      POSTGRES_PASSWORD: Correios123
+      POSTGRES_DB: correiosentrega_dev
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usr_correiosentrega -d correiosentrega_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: correios-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  osrm-download:
+    profiles: ["routing"]
+    image: curlimages/curl:8.12.1
+    container_name: correios-osrm-download
+    volumes:
+      - ./osrm-data:/data
+    command:
+      - sh
+      - -lc
+      - |
+        set -eu
+        if [ ! -f /data/centro-oeste-latest.osm.pbf ]; then
+          curl -L --fail --output /data/centro-oeste-latest.osm.pbf \
+            https://download.geofabrik.de/south-america/brazil/centro-oeste-latest.osm.pbf
+        else
+          echo "OSRM extract already downloaded"
+        fi
+
+  osrm-prepare:
+    profiles: ["routing"]
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: correios-osrm-prepare
+    depends_on:
+      osrm-download:
+        condition: service_completed_successfully
+    volumes:
+      - ./osrm-data:/data
+    command:
+      - sh
+      - -lc
+      - |
+        set -eu
+        if [ ! -f /data/centro-oeste-latest.osrm.partition ] || \
+           [ ! -f /data/centro-oeste-latest.osrm.cells ] || \
+           [ ! -f /data/centro-oeste-latest.osrm.mldgr ]; then
+          osrm-extract -p /opt/car.lua /data/centro-oeste-latest.osm.pbf
+          osrm-partition /data/centro-oeste-latest.osrm
+          osrm-customize /data/centro-oeste-latest.osrm
+        else
+          echo "OSRM graph already prepared"
+        fi
+
+  osrm:
+    profiles: ["routing"]
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: correios-osrm
+    depends_on:
+      osrm-prepare:
+        condition: service_completed_successfully
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./osrm-data:/data
+    command: osrm-routed --algorithm mld /data/centro-oeste-latest.osrm
+
+  vroom:
+    profiles: ["routing"]
+    image: ghcr.io/vroom-project/vroom-docker:v1.15.0
+    container_name: correios-vroom
+    ports:
+      - "3000:3000"
+    environment:
+      VROOM_ROUTER: osrm
+    volumes:
+      - ./vroom:/conf
+    depends_on:
+      osrm:
+        condition: service_started
+
+volumes:
+  pgdata:
+  redisdata:
