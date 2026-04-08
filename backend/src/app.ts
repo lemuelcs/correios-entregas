@@ -13,7 +13,7 @@ import { carteiroRoutes } from './modules/carteiro/carteiro.routes';
 import { destinatarioRoutes } from './modules/destinatario/destinatario.routes';
 import { monitoramentoRoutes } from './modules/monitoramento/monitoramento.routes';
 import { reconciliacaoRoutes } from './modules/reconciliacao/reconciliacao.routes';
-import { comunicacaoRoutes } from './modules/comunicacao/comunicacao.routes';
+import { comunicacaoRoutes } from './modules/communication/routes/comunicacao.routes';
 import { sseManager } from './modules/monitoramento/sse.manager';
 import { authenticate } from './shared/middleware/auth.middleware';
 import { sgodExporter } from './integrations/sgod/sgod.exporter';

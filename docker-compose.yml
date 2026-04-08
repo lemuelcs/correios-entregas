@@ -5,8 +5,6 @@ services:
       dockerfile: redis/Dockerfile
     container_name: correiosentrega-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -21,8 +19,6 @@ services:
       dockerfile: osrm/Dockerfile
     container_name: correiosentrega-osrm
     restart: unless-stopped
-    ports:
-      - "5000:5000"
     volumes:
       - osrm-data:/data
     environment:
@@ -34,7 +30,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 300s
 
   vroom:
     build:
@@ -42,19 +38,41 @@ services:
       dockerfile: vroom/Dockerfile
     container_name: correiosentrega-vroom
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       VROOM_ROUTER: osrm
     depends_on:
       osrm:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:3000/ >/dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
       start_period: 20s
+
+  evolution-api:
+    image: atendai/evolution-api:v2.2.3
+    container_name: correiosentrega-evolution
+    restart: unless-stopped
+    environment:
+      SERVER_URL: http://evolution-api:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-change_me_evolution_key}
+      DATABASE_ENABLED: "false"
+      REDIS_ENABLED: "true"
+      REDIS_URI: redis://redis:6379/1
+      WEBHOOK_GLOBAL_ENABLED: "false"
+      LOG_LEVEL: warn
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   backend:
     build:
@@ -69,6 +87,12 @@ services:
       REDIS_URL: redis://redis:6379
       OSRM_URL: http://osrm:5000
       VROOM_URL: http://vroom:3000
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_PILOT_URL: http://evolution-api:8080
+      EVOLUTION_API_KEY: change_me_evolution_key
+      EVOLUTION_PILOT_API_KEY: change_me_evolution_key
+      EVOLUTION_PILOT_WEBHOOK_SECRET: change_me_webhook_secret
+      APP_URL: http://backend:3002
       PORT: 3002
       FRONTEND_URL: http://localhost:5180
     extra_hosts:
@@ -77,9 +101,11 @@ services:
       redis:
         condition: service_healthy
       osrm:
-        condition: service_started
+        condition: service_healthy
       vroom:
-        condition: service_started
+        condition: service_healthy
+      evolution-api:
+        condition: service_healthy
     ports:
       - "3002:3002"
     healthcheck:

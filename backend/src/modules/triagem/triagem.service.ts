@@ -1,7 +1,7 @@
 import { prisma } from '../../shared/utils/prisma';
 import { AppError } from '../../shared/middleware/error-handler.middleware';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { triagemSimulator } from './triagem.simulator';
+import { triagemSimulator, type SimulacaoResult } from './triagem.simulator';
 
 interface ConfigTriagem {
   estruturas: number;
@@ -49,7 +49,7 @@ export class TriagemService {
     quantidadeObjetos?: number,
     horaInicioTriagem?: string,
     deadlineDespacho?: string,
-  ) {
+  ): Promise<SimulacaoResult> {
     const unidade = await prisma.unidade.findUnique({
       where: { id: unidadeId },
     });

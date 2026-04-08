@@ -1,41 +1,73 @@
 import { create } from 'zustand';
 import { api } from '../services/api';
-import type { Conversa, Mensagem, ProxySession, StatusInstancia, TemplateHSM } from '../types/comunicacao.types';
+import type {
+  Conversa,
+  Mensagem,
+  ProxySession,
+  InstanciaStatus,
+  AdminConfig,
+  AdminStats,
+  LlmAnalytics,
+  LlmConfig,
+  TemplateHSM,
+} from '../types/comunicacao.types';
 
 interface ComunicacaoState {
+  // ── Data ────────────────────────────────────────────────────────
   conversas: Conversa[];
   conversaAtual: Conversa | null;
   mensagens: Mensagem[];
   sessoes: ProxySession[];
   templates: TemplateHSM[];
-  instanciaStatus: StatusInstancia;
+  instanciaStatus: InstanciaStatus | null;
+  adminConfig: AdminConfig | null;
+  adminStats: AdminStats | null;
+  llmAnalytics: LlmAnalytics | null;
+  llmConfig: LlmConfig | null;
   loading: boolean;
   error: string | null;
 
+  // ── Actions ─────────────────────────────────────────────────────
   fetchConversas: () => Promise<void>;
-  fetchConversa: (id: string) => Promise<void>;
   fetchMensagens: (conversaId: string) => Promise<void>;
-  enviarMensagemGestor: (conversaId: string, texto: string) => Promise<void>;
-  assumirConversa: (conversaId: string) => Promise<void>;
-  encerrarConversa: (conversaId: string) => Promise<void>;
+  enviarMensagemGestor: (dispatcherSessionId: string, content: string) => Promise<void>;
+  assumirConversa: (wppSessionId: string, dispatcherNome: string) => Promise<{ dispatcherSessionId: string }>;
+  encerrarConversa: (dispatcherSessionId: string) => Promise<void>;
+
   fetchSessoes: () => Promise<void>;
-  encerrarSessao: (id: string) => Promise<void>;
+  encerrarSessao: (sessionId: string) => Promise<void>;
+
   fetchTemplates: () => Promise<void>;
   submeterTemplate: (data: Partial<TemplateHSM>) => Promise<void>;
+
   fetchInstanciaStatus: () => Promise<void>;
-  conectarInstancia: () => Promise<void>;
+  conectarInstancia: () => Promise<{ qrcode?: string | null; alreadyConnected?: boolean }>;
   desconectarInstancia: () => Promise<void>;
+
+  fetchAdminConfig: () => Promise<void>;
+  saveAdminConfig: (data: Record<string, unknown>) => Promise<void>;
+  fetchAdminStats: (dataInicio?: string, dataFim?: string) => Promise<void>;
+
+  fetchLlmConfig: () => Promise<void>;
+  updateLlmConfig: (data: { llmEnabled?: boolean; llmConfig?: Record<string, unknown> }) => Promise<void>;
+  fetchLlmAnalytics: () => Promise<void>;
 }
 
-export const useComunicacaoStore = create<ComunicacaoState>((set) => ({
+export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
   conversas: [],
   conversaAtual: null,
   mensagens: [],
   sessoes: [],
   templates: [],
-  instanciaStatus: 'INACTIVE',
+  instanciaStatus: null,
+  adminConfig: null,
+  adminStats: null,
+  llmAnalytics: null,
+  llmConfig: null,
   loading: false,
   error: null,
+
+  // ── Conversas ───────────────────────────────────────────────────
 
   fetchConversas: async () => {
     set({ loading: true, error: null });
@@ -47,75 +79,80 @@ export const useComunicacaoStore = create<ComunicacaoState>((set) => ({
     }
   },
 
-  fetchConversa: async (id) => {
-    set({ loading: true, error: null });
-    try {
-      const conversaAtual = await api.get<Conversa>(`/comunicacao/conversas/${id}`);
-      set({ conversaAtual, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
-    }
-  },
-
   fetchMensagens: async (conversaId) => {
     set({ loading: true, error: null });
     try {
       const mensagens = await api.get<Mensagem[]>(`/comunicacao/conversas/${conversaId}/mensagens`);
-      set({ mensagens, loading: false });
+      // Set conversaAtual from the conversas list if available
+      const conversa = get().conversas.find((c) => c.id === conversaId) ?? null;
+      set({ mensagens, conversaAtual: conversa, loading: false });
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }
   },
 
-  enviarMensagemGestor: async (conversaId, texto) => {
+  enviarMensagemGestor: async (dispatcherSessionId, content) => {
     set({ loading: true, error: null });
     try {
-      await api.post(`/comunicacao/conversas/${conversaId}/mensagem-gestor`, { texto });
+      await api.post(`/comunicacao/dispatcher/${dispatcherSessionId}/mensagem`, { content });
       set({ loading: false });
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }
   },
 
-  assumirConversa: async (conversaId) => {
+  assumirConversa: async (wppSessionId, dispatcherNome) => {
     set({ loading: true, error: null });
     try {
-      await api.post(`/comunicacao/conversas/${conversaId}/assumir`);
+      const result = await api.post<{ dispatcherSessionId: string }>('/comunicacao/dispatcher/entrar', {
+        wppSessionId,
+        dispatcherNome,
+      });
+      set({ loading: false });
+      return result;
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
+    }
+  },
+
+  encerrarConversa: async (dispatcherSessionId) => {
+    set({ loading: true, error: null });
+    try {
+      await api.post(`/comunicacao/dispatcher/${dispatcherSessionId}/sair`);
       set({ loading: false });
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }
   },
 
-  encerrarConversa: async (conversaId) => {
-    set({ loading: true, error: null });
-    try {
-      await api.post(`/comunicacao/conversas/${conversaId}/encerrar`);
-      set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
-    }
-  },
+  // ── Proxy Sessions ──────────────────────────────────────────────
 
   fetchSessoes: async () => {
     set({ loading: true, error: null });
     try {
-      const sessoes = await api.get<ProxySession[]>('/comunicacao/proxy/sessoes');
+      const sessoes = await api.get<ProxySession[]>('/comunicacao/proxy/sessions');
       set({ sessoes, loading: false });
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }
   },
 
-  encerrarSessao: async (id) => {
+  encerrarSessao: async (sessionId) => {
     set({ loading: true, error: null });
     try {
-      await api.post(`/comunicacao/proxy/sessoes/${id}/encerrar`);
-      set({ loading: false });
+      await api.post(`/comunicacao/proxy/${sessionId}/end`);
+      // Remove from local state or mark as ended
+      set((state) => ({
+        sessoes: state.sessoes.filter((s) => s.id !== sessionId),
+        loading: false,
+      }));
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }
   },
+
+  // ── Templates ───────────────────────────────────────────────────
 
   fetchTemplates: async () => {
     set({ loading: true, error: null });
@@ -137,11 +174,13 @@ export const useComunicacaoStore = create<ComunicacaoState>((set) => ({
     }
   },
 
+  // ── Instancia Status ────────────────────────────────────────────
+
   fetchInstanciaStatus: async () => {
     set({ loading: true, error: null });
     try {
-      const result = await api.get<{ status: StatusInstancia }>('/comunicacao/instancia/status');
-      set({ instanciaStatus: result.status, loading: false });
+      const instanciaStatus = await api.get<InstanciaStatus>('/comunicacao/status');
+      set({ instanciaStatus, loading: false });
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }
@@ -150,18 +189,90 @@ export const useComunicacaoStore = create<ComunicacaoState>((set) => ({
   conectarInstancia: async () => {
     set({ loading: true, error: null });
     try {
-      await api.post('/comunicacao/instancia/conectar');
-      set({ instanciaStatus: 'ACTIVE', loading: false });
+      const result = await api.post<{ ok: boolean; qrcode?: string | null; instanceName?: string; alreadyConnected?: boolean }>(
+        '/comunicacao/admin/instance/conectar',
+      );
+      set({ loading: false });
+      return { qrcode: result.qrcode, alreadyConnected: result.alreadyConnected };
     } catch (e: any) {
       set({ error: e.message, loading: false });
+      throw e;
     }
   },
 
   desconectarInstancia: async () => {
     set({ loading: true, error: null });
     try {
-      await api.post('/comunicacao/instancia/desconectar');
-      set({ instanciaStatus: 'INACTIVE', loading: false });
+      await api.delete('/comunicacao/admin/instance');
+      set({ instanciaStatus: { connected: false, state: 'close', instanceName: null }, loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+    }
+  },
+
+  // ── Admin Config ────────────────────────────────────────────────
+
+  fetchAdminConfig: async () => {
+    set({ loading: true, error: null });
+    try {
+      const adminConfig = await api.get<AdminConfig>('/comunicacao/admin/config');
+      set({ adminConfig, loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+    }
+  },
+
+  saveAdminConfig: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      await api.post('/comunicacao/admin/config', data);
+      set({ loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+    }
+  },
+
+  fetchAdminStats: async (dataInicio, dataFim) => {
+    set({ loading: true, error: null });
+    try {
+      const params = new URLSearchParams();
+      if (dataInicio) params.set('dataInicio', dataInicio);
+      if (dataFim) params.set('dataFim', dataFim);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const adminStats = await api.get<AdminStats>(`/comunicacao/admin/stats${qs}`);
+      set({ adminStats, loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+    }
+  },
+
+  // ── LLM Config ──────────────────────────────────────────────────
+
+  fetchLlmConfig: async () => {
+    set({ loading: true, error: null });
+    try {
+      const result = await api.get<{ data: LlmConfig }>('/comunicacao/admin/llm-config');
+      set({ llmConfig: result.data, loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+    }
+  },
+
+  updateLlmConfig: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      await api.put('/comunicacao/admin/llm-config', data);
+      set({ loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+    }
+  },
+
+  fetchLlmAnalytics: async () => {
+    set({ loading: true, error: null });
+    try {
+      const result = await api.get<{ data: LlmAnalytics }>('/comunicacao/admin/llm-analytics');
+      set({ llmAnalytics: result.data, loading: false });
     } catch (e: any) {
       set({ error: e.message, loading: false });
     }

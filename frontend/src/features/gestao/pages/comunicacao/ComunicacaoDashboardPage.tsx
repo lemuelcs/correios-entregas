@@ -1,73 +1,93 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { KpiCard } from '@/shared/ui/KpiCard';
 import { Badge } from '@/shared/ui/Badge';
 import { ESTADO_BADGE, INSTANCE_BADGE, TIPO_BADGE } from '@/types/comunicacao.types';
-import type { ChartDataPoint } from '@/types/comunicacao.types';
-import { CHART_DATA, INSTANCE_STATUS, ULTIMAS_CONVERSAS } from '../../comunicacao.data';
+import type { StatusInstancia } from '@/types/comunicacao.types';
+import { useComunicacaoStore } from '@/stores/comunicacao.store';
 
-// ── Mini LineChart SVG ──────────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────
 
-function LineChart({ data }: { data: ChartDataPoint[] }) {
-  const maxVal = Math.max(...data.map((d) => Math.max(d.recebidas, d.enviadas)));
-  const W = 560;
-  const H = 100;
-  const pad = 8;
+function timeAgo(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const min = Math.floor(diff / 60_000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
 
-  function toY(val: number) {
-    return H - pad - (val / maxVal) * (H - pad * 2);
-  }
-  function toX(i: number) {
-    return pad + (i / (data.length - 1)) * (W - pad * 2);
-  }
-
-  const pathRecebidas = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(d.recebidas)}`).join(' ');
-  const pathEnviadas = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${toX(i)},${toY(d.enviadas)}`).join(' ');
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 100 }}>
-      {[0, 0.25, 0.5, 0.75, 1].map((p) => (
-        <line
-          key={p}
-          x1={pad}
-          y1={pad + p * (H - pad * 2)}
-          x2={W - pad}
-          y2={pad + p * (H - pad * 2)}
-          stroke="#F3F4F6"
-          strokeWidth="1"
-        />
-      ))}
-      <path d={pathEnviadas} fill="none" stroke="#003399" strokeWidth="2" strokeLinejoin="round" />
-      <path d={pathRecebidas} fill="none" stroke="#FFD600" strokeWidth="2" strokeLinejoin="round" strokeDasharray="4 2" />
-    </svg>
-  );
+function deriveInstanceBadgeKey(status: { connected: boolean } | null): StatusInstancia {
+  if (!status) return 'INACTIVE';
+  return status.connected ? 'ACTIVE' : 'INACTIVE';
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function ComunicacaoDashboardPage() {
   const navigate = useNavigate();
-  const inst = INSTANCE_BADGE[INSTANCE_STATUS];
+  const {
+    conversas, fetchConversas,
+    instanciaStatus, fetchInstanciaStatus,
+    adminStats, fetchAdminStats,
+    adminConfig, fetchAdminConfig,
+    sessoes, fetchSessoes,
+    loading,
+  } = useComunicacaoStore();
+
+  useEffect(() => {
+    fetchConversas();
+    fetchInstanciaStatus();
+    fetchAdminStats();
+    fetchAdminConfig();
+    fetchSessoes();
+  }, []);
+
+  const instKey = deriveInstanceBadgeKey(instanciaStatus);
+  const inst = INSTANCE_BADGE[instKey];
+  const ativas = sessoes.filter((s) => s.status === 'ACTIVE');
+
+  const ultimas10 = conversas.slice(0, 10);
 
   return (
     <div className="space-y-6 p-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <KpiCard label="Conversas Ativas" value="23" accent="blue" delta="agora" deltaPositive />
-        <KpiCard label="Resolucao Bot (24h)" value="76" unit="%" accent="green" delta="+4% vs ontem" deltaPositive />
-        <KpiCard label="Custo LLM (mes)" value="R$ 84" accent="yellow" delta="meta: R$ 150/mes" deltaPositive />
-        <KpiCard label="Sessoes Proxy Ativas" value="4" accent="blue" />
+        <KpiCard
+          label="Conversas Ativas"
+          value={String(adminStats?.sessoesAtivas ?? conversas.length)}
+          accent="blue"
+          delta="agora"
+          deltaPositive
+        />
+        <KpiCard
+          label="Resolucao Bot"
+          value={adminStats ? `${adminStats.taxaBot}%` : '—'}
+          accent="green"
+          delta={adminStats ? `${adminStats.sessoesBot} sessoes bot` : ''}
+          deltaPositive
+        />
+        <KpiCard
+          label="Custo LLM"
+          value={adminStats ? `US$ ${adminStats.llmCostUsd.toFixed(2)}` : '—'}
+          accent="yellow"
+        />
+        <KpiCard label="Sessoes Proxy Ativas" value={String(ativas.length)} accent="blue" />
       </div>
 
-      {/* Status instância + gráfico */}
+      {/* Status instancia */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Status Evolution */}
         <div className="space-y-4 rounded-xl bg-white p-4 shadow-card">
           <h2 className="text-sm font-semibold text-gray-800">Instancia WhatsApp</h2>
           <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
             <span className="text-2xl">💬</span>
             <div className="flex-1">
-              <p className="font-mono text-xs font-semibold text-gray-700">cdd_bsb_01</p>
-              <p className="text-[10px] text-gray-500">+55 61 3003-0100</p>
+              <p className="font-mono text-xs font-semibold text-gray-700">
+                {instanciaStatus?.instanceName ?? adminConfig?.instanceName ?? '—'}
+              </p>
+              <p className="text-[10px] text-gray-500">{adminConfig?.phoneNumber ?? ''}</p>
             </div>
             <Badge variant={inst.variant as any} dot>
               {inst.label}
@@ -75,16 +95,18 @@ export function ComunicacaoDashboardPage() {
           </div>
           <div className="space-y-1 text-xs text-gray-500">
             <div className="flex justify-between">
-              <span>Ultima mensagem recebida</span>
-              <span className="font-medium text-gray-700">ha 2 min</span>
+              <span>Msgs enviadas (periodo)</span>
+              <span className="font-medium text-gray-700">{adminStats?.mensagensEnviadas ?? '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span>Mensagens hoje</span>
-              <span className="font-medium text-gray-700">347</span>
+              <span>Msgs recebidas (periodo)</span>
+              <span className="font-medium text-gray-700">{adminStats?.mensagensRecebidas ?? '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span>Fila n8n</span>
-              <span className="font-medium text-green-600">0 pendentes</span>
+              <span>Falhas</span>
+              <span className={`font-medium ${(adminStats?.falhas ?? 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {adminStats?.falhas ?? 0}
+              </span>
             </div>
           </div>
           <div className="flex gap-2 border-t border-gray-100 pt-2">
@@ -105,34 +127,43 @@ export function ComunicacaoDashboardPage() {
           </div>
         </div>
 
-        {/* Gráfico 30 dias */}
+        {/* Stats summary */}
         <div className="rounded-xl bg-white p-4 shadow-card lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-800">Mensagens — Ultimos 30 dias</h2>
-            <div className="flex items-center gap-3 text-[10px] text-gray-500">
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-0.5 w-4 rounded bg-[#003399]" />
-                Enviadas
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-0.5 w-4 rounded border border-dashed border-[#E6C000] bg-[#FFD600]" />
-                Recebidas
-              </span>
+          <h2 className="mb-3 text-sm font-semibold text-gray-800">Resumo do periodo</h2>
+          {adminStats ? (
+            <div className="grid grid-cols-2 gap-4 text-xs md:grid-cols-3">
+              {[
+                { label: 'Enviadas', value: adminStats.mensagensEnviadas },
+                { label: 'Recebidas', value: adminStats.mensagensRecebidas },
+                { label: 'Entregues', value: adminStats.entregues },
+                { label: 'Lidas', value: adminStats.lidas },
+                { label: 'Falhas', value: adminStats.falhas },
+                { label: 'Sessoes Bot', value: adminStats.sessoesBot },
+                { label: 'Sessoes Dispatcher', value: adminStats.sessoesDispatcher },
+                { label: 'Carteiros', value: adminStats.motoristaCount },
+                { label: 'Destinatarios', value: adminStats.destinatarioCount },
+                { label: 'Requisicoes LLM', value: adminStats.llmRequests },
+                { label: 'Custo LLM (USD)', value: `$${adminStats.llmCostUsd.toFixed(4)}` },
+                { label: 'Taxa Bot (%)', value: `${adminStats.taxaBot}%` },
+              ].map((f) => (
+                <div key={f.label}>
+                  <p className="text-gray-500">{f.label}</p>
+                  <p className="text-lg font-black text-gray-800">{f.value}</p>
+                </div>
+              ))}
             </div>
-          </div>
-          <LineChart data={CHART_DATA} />
-          <div className="mt-1 flex justify-between px-1 text-[10px] text-gray-400">
-            <span>Dia 1</span>
-            <span>Dia 15</span>
-            <span>Hoje</span>
-          </div>
+          ) : (
+            <p className="py-8 text-center text-sm text-gray-400">
+              {loading ? 'Carregando...' : 'Nenhum dado disponivel'}
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Tabela últimas conversas */}
+      {/* Tabela ultimas conversas */}
       <div className="rounded-xl bg-white shadow-card">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-800">Ultimas 10 Conversas</h2>
+          <h2 className="text-sm font-semibold text-gray-800">Ultimas Conversas</h2>
           <button
             onClick={() => navigate('/gestao/comunicacao/conversas')}
             className="text-xs font-medium text-[#003399] hover:underline"
@@ -154,12 +185,13 @@ export function ComunicacaoDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {ULTIMAS_CONVERSAS.map((c, i) => {
-                const tipo = TIPO_BADGE[c.tipo];
-                const estado = ESTADO_BADGE[c.estado];
+              {ultimas10.map((c) => {
+                const tipo = TIPO_BADGE[c.participantType] ?? TIPO_BADGE.UNKNOWN;
+                const estado = ESTADO_BADGE[c.state] ?? ESTADO_BADGE.BOT_ACTIVE;
+                const lastMsg = c.ultimasMensagens?.[0]?.content ?? '—';
                 return (
-                  <tr key={i} className="hover:bg-gray-50">
-                    <td className="px-4 py-2.5 font-mono text-xs text-gray-700">{c.participante}</td>
+                  <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5 font-mono text-xs text-gray-700">{c.phoneDisplay}</td>
                     <td className="px-4 py-2.5">
                       <Badge variant={tipo.variant as any} size="sm">
                         {tipo.label}
@@ -170,11 +202,11 @@ export function ComunicacaoDashboardPage() {
                         {estado.label}
                       </Badge>
                     </td>
-                    <td className="max-w-xs truncate px-4 py-2.5 text-xs text-gray-600">{c.ultimaMsg}</td>
-                    <td className="px-4 py-2.5 text-right text-[11px] text-gray-400">{c.ha}</td>
+                    <td className="max-w-xs truncate px-4 py-2.5 text-xs text-gray-600">{lastMsg}</td>
+                    <td className="px-4 py-2.5 text-right text-[11px] text-gray-400">{timeAgo(c.lastMessageAt)}</td>
                     <td className="px-4 py-2.5 text-center">
                       <button
-                        onClick={() => navigate('/gestao/comunicacao/conversas')}
+                        onClick={() => navigate(`/gestao/comunicacao/conversas/${c.id}`)}
                         className="text-xs font-medium text-[#003399] hover:underline"
                         type="button"
                       >
@@ -184,6 +216,13 @@ export function ComunicacaoDashboardPage() {
                   </tr>
                 );
               })}
+              {ultimas10.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">
+                    {loading ? 'Carregando conversas...' : 'Nenhuma conversa encontrada'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

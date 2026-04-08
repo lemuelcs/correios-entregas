@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/shared/ui/Badge';
 import { STATUS_TEMPLATE_BADGE, TIPO_BADGE } from '@/types/comunicacao.types';
 import type { TipoParticipante, TemplateHSM } from '@/types/comunicacao.types';
-import { TEMPLATES } from '../../comunicacao.data';
+import { useComunicacaoStore } from '@/stores/comunicacao.store';
 
 // ── Modal Preview ───────────────────────────────────────────────────────────
 
@@ -87,15 +87,20 @@ function ModalPreview({ template, onClose }: { template: TemplateHSM; onClose: (
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function TemplatesPage() {
+  const { templates, fetchTemplates, loading } = useComunicacaoStore();
   const [filtro, setFiltro] = useState<'todos' | TipoParticipante>('todos');
   const [preview, setPreview] = useState<TemplateHSM | null>(null);
   const [tab, setTab] = useState<'lista' | 'submeter'>('lista');
 
-  const filtrados = TEMPLATES.filter((t) => filtro === 'todos' || t.publico === filtro);
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
 
-  const aprovados = TEMPLATES.filter((t) => t.status === 'APPROVED').length;
-  const pendentes = TEMPLATES.filter((t) => t.status === 'PENDING').length;
-  const rejeitados = TEMPLATES.filter((t) => t.status === 'REJECTED').length;
+  const filtrados = templates.filter((t) => filtro === 'todos' || t.publico === filtro);
+
+  const aprovados = templates.filter((t) => t.status === 'APPROVED').length;
+  const pendentes = templates.filter((t) => t.status === 'PENDING').length;
+  const rejeitados = templates.filter((t) => t.status === 'REJECTED').length;
 
   return (
     <div className="space-y-4 p-6">
@@ -149,8 +154,8 @@ export function TemplatesPage() {
           <div className="flex gap-2">
             {[
               { v: 'todos' as const, l: 'Todos' },
-              { v: 'carteiro' as const, l: 'Carteiro' },
-              { v: 'destinatario' as const, l: 'Destinatario' },
+              { v: 'MOTORISTA' as const, l: 'Carteiro' },
+              { v: 'DESTINATARIO' as const, l: 'Destinatario' },
             ].map((f) => (
               <button
                 key={f.v}
@@ -168,7 +173,7 @@ export function TemplatesPage() {
           {/* Lista */}
           <div className="space-y-2">
             {filtrados.map((t) => {
-              const publico = TIPO_BADGE[t.publico];
+              const publico = TIPO_BADGE[t.publico] ?? TIPO_BADGE.UNKNOWN;
               const status = STATUS_TEMPLATE_BADGE[t.status];
               return (
                 <div key={t.id} className="flex items-start gap-4 rounded-xl bg-white p-4 shadow-card">
@@ -211,6 +216,11 @@ export function TemplatesPage() {
                 </div>
               );
             })}
+            {filtrados.length === 0 && (
+              <div className="py-12 text-center text-gray-400">
+                <p className="text-sm">{loading ? 'Carregando templates...' : 'Nenhum template encontrado'}</p>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -234,8 +244,8 @@ export function TemplatesPage() {
             <div>
               <label className="mb-1 block text-xs font-semibold text-gray-600">Publico-alvo</label>
               <select className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none">
-                <option value="carteiro">Carteiro</option>
-                <option value="destinatario">Destinatario</option>
+                <option value="MOTORISTA">Carteiro</option>
+                <option value="DESTINATARIO">Destinatario</option>
               </select>
             </div>
           </div>

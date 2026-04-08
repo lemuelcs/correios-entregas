@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/shared/ui/Badge';
 import type { StatusInstancia } from '@/types/comunicacao.types';
+import { useComunicacaoStore } from '@/stores/comunicacao.store';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -20,22 +21,67 @@ const STATUS_BADGE: Record<StatusInstancia, { variant: string; label: string }> 
   SUSPENDED: { variant: 'danger', label: 'Suspenso' },
 };
 
-// ── Aba Conexão ─────────────────────────────────────────────────────────────
+// ── Aba Conexao ─────────────────────────────────────────────────────────────
 
 function AbaConexao() {
-  const [status, setStatus] = useState<StatusInstancia>('ACTIVE');
-  const [connecting, setConnecting] = useState(false);
+  const {
+    instanciaStatus, fetchInstanciaStatus,
+    adminConfig, fetchAdminConfig,
+    conectarInstancia, desconectarInstancia, saveAdminConfig,
+    loading, error,
+  } = useComunicacaoStore();
 
-  function handleConectar() {
+  const [instanceName, setInstanceName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [qrcode, setQrcode] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchInstanciaStatus();
+    fetchAdminConfig();
+  }, []);
+
+  useEffect(() => {
+    if (adminConfig) {
+      setInstanceName(adminConfig.instanceName ?? '');
+      setPhoneNumber(adminConfig.phoneNumber ?? '');
+    }
+  }, [adminConfig]);
+
+  const isConnected = instanciaStatus?.connected ?? false;
+  const statusKey: StatusInstancia = connecting ? 'PENDING' : isConnected ? 'ACTIVE' : 'INACTIVE';
+  const s = STATUS_BADGE[statusKey];
+
+  async function handleConectar() {
     setConnecting(true);
-    setStatus('PENDING');
-    setTimeout(() => {
+    setQrcode(null);
+    try {
+      const result = await conectarInstancia();
+      if (result.alreadyConnected) {
+        await fetchInstanciaStatus();
+      } else if (result.qrcode) {
+        setQrcode(result.qrcode);
+      }
+    } catch {
+      // error handled in store
+    } finally {
       setConnecting(false);
-      setStatus('ACTIVE');
-    }, 2500);
+    }
   }
 
-  const s = STATUS_BADGE[status];
+  async function handleDesconectar() {
+    await desconectarInstancia();
+    setQrcode(null);
+    await fetchInstanciaStatus();
+  }
+
+  async function handleSalvarConfig() {
+    setSaving(true);
+    await saveAdminConfig({ instanceName, phoneNumber });
+    setSaving(false);
+    await fetchAdminConfig();
+  }
 
   return (
     <div className="space-y-5">
@@ -46,43 +92,75 @@ function AbaConexao() {
         </Badge>
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">{error}</div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {[
-          { label: 'Nome da instancia (instanceName)', id: 'instanceName', type: 'text', placeholder: 'cdd_bsb_01', value: 'cdd_bsb_01' },
-          { label: 'Numero de telefone', id: 'phoneNumber', type: 'tel', placeholder: '+55 61 3003-0100', value: '+55 61 3003-0100' },
-          { label: 'WABA ID', id: 'wabaId', type: 'text', placeholder: '123456789012345', value: '987654321098765' },
-          { label: 'Meta Access Token', id: 'metaToken', type: 'password', placeholder: '••••••••', value: 'EAAx...' },
-        ].map((f) => (
-          <div key={f.id}>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">{f.label}</label>
-            <input
-              type={f.type}
-              defaultValue={f.value}
-              placeholder={f.placeholder}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#003399] focus:outline-none focus:ring-2 focus:ring-[#003399]/30"
-            />
-          </div>
-        ))}
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-gray-600">Nome da instancia (instanceName)</label>
+          <input
+            type="text"
+            value={instanceName}
+            onChange={(e) => setInstanceName(e.target.value)}
+            placeholder="cdd_bsb_01"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#003399] focus:outline-none focus:ring-2 focus:ring-[#003399]/30"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-gray-600">Numero de telefone</label>
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            placeholder="+55 61 3003-0100"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#003399] focus:outline-none focus:ring-2 focus:ring-[#003399]/30"
+          />
+        </div>
       </div>
 
-      {status === 'PENDING' && (
+      {/* Webhook status */}
+      {adminConfig?.webhook && (
+        <div className={`rounded-lg p-3 text-xs ${adminConfig.webhook.ok ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+          Webhook: {adminConfig.webhook.ok ? 'Configurado corretamente' : 'Necessita reconfiguracao'}
+          <br />
+          <span className="text-[10px]">URL: {adminConfig.webhook.expected.url}</span>
+        </div>
+      )}
+
+      {qrcode && (
         <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-6">
-          <div className="flex h-32 w-32 items-center justify-center rounded-lg border border-gray-200 bg-white">
-            <span className="animate-pulse text-4xl">📱</span>
-          </div>
+          <img src={qrcode} alt="QR Code" className="h-48 w-48 rounded-lg" />
           <p className="text-center text-xs text-gray-500">
-            Escaneie o QR Code com o WhatsApp Business (modo Baileys)
+            Escaneie o QR Code com o WhatsApp Business
             <br />
             <span className="text-[10px] text-gray-400">Expira em 60 segundos</span>
           </p>
         </div>
       )}
 
+      {!qrcode && statusKey === 'PENDING' && (
+        <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-6">
+          <div className="flex h-32 w-32 items-center justify-center rounded-lg border border-gray-200 bg-white">
+            <span className="animate-pulse text-4xl">📱</span>
+          </div>
+          <p className="text-center text-xs text-gray-500">Buscando QR Code...</p>
+        </div>
+      )}
+
       <div className="flex gap-3 border-t border-gray-100 pt-2">
-        {status !== 'ACTIVE' ? (
+        <button
+          onClick={handleSalvarConfig}
+          disabled={saving || !instanceName}
+          className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+          type="button"
+        >
+          {saving ? 'Salvando...' : 'Salvar Config'}
+        </button>
+        {!isConnected ? (
           <button
             onClick={handleConectar}
-            disabled={connecting}
+            disabled={connecting || !instanceName}
             className="flex items-center gap-2 rounded-lg bg-[#003399] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#002266] disabled:opacity-60"
             type="button"
           >
@@ -90,16 +168,14 @@ function AbaConexao() {
           </button>
         ) : (
           <button
-            onClick={() => setStatus('INACTIVE')}
+            onClick={handleDesconectar}
+            disabled={loading}
             className="rounded-lg border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-100"
             type="button"
           >
             Desconectar
           </button>
         )}
-        <button className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium hover:bg-gray-50" type="button">
-          Testar Conexao
-        </button>
       </div>
     </div>
   );
@@ -108,6 +184,8 @@ function AbaConexao() {
 // ── Aba LLM ─────────────────────────────────────────────────────────────────
 
 function AbaLLM() {
+  const { llmConfig, fetchLlmConfig, updateLlmConfig, loading } = useComunicacaoStore();
+
   const [provider, setProvider] = useState('openai');
   const [modeloPrincipal, setModeloPrincipal] = useState('gpt-4o-mini');
   const [modeloComplexo, setModeloComplexo] = useState('gpt-4o');
@@ -116,6 +194,23 @@ function AbaLLM() {
   const [roteamento, setRoteamento] = useState(true);
   const [chips, setChips] = useState(['endereco desconhecido', 'problema com objeto', 'reclamacao']);
   const [chipInput, setChipInput] = useState('');
+  const [llmEnabled, setLlmEnabled] = useState(true);
+
+  useEffect(() => {
+    fetchLlmConfig();
+  }, []);
+
+  useEffect(() => {
+    if (llmConfig) {
+      setLlmEnabled(llmConfig.llmEnabled);
+      const cfg = llmConfig.llmConfig ?? {};
+      if (cfg.provider) setProvider(cfg.provider as string);
+      if (cfg.model) setModeloPrincipal(cfg.model as string);
+      if (cfg.modelComplex) setModeloComplexo(cfg.modelComplex as string);
+      if (cfg.temperature !== undefined) setTemperature(cfg.temperature as number);
+      if (cfg.maxTokens !== undefined) setMaxTokens(cfg.maxTokens as number);
+    }
+  }, [llmConfig]);
 
   const models = PROVIDERS[provider]?.models ?? [];
 
@@ -132,8 +227,39 @@ function AbaLLM() {
     setChips(chips.filter((x) => x !== c));
   }
 
+  async function handleSave() {
+    await updateLlmConfig({
+      llmEnabled,
+      llmConfig: {
+        provider,
+        model: modeloPrincipal,
+        modelComplex: modeloComplexo,
+        temperature,
+        maxTokens,
+        roteamento,
+        complexityTriggers: chips,
+      },
+    });
+  }
+
   return (
     <div className="space-y-5">
+      <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
+        <div>
+          <p className="text-sm font-medium text-gray-700">LLM Habilitado</p>
+          <p className="text-[10px] text-gray-500">Ativa o processamento LLM para mensagens nao reconhecidas</p>
+        </div>
+        <button
+          onClick={() => setLlmEnabled(!llmEnabled)}
+          className={`relative h-6 w-11 rounded-full transition-colors ${llmEnabled ? 'bg-[#003399]' : 'bg-gray-300'}`}
+          type="button"
+        >
+          <span
+            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${llmEnabled ? 'translate-x-5' : 'translate-x-0.5'}`}
+          />
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs font-semibold text-gray-600">Provider LLM</label>
@@ -260,8 +386,13 @@ function AbaLLM() {
       )}
 
       <div className="border-t border-gray-100 pt-2">
-        <button className="rounded-lg bg-[#003399] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#002266]" type="button">
-          Salvar Config. LLM
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className="rounded-lg bg-[#003399] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#002266] disabled:opacity-50"
+          type="button"
+        >
+          {loading ? 'Salvando...' : 'Salvar Config. LLM'}
         </button>
       </div>
     </div>
@@ -277,16 +408,15 @@ function AbaChatwoot() {
         A integracao com o Chatwoot e usada para handoff humano quando o bot nao consegue resolver a solicitacao.
       </div>
       {[
-        { label: 'Account ID', id: 'accountId', type: 'text', placeholder: '1', value: '1' },
-        { label: 'Inbox ID', id: 'inboxId', type: 'text', placeholder: '3', value: '3' },
-        { label: 'API Key', id: 'apiKey', type: 'password', placeholder: '••••••••', value: 'key_abc123' },
-        { label: 'URL base', id: 'url', type: 'url', placeholder: 'https://chat.correios-entregas.com', value: 'https://chat.correios-entregas.com' },
+        { label: 'Account ID', id: 'accountId', type: 'text', placeholder: '1' },
+        { label: 'Inbox ID', id: 'inboxId', type: 'text', placeholder: '3' },
+        { label: 'API Key', id: 'apiKey', type: 'password', placeholder: '••••••••' },
+        { label: 'URL base', id: 'url', type: 'url', placeholder: 'https://chat.correios-entregas.com' },
       ].map((f) => (
         <div key={f.id}>
           <label className="mb-1 block text-xs font-semibold text-gray-600">{f.label}</label>
           <input
             type={f.type}
-            defaultValue={f.value}
             placeholder={f.placeholder}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#003399]/30"
           />
@@ -304,7 +434,7 @@ function AbaChatwoot() {
   );
 }
 
-// ── Aba Horários ────────────────────────────────────────────────────────────
+// ── Aba Horarios ────────────────────────────────────────────────────────────
 
 function AbaHorarios() {
   const [diasAtivos, setDiasAtivos] = useState([0, 1, 2, 3, 4]);

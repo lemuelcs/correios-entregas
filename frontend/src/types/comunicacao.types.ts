@@ -1,46 +1,127 @@
 // ── Enums / Union types ─────────────────────────────────────────────────────
 
-export type EstadoConversa = 'bot_active' | 'human_active' | 'opted_out' | 'ended';
-export type TipoParticipante = 'carteiro' | 'destinatario';
+export type EstadoConversa = 'BOT_ACTIVE' | 'DISPATCHER_ACTIVE' | 'PROXY_ACTIVE' | 'OPTED_OUT' | 'CLOSED';
+export type TipoParticipante = 'MOTORISTA' | 'DESTINATARIO' | 'UNKNOWN';
 export type StatusInstancia = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
 export type StatusTemplate = 'APPROVED' | 'PENDING' | 'REJECTED';
 export type StatusProxySession = 'ACTIVE' | 'ENDED';
-export type EndReason = 'TIMEOUT' | 'MAX_MESSAGES' | 'DRIVER_ENDED' | 'MANAGER_ENDED';
-export type RemetenteMensagem = 'participante' | 'bot' | 'gestor';
+export type EndReason = 'TIMEOUT' | 'MAX_MESSAGES' | 'DRIVER_ENDED' | 'GESTOR_ENDED';
+export type DirecaoMensagem = 'INBOUND' | 'OUTBOUND';
+export type TipoMensagem = 'BOT' | 'DISPATCHER';
+export type DeliveryStatus = 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
 
-// ── Entities ────────────────────────────────────────────────────────────────
+// ── Backend API response shapes ────────────────────────────────────────────
 
+/** GET /comunicacao/conversas — one item */
 export interface Conversa {
   id: string;
-  participante: string;
-  tipo: TipoParticipante;
-  estado: EstadoConversa;
-  msgs: number;
-  ultimaMsg: string;
-  ha: string;
-  unresolved: boolean;
+  phoneDisplay: string;
+  participantType: TipoParticipante;
+  state: EstadoConversa;
+  totalMessages: number;
+  lastMessageAt: string | null;
+  botSilenciado: boolean;
+  dispatcherAtivo: boolean;
+  dispatcherNome: string | null;
+  dispatcherSessionId: string | null;
+  ultimasMensagens: { direction: DirecaoMensagem; content: string; createdAt: string }[];
 }
 
+/** GET /comunicacao/conversas/:id/mensagens — one item */
 export interface Mensagem {
-  de: RemetenteMensagem;
-  texto: string;
-  hora: string;
-  tipo: 'text';
+  id: string;
+  createdAt: string;
+  direction: DirecaoMensagem;
+  content: string;
+  tipo: TipoMensagem;
+  remetente: string;
+  deliveryStatus: DeliveryStatus;
 }
 
+/** GET /comunicacao/proxy/sessions — one item (raw Prisma WppProxyPilotSession) */
 export interface ProxySession {
   id: string;
-  carteiro: string;
-  objeto: string | null;
-  inicio: string;
-  duracaoMin: number;
-  msgs: number;
-  maxMsgs: number;
-  maxHoras: number;
+  instanceName: string;
+  carteiroPhone: string;
+  carteiroId: string | null;
+  rotaId: string | null;
+  paradaId: string | null;
   status: StatusProxySession;
-  expiresIn: string;
-  nearLimit?: boolean;
-  endReason?: EndReason;
+  messageCount: number;
+  expiresAt: string;
+  endedAt: string | null;
+  endReason: string | null;
+  createdAt: string;
+}
+
+/** GET /comunicacao/status */
+export interface InstanciaStatus {
+  connected: boolean;
+  state: string;
+  instanceName: string | null;
+}
+
+/** GET /comunicacao/admin/config */
+export interface AdminConfig {
+  configured: boolean;
+  instanceName?: string;
+  phoneNumber?: string;
+  dspNome?: string;
+  locale?: string;
+  timezone?: string;
+  botEnabled?: boolean;
+  proxyEnabled?: boolean;
+  instanceExists?: boolean;
+  connected?: boolean;
+  connectedAt?: string | null;
+  lastWebhookAt?: string | null;
+  webhook?: {
+    current: unknown;
+    expected: { url: string; events: string[] };
+    ok: boolean;
+  };
+}
+
+/** GET /comunicacao/admin/stats */
+export interface AdminStats {
+  mensagensEnviadas: number;
+  mensagensRecebidas: number;
+  entregues: number;
+  lidas: number;
+  falhas: number;
+  sessoesAtivas: number;
+  sessoesBot: number;
+  sessoesDispatcher: number;
+  motoristaCount: number;
+  destinatarioCount: number;
+  llmRequests: number;
+  llmCostUsd: number;
+  taxaBot: number;
+}
+
+/** GET /comunicacao/admin/llm-analytics */
+export interface LlmAnalytics {
+  period: { start: string; end: string };
+  totalRequests: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCostUsd: number;
+  byProviderModel: {
+    provider: string;
+    model: string;
+    requests: number;
+    inputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+    avgLatencyMs: number;
+  }[];
+  daily: { date: string; costUsd: number; requests: number }[];
+}
+
+/** GET /comunicacao/admin/llm-config */
+export interface LlmConfig {
+  llmEnabled: boolean;
+  llmConfig: Record<string, unknown>;
 }
 
 export interface TemplateHSM {
@@ -53,6 +134,8 @@ export interface TemplateHSM {
   variaveis: string[];
   corpo: string;
 }
+
+// ── Dashboard chart types (computed on frontend from stats) ────────────────
 
 export interface ChartDataPoint {
   dia: number;
@@ -93,15 +176,17 @@ export interface BadgeMapping {
 }
 
 export const ESTADO_BADGE: Record<EstadoConversa, BadgeMapping> = {
-  bot_active: { variant: 'info', label: 'Bot ativo' },
-  human_active: { variant: 'warning', label: 'Humano' },
-  opted_out: { variant: 'neutral', label: 'Opt-out' },
-  ended: { variant: 'neutral', label: 'Encerrado' },
+  BOT_ACTIVE: { variant: 'info', label: 'Bot ativo' },
+  DISPATCHER_ACTIVE: { variant: 'warning', label: 'Humano' },
+  PROXY_ACTIVE: { variant: 'blue', label: 'Proxy' },
+  OPTED_OUT: { variant: 'neutral', label: 'Opt-out' },
+  CLOSED: { variant: 'neutral', label: 'Encerrado' },
 };
 
 export const TIPO_BADGE: Record<TipoParticipante, BadgeMapping> = {
-  carteiro: { variant: 'blue', label: 'Carteiro' },
-  destinatario: { variant: 'yellow', label: 'Destinatario' },
+  MOTORISTA: { variant: 'blue', label: 'Carteiro' },
+  DESTINATARIO: { variant: 'yellow', label: 'Destinatario' },
+  UNKNOWN: { variant: 'neutral', label: 'Desconhecido' },
 };
 
 export const STATUS_TEMPLATE_BADGE: Record<StatusTemplate, BadgeMapping> = {
