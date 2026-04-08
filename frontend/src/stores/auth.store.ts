@@ -11,7 +11,7 @@ interface User {
   nome: string;
   cpf?: string;
   email?: string;
-  role: 'GESTOR' | 'CARTEIRO' | 'DESTINATARIO';
+  role: 'GESTAO' | 'UNIDADE' | 'CARTEIRO' | 'DESTINATARIO';
   unidadeId?: string;
   unidade?: Unidade | null;
 }
@@ -21,7 +21,7 @@ interface AuthState {
   accessToken: string | null;
   unidadeId: string | null;
   unidadeNome: string | null;
-  login: (credentials: { cpf?: string; email?: string; senha: string }) => Promise<User>;
+  login: (credentials: { cpf?: string; email?: string; matricula?: string; senha: string }) => Promise<User>;
   logout: () => void;
   setTokens: (accessToken: string) => void;
   switchUnidade: (unidadeId: string, unidadeNome: string) => void;

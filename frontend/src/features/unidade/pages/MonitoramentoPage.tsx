@@ -20,7 +20,7 @@ import { ProgressBar } from '@/shared/ui/ProgressBar';
 import {
   liveRoutes as mockLiveRoutes,
   monitoringAlerts as mockAlerts,
-} from '../gestao.data';
+} from '../unidade.data';
 
 // ── Demo data for scatter chart when no real API data is available ────
 const DEMO_PLANNED = [

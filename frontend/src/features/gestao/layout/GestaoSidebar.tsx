@@ -1,6 +1,5 @@
 import { NavLink, useNavigate } from 'react-router';
 import { gestaoSidebarGroups } from '../gestao.config';
-import { gestaoUnitName } from '../gestao.data';
 import { useAuthStore } from '@/stores/auth.store';
 
 export function GestaoSidebar() {
@@ -18,11 +17,11 @@ export function GestaoSidebar() {
       <div className="border-b border-white/10 px-5 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-correios-yellow text-sm font-black tracking-[0.25em] text-correios-blue">
-            CE
+            CS
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold uppercase tracking-[0.22em] text-correios-yellow">Correios</p>
-            <p className="truncate text-sm text-white/75">Gestao de Distribuicao</p>
+            <p className="truncate text-sm text-white/75">Gestao Central</p>
           </div>
         </div>
       </div>
@@ -71,11 +70,11 @@ export function GestaoSidebar() {
         <div className="rounded-2xl bg-white/8 px-3 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-correios-yellow text-sm font-black text-correios-blue">
-              {(user?.nome ?? 'Gestor').slice(0, 1).toUpperCase()}
+              {(user?.nome ?? 'G').slice(0, 1).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{user?.nome ?? 'Gestor da unidade'}</p>
-              <p className="truncate text-xs text-white/60">{gestaoUnitName}</p>
+              <p className="truncate text-sm font-semibold text-white">{user?.nome ?? 'Gestor Central'}</p>
+              <p className="truncate text-xs text-white/60">Correios Sede</p>
             </div>
           </div>
 

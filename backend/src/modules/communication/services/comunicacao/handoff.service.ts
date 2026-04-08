@@ -39,7 +39,7 @@ export const handoffService = {
         where: {
           unidadeId: dspId,
           ativo: true,
-          role: 'GESTOR',
+          role: 'UNIDADE',
         },
         select: { id: true, nome: true, email: true },
       })

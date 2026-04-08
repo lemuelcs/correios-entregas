@@ -5,7 +5,7 @@ import { Panel } from '@/shared/ui/Panel';
 import {
   dispatchChecklist as mockChecklist,
   dispatchRoutes as mockRoutes,
-} from '../gestao.data';
+} from '../unidade.data';
 
 export function DespachoPage() {
   const { rotasPendentes, loading, fetchRotasPendentes, liberarRota } = useDespachoStore();

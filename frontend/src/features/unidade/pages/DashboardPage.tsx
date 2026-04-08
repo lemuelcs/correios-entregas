@@ -14,7 +14,7 @@ import {
   routePulse as mockPulse,
   routeSnapshots as mockSnapshots,
   type DashboardKpi,
-} from '../gestao.data';
+} from '../unidade.data';
 
 export function DashboardPage() {
   const unidadeId = useAuthStore((s) => s.user?.unidadeId);

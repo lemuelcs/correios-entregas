@@ -26,7 +26,8 @@ enum ModeloTriagem {
 }
 
 enum Role {
-  GESTOR
+  GESTAO
+  UNIDADE
   CARTEIRO
   DESTINATARIO
 }
@@ -147,11 +148,29 @@ enum GeocodeAccuracy {
 
 // ——— MODELS ———————————————————————————————————————————————————
 
+model SuperintendenciaEstadual {
+  id        String   @id @default(uuid())
+  nome      String
+  sigla     String   @unique
+  cidade    String
+  uf        String   @db.Char(2)
+  isSede    Boolean  @default(false)
+  ativa     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unidades Unidade[]
+
+  @@map("superintendencias_estaduais")
+}
+
 model Unidade {
   id            String        @id @default(uuid())
   codigo        String        @unique
+  mcu           String?       @unique
   nome          String
   tipo          TipoUnidade
+  seId          String?
   logradouro    String
   numero        String
   complemento   String?
@@ -164,10 +183,13 @@ model Unidade {
   faixasCep     Json          @default("[]")
   modeloTriagem ModeloTriagem @default(MANUAL)
   configTriagem Json          @default("{}")
+  horarioAbre  String? // "08:00"
+  horarioFecha String? // "18:00"
   ativa         Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  se          SuperintendenciaEstadual? @relation(fields: [seId], references: [id])
   usuarios    Usuario[]
   carteiros   Carteiro[]
   objetos     Objeto[]
@@ -178,20 +200,33 @@ model Unidade {
   // WPP-PILOT relations
   wppPilotConfig WppPilotConfig?
 
+  lockers             LockerCorreios[]
+  fluxoConfigs        FluxoConfig[]
+  fluxosEntrega       FluxoEntregaDestinatario[]
+
   @@map("unidades")
 }
 
 model Usuario {
-  id        String   @id @default(uuid())
-  unidadeId String?
-  cpf       String?  @unique
-  email     String?  @unique
-  senha     String
-  nome      String
-  role      Role
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String   @id @default(uuid())
+  unidadeId                String?
+  cpf                      String?  @unique
+  email                    String?  @unique
+  matricula                String?  @unique
+  senha                    String
+  nome                     String
+  role                     Role
+  telefoneCelular          String?
+  telefoneComercial        String?
+  endResidencialCidade     String?
+  endResidencialUf         String?  @db.Char(2)
+  endResidencialCep        String?  @db.Char(8)
+  endResidencialLogradouro String?
+  endResidencialNumero     String?
+  endResidencialComplemento String?
+  ativo                    Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
   unidade       Unidade?       @relation(fields: [unidadeId], references: [id])
   carteiro      Carteiro?
@@ -302,6 +337,7 @@ model Objeto {
   eventos    ObjetoEvento[]
   nps        NpsResposta?
   interacoes InteracaoObjeto[]
+  fluxosEntrega FluxoEntregaDestinatario[]
 
   @@index([codigoRastreio])
   @@index([unidadeId, statusAtual])
@@ -573,11 +609,23 @@ model EnderecoGeocode {
   @@map("enderecos_geocode")
 }
 
+model ConfiguracaoGlobal {
+  id        String   @id @default(uuid())
+  chave     String   @unique
+  valor     Json
+  descricao String?
+  updatedAt DateTime @updatedAt
+
+  @@map("configuracao_global")
+}
+
 // ——— WPP-PILOT ENUMS —————————————————————————————————————————
 
 enum WppParticipantType {
   CARTEIRO
   DESTINATARIO
+  GESTAO
+  UNIDADE
   UNKNOWN
 }
 
@@ -615,6 +663,16 @@ enum MessageDeliveryStatus {
   DELIVERED
   READ
   FAILED
+}
+
+enum StatusFluxoEntrega {
+  AGUARDANDO_RESPOSTA
+  CONFIRMADO_PRESENCA
+  ENTREGAR_VIZINHO
+  REAGENDAR_AMANHA
+  RETIRAR_AGENCIA
+  RETIRAR_LOCKER
+  EXPIRADO
 }
 
 // ——— WPP-PILOT MODELS ————————————————————————————————————————
@@ -854,4 +912,75 @@ model LlmUsageLog {
   @@index([configId, createdAt])
   @@index([provider, model])
   @@map("llm_usage_logs")
+}
+
+// ——— FLUXO ENTREGA MODELS ———————————————————————————————————
+
+model LockerCorreios {
+  id           String   @id @default(uuid())
+  nome         String
+  codigo       String   @unique
+  logradouro   String
+  numero       String
+  bairro       String
+  cidade       String
+  uf           String   @db.Char(2)
+  cep          String   @db.Char(8)
+  latitude     Decimal  @db.Decimal(10, 7)
+  longitude    Decimal  @db.Decimal(10, 7)
+  horarioAbre  String
+  horarioFecha String
+  ativo        Boolean  @default(true)
+  unidadeId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  unidade Unidade? @relation(fields: [unidadeId], references: [id])
+
+  @@map("lockers_correios")
+}
+
+model FluxoEntregaDestinatario {
+  id                String             @id @default(uuid())
+  instanceName      String
+  unidadeId         String
+  objetoId          String
+  destinatarioPhone String
+  destinatarioNome  String?
+
+  status            StatusFluxoEntrega @default(AGUARDANDO_RESPOSTA)
+
+  mensagemEnviadaEm   DateTime?
+  respostaRecebidaEm  DateTime?
+  respostaRaw         String?
+  opcaoEscolhida      String?
+  expiresAt           DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  objeto  Objeto  @relation(fields: [objetoId], references: [id])
+  unidade Unidade @relation(fields: [unidadeId], references: [id])
+
+  @@index([instanceName, status])
+  @@index([objetoId])
+  @@index([destinatarioPhone])
+  @@map("fluxo_entrega_destinatario")
+}
+
+model FluxoConfig {
+  id        String   @id @default(uuid())
+  unidadeId String?
+  codigo    String
+  versao    Int      @default(1)
+  ativo     Boolean  @default(true)
+  definicao Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  unidade Unidade? @relation(fields: [unidadeId], references: [id])
+
+  @@unique([unidadeId, codigo])
+  @@map("fluxo_configs")
 }

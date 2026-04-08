@@ -5,7 +5,7 @@ import { roteirizacaoController } from './roteirizacao.controller';
 const router = Router();
 
 router.use(authenticate);
-router.use(requireRole('GESTOR'));
+router.use(requireRole('UNIDADE'));
 
 router.post('/executar', (req, res, next) =>
   roteirizacaoController.executar(req, res, next),

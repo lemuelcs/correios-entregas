@@ -5,9 +5,13 @@ import { authService } from './auth.service';
 const loginSchema = z.object({
   cpf: z.string().length(11).optional(),
   email: z.string().email().optional(),
+  matricula: z.string().length(8).optional(),
   senha: z.string().min(6),
-}).refine(data => data.cpf || data.email, {
-  message: 'CPF ou email é obrigatório',
+}).refine(data => {
+  const identifiers = [data.cpf, data.email, data.matricula].filter(Boolean);
+  return identifiers.length === 1;
+}, {
+  message: 'Informe exatamente um: CPF, email ou matrícula',
 });
 
 const refreshSchema = z.object({

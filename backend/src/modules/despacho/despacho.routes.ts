@@ -5,7 +5,7 @@ import { despachoController } from './despacho.controller';
 const router = Router();
 
 router.use(authenticate);
-router.use(requireRole('GESTOR'));
+router.use(requireRole('UNIDADE'));
 
 router.get('/ponto-dia', (req, res, next) => despachoController.getPontoDia(req, res, next));
 router.post('/ponto-dia/registrar', (req, res, next) => despachoController.registrarPonto(req, res, next));

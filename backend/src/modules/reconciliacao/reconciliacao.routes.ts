@@ -5,7 +5,7 @@ import { reconciliacaoController } from './reconciliacao.controller';
 const router = Router();
 
 router.use(authenticate);
-router.use(requireRole('GESTOR'));
+router.use(requireRole('UNIDADE'));
 
 router.post('/scan-retorno', (req, res, next) => reconciliacaoController.scanRetorno(req, res, next));
 router.get('/pendentes/:rotaId', (req, res, next) => reconciliacaoController.getPendentes(req, res, next));

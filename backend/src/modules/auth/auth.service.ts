@@ -12,6 +12,7 @@ const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 interface LoginInput {
   cpf?: string;
   email?: string;
+  matricula?: string;
   senha: string;
 }
 
@@ -22,17 +23,18 @@ interface TokenPair {
 
 export class AuthService {
   async login(input: LoginInput) {
-    const { cpf, email, senha } = input;
+    const { cpf, email, matricula, senha } = input;
 
-    if (!cpf && !email) {
-      throw new AppError(400, 'CPF ou email é obrigatório');
+    const identifiers = [cpf, email, matricula].filter(Boolean);
+    if (identifiers.length === 0) {
+      throw new AppError(400, 'CPF, email ou matrícula é obrigatório');
     }
-    if (cpf && email) {
-      throw new AppError(400, 'Informe CPF ou email, não ambos');
+    if (identifiers.length > 1) {
+      throw new AppError(400, 'Informe apenas um: CPF, email ou matrícula');
     }
 
     const usuario = await prisma.usuario.findFirst({
-      where: cpf ? { cpf } : { email },
+      where: matricula ? { matricula } : cpf ? { cpf } : { email },
       include: { unidade: true, carteiro: true },
     });
 

@@ -6,7 +6,7 @@ import { ProgressBar } from '@/shared/ui/ProgressBar';
 import {
   routeOptimizationResults as mockResults,
   routeScenarios as mockScenarios,
-} from '../gestao.data';
+} from '../unidade.data';
 
 export function RoteirizacaoPage() {
   const { jobId, jobStatus, resultado, loading, executar, pollJobStatus, fetchResultado, aprovar } = useRoteirizacaoStore();

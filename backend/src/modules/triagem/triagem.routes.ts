@@ -5,7 +5,7 @@ import { triagemController } from './triagem.controller';
 const router = Router();
 
 router.use(authenticate);
-router.use(requireRole('GESTOR'));
+router.use(requireRole('UNIDADE'));
 
 router.post('/configurar-sessao', (req, res, next) => triagemController.configurarSessao(req, res, next));
 router.post('/simular', (req, res, next) => triagemController.simular(req, res, next));

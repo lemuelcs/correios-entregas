@@ -5,7 +5,8 @@ import { api } from '../services/api';
 import type { Role } from '../types/api.types';
 
 const HOME_BY_ROLE: Record<Role, string> = {
-  GESTOR: '/gestao',
+  GESTAO: '/gestao',
+  UNIDADE: '/unidade',
   CARTEIRO: '/carteiro',
   DESTINATARIO: '/destinatario',
 };

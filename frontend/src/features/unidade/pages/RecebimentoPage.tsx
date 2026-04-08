@@ -6,7 +6,7 @@ import { Panel } from '@/shared/ui/Panel';
 import {
   recebimentoHistory as mockHistory,
   recebimentoQueue as mockQueue,
-} from '../gestao.data';
+} from '../unidade.data';
 
 export function RecebimentoPage() {
   const { ultimoScan, relatorio, loading, scanUnitizador, fetchRelatorio, fetchExcecoes } = useRecebimentoStore();

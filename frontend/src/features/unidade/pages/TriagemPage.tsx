@@ -8,7 +8,7 @@ import {
   triageLanes as mockLanes,
   triageModes as mockModes,
   triagePlan as mockPlan,
-} from '../gestao.data';
+} from '../unidade.data';
 
 export function TriagemPage() {
   const { status, sortPlan, loading, fetchStatus } = useTriagemStore();

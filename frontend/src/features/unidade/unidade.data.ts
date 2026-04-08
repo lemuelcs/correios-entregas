@@ -192,4 +192,4 @@ export const unidadeConfiguracoes = [
   { label: 'Janela de despacho', value: '09:10 ate 09:40' },
 ];
 
-export const gestaoUnitName = 'CDD Sao Paulo Centro';
+export const unidadeUnitName = 'CDD Sao Paulo Centro';

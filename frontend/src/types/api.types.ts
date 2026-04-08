@@ -2,7 +2,7 @@
 
 export type TipoUnidade = 'CDD' | 'CEE' | 'HIBRIDA';
 export type ModeloTriagem = 'MANUAL' | 'PTL' | 'ADTA';
-export type Role = 'GESTOR' | 'CARTEIRO' | 'DESTINATARIO';
+export type Role = 'GESTAO' | 'UNIDADE' | 'CARTEIRO' | 'DESTINATARIO';
 
 export type ModalEntrega =
   | 'A_PE'
@@ -69,11 +69,24 @@ export interface User {
   carteiro?: Carteiro;
 }
 
+export interface SuperintendenciaEstadual {
+  id: string;
+  nome: string;
+  sigla: string;
+  cidade: string;
+  uf: string;
+  isSede: boolean;
+  ativa: boolean;
+}
+
 export interface Unidade {
   id: string;
   codigo: string;
+  mcu?: string;
   nome: string;
   tipo: TipoUnidade;
+  seId?: string;
+  se?: SuperintendenciaEstadual;
   logradouro: string;
   numero: string;
   complemento?: string;
@@ -87,6 +100,13 @@ export interface Unidade {
   modeloTriagem: ModeloTriagem;
   configTriagem: ConfigTriagem;
   ativa: boolean;
+}
+
+export interface ConfiguracaoGlobal {
+  id: string;
+  chave: string;
+  valor: any;
+  descricao?: string;
 }
 
 export interface FaixaCep {

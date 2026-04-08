@@ -4,9 +4,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import './index.css';
 
 // Layouts
-import { GestaoShell } from './features/gestao/layout/GestaoShell';
+import { UnidadeShell } from './features/unidade/layout/UnidadeShell';
 import { CarteiroShell } from './features/carteiro/layout/CarteiroShell';
 import { DestinatarioShell } from './features/destinatario/layout/DestinatarioShell';
+import { GestaoShell } from './features/gestao/layout/GestaoShell';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -26,20 +27,22 @@ import { ReagendarPage } from './features/destinatario/pages/ReagendarPage';
 import { NpsPage } from './features/destinatario/pages/NpsPage';
 import { AjudaPage } from './features/destinatario/pages/AjudaPage';
 import { ContaPage } from './features/destinatario/pages/ContaPage';
-import { DashboardPage } from './features/gestao/pages/DashboardPage';
-import { RecebimentoPage } from './features/gestao/pages/RecebimentoPage';
-import { TriagemPage } from './features/gestao/pages/TriagemPage';
-import { RoteirizacaoPage } from './features/gestao/pages/RoteirizacaoPage';
-import { DespachoPage } from './features/gestao/pages/DespachoPage';
-import { MonitoramentoPage } from './features/gestao/pages/MonitoramentoPage';
-import { ReconciliacaoPage } from './features/gestao/pages/ReconciliacaoPage';
-import { CadastrosConfigPage } from './features/gestao/pages/CadastrosConfigPage';
-import { ComunicacaoDashboardPage } from './features/gestao/pages/comunicacao/ComunicacaoDashboardPage';
-import { ConfiguracaoWhatsappPage } from './features/gestao/pages/comunicacao/ConfiguracaoWhatsappPage';
-import { ConversasPage, ConversaDetalhePage } from './features/gestao/pages/comunicacao/ConversasPage';
-import { ProxySessionsPage } from './features/gestao/pages/comunicacao/ProxySessionsPage';
-import { TemplatesPage } from './features/gestao/pages/comunicacao/TemplatesPage';
-import { AnalyticsPage } from './features/gestao/pages/comunicacao/AnalyticsPage';
+import { DashboardPage } from './features/unidade/pages/DashboardPage';
+import { RecebimentoPage } from './features/unidade/pages/RecebimentoPage';
+import { TriagemPage } from './features/unidade/pages/TriagemPage';
+import { RoteirizacaoPage } from './features/unidade/pages/RoteirizacaoPage';
+import { DespachoPage } from './features/unidade/pages/DespachoPage';
+import { MonitoramentoPage } from './features/unidade/pages/MonitoramentoPage';
+import { ReconciliacaoPage } from './features/unidade/pages/ReconciliacaoPage';
+import { CadastrosConfigPage } from './features/unidade/pages/CadastrosConfigPage';
+import { ComunicacaoPage } from './features/unidade/pages/comunicacao/ComunicacaoPage';
+import { WhatsAppSettingsPage } from './features/unidade/pages/comunicacao/WhatsAppSettingsPage';
+
+// Gestao (Sede) pages
+import { GestaoUnidadesPage } from './features/gestao/pages/GestaoUnidadesPage';
+import { GestaoSEsPage } from './features/gestao/pages/GestaoSEsPage';
+import { GestaoUsuariosPage } from './features/gestao/pages/GestaoUsuariosPage';
+import { GestaoAjustesPage } from './features/gestao/pages/GestaoAjustesPage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -47,8 +50,17 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Gestão */}
+        {/* Gestao (Sede / Corporativo) */}
         <Route path="/gestao" element={<GestaoShell />}>
+          <Route index element={<GestaoUnidadesPage />} />
+          <Route path="ses" element={<GestaoSEsPage />} />
+          <Route path="usuarios" element={<GestaoUsuariosPage />} />
+          <Route path="ajustes" element={<GestaoAjustesPage />} />
+          <Route path="*" element={<Navigate to="/gestao" replace />} />
+        </Route>
+
+        {/* Unidade (Gestao de uma unidade especifica) */}
+        <Route path="/unidade" element={<UnidadeShell />}>
           <Route index element={<DashboardPage />} />
           <Route path="recebimento" element={<RecebimentoPage />} />
           <Route path="triagem" element={<TriagemPage />} />
@@ -62,14 +74,9 @@ createRoot(document.getElementById('root')!).render(
           <Route path="carteiros" element={<CadastrosConfigPage section="carteiros" />} />
           <Route path="ponto" element={<CadastrosConfigPage section="ponto" />} />
           <Route path="configuracoes" element={<CadastrosConfigPage section="configuracoes" />} />
-          <Route path="comunicacao" element={<ComunicacaoDashboardPage />} />
-          <Route path="comunicacao/configuracao" element={<ConfiguracaoWhatsappPage />} />
-          <Route path="comunicacao/conversas" element={<ConversasPage />} />
-          <Route path="comunicacao/conversas/:conversaId" element={<ConversaDetalhePage />} />
-          <Route path="comunicacao/proxy" element={<ProxySessionsPage />} />
-          <Route path="comunicacao/templates" element={<TemplatesPage />} />
-          <Route path="comunicacao/analytics" element={<AnalyticsPage />} />
-          <Route path="*" element={<Navigate to="/gestao" replace />} />
+          <Route path="comunicacao" element={<ComunicacaoPage />} />
+          <Route path="configuracoes/whatsapp" element={<WhatsAppSettingsPage />} />
+          <Route path="*" element={<Navigate to="/unidade" replace />} />
         </Route>
 
         {/* Carteiro */}
@@ -85,7 +92,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="*" element={<Navigate to="/carteiro" replace />} />
         </Route>
 
-        {/* Destinatário */}
+        {/* Destinatario */}
         <Route path="/destinatario" element={<DestinatarioShell />}>
           <Route index element={<ObjetosPage />} />
           <Route path="login" element={<DestinatarioLoginPage />} />

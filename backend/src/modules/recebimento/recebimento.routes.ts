@@ -5,7 +5,7 @@ import { recebimentoController } from './recebimento.controller';
 const router = Router();
 
 router.use(authenticate);
-router.use(requireRole('GESTOR'));
+router.use(requireRole('UNIDADE'));
 
 router.post('/scan-unitizador', (req, res, next) => recebimentoController.scanUnitizador(req, res, next));
 router.post('/confirmar-conferencia', (req, res, next) => recebimentoController.confirmarConferencia(req, res, next));

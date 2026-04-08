@@ -5,7 +5,7 @@ import { monitoramentoController } from './monitoramento.controller';
 const router = Router();
 
 router.use(authenticate);
-router.use(requireRole('GESTOR'));
+router.use(requireRole('UNIDADE'));
 
 router.get('/rotas-ativas', (req, res, next) => monitoramentoController.getRotasAtivas(req, res, next));
 router.get('/kpis/:unidadeId', (req, res, next) => monitoramentoController.getKpis(req, res, next));

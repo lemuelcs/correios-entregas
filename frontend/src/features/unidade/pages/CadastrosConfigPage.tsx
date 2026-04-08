@@ -13,7 +13,7 @@ import {
   unidadeConfiguracoes as mockConfiguracoes,
   unitizerInventory as mockUnitizerInventory,
   vehicleFleet as mockVehicleFleet,
-} from '../gestao.data';
+} from '../unidade.data';
 
 type CadastrosSection = 'previsao' | 'unitizadores' | 'veiculos' | 'carteiros' | 'ponto' | 'configuracoes';
 
@@ -22,12 +22,12 @@ interface CadastrosConfigPageProps {
 }
 
 const tabs: Array<{ id: CadastrosSection; label: string; path: string }> = [
-  { id: 'previsao', label: 'Previsao', path: '/gestao/previsao' },
-  { id: 'unitizadores', label: 'Unitizadores', path: '/gestao/unitizadores' },
-  { id: 'veiculos', label: 'Veiculos', path: '/gestao/veiculos' },
-  { id: 'carteiros', label: 'Carteiros', path: '/gestao/carteiros' },
-  { id: 'ponto', label: 'Ponto', path: '/gestao/ponto' },
-  { id: 'configuracoes', label: 'Configuracoes', path: '/gestao/configuracoes' },
+  { id: 'previsao', label: 'Previsao', path: '/unidade/previsao' },
+  { id: 'unitizadores', label: 'Unitizadores', path: '/unidade/unitizadores' },
+  { id: 'veiculos', label: 'Veiculos', path: '/unidade/veiculos' },
+  { id: 'carteiros', label: 'Carteiros', path: '/unidade/carteiros' },
+  { id: 'ponto', label: 'Ponto', path: '/unidade/ponto' },
+  { id: 'configuracoes', label: 'Configuracoes', path: '/unidade/configuracoes' },
 ];
 
 export function CadastrosConfigPage({ section }: CadastrosConfigPageProps) {

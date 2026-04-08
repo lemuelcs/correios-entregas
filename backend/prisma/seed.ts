@@ -1,19 +1,97 @@
-import { PrismaClient, TipoUnidade, ModeloTriagem, Role, ModalEntrega, TipoUnitizador, StatusVeiculo } from '@prisma/client';
+import { PrismaClient, TipoUnidade, ModeloTriagem, ModalEntrega, TipoUnitizador, StatusVeiculo } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+function fluxoEntregaDefinicao() {
+  return {
+    estadoInicial: 'PERGUNTA_PRESENCA',
+    variaveis: ['saudacao', 'nome', 'codigoRastreio', 'unidadeNome', 'unidadeEndereco', 'unidadeHorario', 'lockerNome', 'lockerEndereco', 'lockerHorario', 'diasGuarda'],
+    estados: {
+      PERGUNTA_PRESENCA: {
+        mensagem: '{saudacao}, {nome}!\n\nSua encomenda *{codigoRastreio}* saiu para entrega hoje!\n\nTerá alguém no endereço para receber?\n\n*1* - Sim, pode entregar\n*2* - Não, preciso de alternativa',
+        opcoes: [
+          { trigger: '1', label: 'Sim', proximoEstado: 'CONFIRMADO', acao: 'CONFIRMAR_PRESENCA' },
+          { trigger: 'SIM', label: 'Sim', proximoEstado: 'CONFIRMADO', acao: 'CONFIRMAR_PRESENCA' },
+          { trigger: '2', label: 'Não', proximoEstado: 'OPCOES_ALTERNATIVA' },
+          { trigger: 'NAO', label: 'Não', proximoEstado: 'OPCOES_ALTERNATIVA' },
+          { trigger: 'NÃO', label: 'Não', proximoEstado: 'OPCOES_ALTERNATIVA' },
+        ],
+      },
+      CONFIRMADO: {
+        mensagem: 'Perfeito, {nome}! Aguarde a entrega no endereço cadastrado.\nVocê será notificado quando o carteiro estiver próximo.',
+        acaoEntrada: 'LIMPAR_FLUXO',
+      },
+      OPCOES_ALTERNATIVA: {
+        mensagem: 'Sem problemas! Escolha uma alternativa:\n\n*1* - Entregar para um vizinho\n*2* - Tentar novamente amanhã\n*3* - Retirar na Agência {unidadeNome}, {unidadeEndereco}. Aberta das {unidadeHorario}\n*4* - Retirar no Locker {lockerNome}, {lockerEndereco}. Aberto das {lockerHorario}',
+        opcoes: [
+          { trigger: '1', label: 'Vizinho', proximoEstado: 'VIZINHO_CONFIRMADO', acao: 'CRIAR_INTERACAO', dados: { tipo: 'AUTORIZAR_TERCEIRO' } },
+          { trigger: '2', label: 'Amanhã', proximoEstado: 'REAGENDAR_CONFIRMADO', acao: 'CRIAR_INTERACAO', dados: { tipo: 'REAGENDAR' } },
+          { trigger: '3', label: 'Agência', proximoEstado: 'AGENCIA_CONFIRMADO', acao: 'CRIAR_INTERACAO', dados: { tipo: 'MANTER_AGENCIA' } },
+          { trigger: '4', label: 'Locker', proximoEstado: 'LOCKER_CONFIRMADO', acao: 'CRIAR_INTERACAO', dados: { tipo: 'REDIRECIONAR' } },
+        ],
+      },
+      VIZINHO_CONFIRMADO: {
+        mensagem: 'Combinado! O carteiro tentará entregar para um vizinho.',
+        acaoEntrada: 'LIMPAR_FLUXO',
+      },
+      REAGENDAR_CONFIRMADO: {
+        mensagem: 'Certo! Vamos tentar novamente amanhã.',
+        acaoEntrada: 'LIMPAR_FLUXO',
+      },
+      AGENCIA_CONFIRMADO: {
+        mensagem: 'Ok! Seu pacote ficará disponível na agência {unidadeNome}. Prazo de retirada: {diasGuarda} dias.',
+        acaoEntrada: 'LIMPAR_FLUXO',
+      },
+      LOCKER_CONFIRMADO: {
+        mensagem: 'Ok! Seu pacote será encaminhado ao Locker {lockerNome}. Prazo de retirada: {diasGuarda} dias.',
+        acaoEntrada: 'LIMPAR_FLUXO',
+      },
+    },
+  };
+}
+
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // 1. Unidade CDD Demo
-  const unidade = await prisma.unidade.upsert({
-    where: { codigo: 'CDD-BSB-01' },
+  const senhaHash = await bcrypt.hash('123456', 10);
+
+  // 1. Superintendencias Estaduais
+  const sede = await prisma.superintendenciaEstadual.upsert({
+    where: { sigla: 'CS' },
     update: {},
     create: {
+      nome: 'Correios Sede',
+      sigla: 'CS',
+      cidade: 'Brasília',
+      uf: 'DF',
+      isSede: true,
+    },
+  });
+  console.log(`  ✓ SE: ${sede.nome} (${sede.sigla})`);
+
+  const seDF = await prisma.superintendenciaEstadual.upsert({
+    where: { sigla: 'SE/DF' },
+    update: {},
+    create: {
+      nome: 'Superintendência Estadual do DF',
+      sigla: 'SE/DF',
+      cidade: 'Brasília',
+      uf: 'DF',
+    },
+  });
+  console.log(`  ✓ SE: ${seDF.nome} (${seDF.sigla})`);
+
+  // 2. Unidade CDD Demo
+  const unidade = await prisma.unidade.upsert({
+    where: { codigo: 'CDD-BSB-01' },
+    update: { mcu: '00073701', seId: seDF.id },
+    create: {
       codigo: 'CDD-BSB-01',
+      mcu: '00073701',
       nome: 'CDD Brasília Centro',
       tipo: TipoUnidade.HIBRIDA,
+      seId: seDF.id,
       logradouro: 'SIA Trecho 10',
       numero: '100',
       bairro: 'SIA',
@@ -35,28 +113,40 @@ async function main() {
       },
     },
   });
-
   console.log(`  ✓ Unidade: ${unidade.nome} (${unidade.codigo})`);
 
-  // 2. Gestor
-  const senhaHash = await bcrypt.hash('123456', 10);
+  // 3. Usuario GESTAO (Sede) - CPF 88888888888
+  const gestaoUser = await prisma.usuario.upsert({
+    where: { cpf: '88888888888' },
+    update: { role: 'GESTAO', matricula: '20000001' },
+    create: {
+      cpf: '88888888888',
+      email: 'gestao@correios.local',
+      matricula: '20000001',
+      senha: senhaHash,
+      nome: 'Admin Gestão Central',
+      role: 'GESTAO',
+    },
+  });
+  console.log(`  ✓ Gestão: ${gestaoUser.nome} (CPF ${gestaoUser.cpf})`);
 
-  const gestor = await prisma.usuario.upsert({
+  // 4. Usuario UNIDADE (era GESTOR) - CPF 00000000000
+  const unidadeUser = await prisma.usuario.upsert({
     where: { cpf: '00000000000' },
-    update: {},
+    update: { role: 'UNIDADE', matricula: '10000001' },
     create: {
       cpf: '00000000000',
       email: 'gestor@correios.local',
+      matricula: '10000001',
       senha: senhaHash,
-      nome: 'Admin Gestor',
-      role: Role.GESTOR,
+      nome: 'Admin Unidade',
+      role: 'UNIDADE',
       unidadeId: unidade.id,
     },
   });
+  console.log(`  ✓ Unidade: ${unidadeUser.nome} (CPF ${unidadeUser.cpf})`);
 
-  console.log(`  ✓ Gestor: ${gestor.nome}`);
-
-  // 3. Destinatário
+  // 5. Destinatário
   const destinatario = await prisma.usuario.upsert({
     where: { cpf: '99999999999' },
     update: {},
@@ -65,39 +155,39 @@ async function main() {
       email: 'destinatario@teste.local',
       senha: senhaHash,
       nome: 'João Destinatário',
-      role: Role.DESTINATARIO,
+      role: 'DESTINATARIO',
     },
   });
-
   console.log(`  ✓ Destinatário: ${destinatario.nome}`);
 
-  // 4. Carteiros (5)
+  // 6. Carteiros (5) - agora com matricula no Usuario
   const carteirosData = [
-    { cpf: '11111111111', nome: 'Carlos Silva', email: 'carlos@correios.local', matricula: 'MAT-001', modal: ModalEntrega.SPRINTER },
-    { cpf: '22222222222', nome: 'Maria Santos', email: 'maria@correios.local', matricula: 'MAT-002', modal: ModalEntrega.VAN },
-    { cpf: '33333333333', nome: 'João Oliveira', email: 'joao@correios.local', matricula: 'MAT-003', modal: ModalEntrega.MOTOCICLETA },
-    { cpf: '44444444444', nome: 'Ana Costa', email: 'ana@correios.local', matricula: 'MAT-004', modal: ModalEntrega.BICICLETA_ELETRICA },
-    { cpf: '55555555555', nome: 'Pedro Souza', email: 'pedro@correios.local', matricula: 'MAT-005', modal: ModalEntrega.A_PE },
+    { cpf: '11111111111', nome: 'Carlos Silva', email: 'carlos@correios.local', matricula: '00000001', modal: ModalEntrega.SPRINTER },
+    { cpf: '22222222222', nome: 'Maria Santos', email: 'maria@correios.local', matricula: '00000002', modal: ModalEntrega.VAN },
+    { cpf: '33333333333', nome: 'João Oliveira', email: 'joao@correios.local', matricula: '00000003', modal: ModalEntrega.MOTOCICLETA },
+    { cpf: '44444444444', nome: 'Ana Costa', email: 'ana@correios.local', matricula: '00000004', modal: ModalEntrega.BICICLETA_ELETRICA },
+    { cpf: '55555555555', nome: 'Pedro Souza', email: 'pedro@correios.local', matricula: '00000005', modal: ModalEntrega.A_PE },
   ];
 
   const carteiros = [];
   for (const c of carteirosData) {
     const usuario = await prisma.usuario.upsert({
       where: { cpf: c.cpf },
-      update: {},
+      update: { role: 'CARTEIRO', matricula: c.matricula },
       create: {
         cpf: c.cpf,
         email: c.email,
+        matricula: c.matricula,
         senha: senhaHash,
         nome: c.nome,
-        role: Role.CARTEIRO,
+        role: 'CARTEIRO',
         unidadeId: unidade.id,
       },
     });
 
     const carteiro = await prisma.carteiro.upsert({
-      where: { matricula: c.matricula },
-      update: {},
+      where: { usuarioId: usuario.id },
+      update: { matricula: c.matricula },
       create: {
         usuarioId: usuario.id,
         unidadeId: unidade.id,
@@ -110,7 +200,7 @@ async function main() {
     console.log(`  ✓ Carteiro: ${c.nome} (${c.matricula})`);
   }
 
-  // 5. Veículos (10) - criados como Unitizador tipo VEICULO
+  // 7. Veículos (10) - criados como Unitizador tipo VEICULO
   const veiculosData = [
     { codigo: 'VEI-001', placa: 'BSB-0001', modelo: 'Sprinter 415', modal: ModalEntrega.SPRINTER, capacidade: 1500, volume: 12000 },
     { codigo: 'VEI-002', placa: 'BSB-0002', modelo: 'Sprinter 415', modal: ModalEntrega.SPRINTER, capacidade: 1500, volume: 12000 },
@@ -144,7 +234,7 @@ async function main() {
     console.log(`  ✓ Veículo: ${v.codigo} (${v.modelo})`);
   }
 
-  // 6. Bags e unitizadores
+  // 8. Bags e unitizadores
   const bagsData = [
     { codigo: 'BAG-001', tipo: TipoUnitizador.BAG, volume: 120 },
     { codigo: 'BAG-002', tipo: TipoUnitizador.BAG, volume: 120 },
@@ -171,8 +261,7 @@ async function main() {
     console.log(`  ✓ Unitizador: ${b.codigo}`);
   }
 
-  // 7. Objetos teste (100)
-  // Helper to generate valid S10 check digit
+  // 9. Objetos teste (100)
   function calcCheckDigit(serial: string): number {
     const weights = [8, 6, 4, 2, 3, 5, 9, 7];
     const digits = serial.split('').map(Number);
@@ -236,11 +325,75 @@ async function main() {
 
   console.log('  ✓ 100 objetos de teste criados');
 
+  // 10. Atualizar horários da Unidade
+  await prisma.unidade.update({
+    where: { id: unidade.id },
+    data: { horarioAbre: '08:00', horarioFecha: '18:00' },
+  });
+  console.log('  ✓ Horários da unidade configurados');
+
+  // 11. Locker Correios
+  await prisma.lockerCorreios.upsert({
+    where: { codigo: 'LCK-BSB-01' },
+    update: {},
+    create: {
+      nome: 'Locker Shopping Conjunto Nacional',
+      codigo: 'LCK-BSB-01',
+      logradouro: 'SDN Conjunto A',
+      numero: 'S/N',
+      bairro: 'Asa Norte',
+      cidade: 'Brasília',
+      uf: 'DF',
+      cep: '70077900',
+      latitude: -15.7917,
+      longitude: -47.8825,
+      horarioAbre: '06:00',
+      horarioFecha: '23:00',
+      unidadeId: unidade.id,
+    },
+  });
+  await prisma.lockerCorreios.upsert({
+    where: { codigo: 'LCK-BSB-02' },
+    update: {},
+    create: {
+      nome: 'Locker Rodoviária',
+      codigo: 'LCK-BSB-02',
+      logradouro: 'Plataforma Rodoviária',
+      numero: 'S/N',
+      bairro: 'Plano Piloto',
+      cidade: 'Brasília',
+      uf: 'DF',
+      cep: '70070100',
+      latitude: -15.7942,
+      longitude: -47.8822,
+      horarioAbre: '05:00',
+      horarioFecha: '00:00',
+      unidadeId: unidade.id,
+    },
+  });
+  console.log('  ✓ 2 Lockers Correios criados');
+
+  // 12. FluxoConfig — Fluxo "Saiu para Entrega" (configurável sem deploy)
+  await prisma.fluxoConfig.upsert({
+    where: { unidadeId_codigo: { unidadeId: null as any, codigo: 'FLUXO_ENTREGA' } },
+    update: {
+      definicao: fluxoEntregaDefinicao(),
+      versao: { increment: 1 },
+    },
+    create: {
+      codigo: 'FLUXO_ENTREGA',
+      unidadeId: null,
+      definicao: fluxoEntregaDefinicao(),
+    },
+  });
+  console.log('  ✓ FluxoConfig FLUXO_ENTREGA criado');
+
   console.log('\n✅ Seed concluído!');
   console.log('\nCredenciais de teste:');
-  console.log('  Gestor:       CPF 00000000000 / senha 123456');
-  console.log('  Carteiros:    CPF 11111111111-55555555555 / senha 123456');
-  console.log('  Destinatário: CPF 99999999999 / senha 123456');
+  console.log('  Gestão (Sede): CPF 88888888888 / senha 123456');
+  console.log('  Unidade:       CPF 00000000000 / senha 123456');
+  console.log('  Carteiros:     CPF 11111111111-55555555555 / senha 123456');
+  console.log('  Destinatário:  CPF 99999999999 / senha 123456');
 }
 
 main()

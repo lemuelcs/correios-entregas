@@ -72,11 +72,11 @@ router.post(
   },
 );
 
-// ── Proxy – GESTOR ────────────────────────────────────────────────────────────
+// ── Proxy – UNIDADE ────────────────────────────────────────────────────────────
 
 router.post(
   '/proxy/:sessionId/end',
-  requireRole('GESTOR'),
+  requireRole('UNIDADE'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await pilotProxyService.endSession(String(req.params.sessionId), 'MANAGER_ENDED');
@@ -89,7 +89,7 @@ router.post(
 
 router.get(
   '/proxy/sessions',
-  requireRole('GESTOR'),
+  requireRole('UNIDADE'),
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const sessions = await prisma.pilotProxySession.findMany({
@@ -103,11 +103,11 @@ router.get(
   },
 );
 
-// ── Status e configuração – GESTOR ────────────────────────────────────────────
+// ── Status e configuração – UNIDADE ────────────────────────────────────────────
 
 router.get(
   '/status/:instanceName',
-  requireRole('GESTOR'),
+  requireRole('UNIDADE'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const state = await evolutionClient.getConnectionState(String(req.params.instanceName));
@@ -120,7 +120,7 @@ router.get(
 
 router.get(
   '/qrcode/:instanceName',
-  requireRole('GESTOR'),
+  requireRole('UNIDADE'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const base64 = await evolutionClient.getQrCode(String(req.params.instanceName));
@@ -133,7 +133,7 @@ router.get(
 
 router.post(
   '/notify',
-  requireRole('GESTOR'),
+  requireRole('UNIDADE'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { instanceName, phone, text } = req.body as {
@@ -151,5 +151,59 @@ router.post(
     }
   },
 );
+
+// ── FluxoConfig Admin ──────────────────────────────────────────────────
+router.get('/admin/fluxos', async (req, res) => {
+  try {
+    const fluxos = await prisma.fluxoConfig.findMany({
+      orderBy: { codigo: 'asc' },
+    });
+    res.json(fluxos);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/admin/fluxos/:codigo', async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const fluxo = await prisma.fluxoConfig.findFirst({
+      where: { codigo, ativo: true },
+      orderBy: { unidadeId: 'desc' },
+    });
+    if (!fluxo) return res.status(404).json({ error: 'Fluxo não encontrado' });
+    res.json(fluxo);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/admin/fluxos/:codigo', async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const { definicao, unidadeId } = req.body;
+
+    const fluxo = await prisma.fluxoConfig.upsert({
+      where: { unidadeId_codigo: { unidadeId: unidadeId ?? null, codigo } },
+      create: {
+        codigo,
+        unidadeId: unidadeId ?? null,
+        definicao,
+      },
+      update: {
+        definicao,
+        versao: { increment: 1 },
+      },
+    });
+
+    // Clear flow engine cache
+    const { flowEngine } = await import('./flow-engine');
+    flowEngine.clearCache();
+
+    res.json(fluxo);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export { router as comunicacaoRoutes };
