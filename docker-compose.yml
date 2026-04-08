@@ -57,22 +57,34 @@ services:
     environment:
       SERVER_URL: http://evolution-api:8080
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-change_me_evolution_key}
-      DATABASE_ENABLED: "false"
-      REDIS_ENABLED: "true"
-      REDIS_URI: redis://redis:6379/1
+      DATABASE_PROVIDER: postgresql
+      DATABASE_ENABLED: "true"
+      DATABASE_CONNECTION_URI: postgresql://temellodev:temellodev123@host.docker.internal:5432/correios_evolution_db
+      DATABASE_CONNECTION_CLIENT_NAME: correios_evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: correios_evolution
+      CACHE_REDIS_SAVE_INSTANCES: "false"
       WEBHOOK_GLOBAL_ENABLED: "false"
       LOG_LEVEL: warn
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "8081:8080"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/ >/dev/null || exit 1"]
-      interval: 15s
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/ || exit 1"]
+      interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 15
+      start_period: 60s
 
   backend:
     build:
