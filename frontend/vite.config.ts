@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
+const apiTarget = process.env.VITE_API_TARGET || 'http://localhost:3001';
+const whatsappApiTarget = process.env.VITE_WHATSAPP_API_TARGET || 'http://localhost';
+const whatsappGatewayPrefix = process.env.VITE_WHATSAPP_API_GATEWAY_PREFIX || '/services/whatsapp';
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -12,13 +16,22 @@ export default defineConfig({
   },
   server: {
     port: 5180,
+    host: true,
+    watch: {
+      usePolling: true,
+    },
     proxy: {
+      '/api/v1/comunicacao': {
+        target: whatsappApiTarget,
+        changeOrigin: true,
+        rewrite: (path) => `${whatsappGatewayPrefix}${path}`,
+      },
       '/api': {
-        target: 'http://localhost:3002',
+        target: apiTarget,
         changeOrigin: true,
       },
       '/events': {
-        target: 'http://localhost:3002',
+        target: apiTarget,
         changeOrigin: true,
       },
     },
