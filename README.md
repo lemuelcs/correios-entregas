@@ -21,7 +21,7 @@ Este repositório concentra o que é específico do produto Correios Entregas:
 - `delivyo-services` é o hub compartilhado e deve ser subido primeiro
 - `temelio` é outro produto consumidor do mesmo hub
 - a infraestrutura legada local deste repositório deve existir apenas em `profiles: ["legacy"]`
-- o domínio de WhatsApp/comunicação é consumido via gateway do hub central, não por implementação local neste repositório
+- o domínio de WhatsApp/comunicação, incluindo a Evolution API, é consumido via gateway do hub central, não por implementação local neste repositório
 
 ## Endpoints Locais Relevantes
 
