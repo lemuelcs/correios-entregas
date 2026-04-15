@@ -32,7 +32,7 @@ export function useLlmConfig(bootstrapData: AdminConfig | null, refetch: () => P
     setSaving(true);
     try {
       await api.put('/comunicacao/admin/llm-config', { llmConfig });
-      toast.success('Configuracao LLM salva');
+      toast.success('Configuracao global de LLM salva');
       await refetch();
     } catch (err) {
       toast.error((err as Error).message || 'Erro ao salvar LLM');
@@ -47,7 +47,7 @@ export function useLlmConfig(bootstrapData: AdminConfig | null, refetch: () => P
       const result = await api.post<{ data: { success: boolean; response?: string; error?: string } }>('/comunicacao/admin/llm-config/test');
       const data = result.data;
       if (data?.success) {
-        toast.success('LLM respondeu com sucesso');
+        toast.success('LLM global respondeu com sucesso');
       } else {
         toast.error(data?.error ?? 'Falha no teste');
       }

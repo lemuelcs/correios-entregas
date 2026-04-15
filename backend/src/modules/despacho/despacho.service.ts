@@ -213,7 +213,7 @@ export class DespachoService {
     return resultado;
   }
 
-  async cancelarRota(rotaId: string, atorId: string) {
+  async cancelarRota(rotaId: string, _atorId: string) {
     const rota = await prisma.rota.findUnique({
       where: { id: rotaId },
       select: {

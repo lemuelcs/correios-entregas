@@ -243,7 +243,7 @@ export class TriagemService {
       posicaoTriagem: string;
     }> = [];
 
-    for (const [stopSeq, objs] of sortedStops) {
+    for (const [, objs] of sortedStops) {
       // Derive wall, lane, position from slotIndex
       const wall = Math.floor(slotIndex / (lanesPerWall * positionsPerLane)) + 1;
       const withinWall = slotIndex % (lanesPerWall * positionsPerLane);
@@ -361,7 +361,7 @@ export class TriagemService {
     }> = [];
 
     for (let i = 0; i < sortedStops.length; i++) {
-      const [stopSeq, objs] = sortedStops[i];
+      const [, objs] = sortedStops[i];
 
       // Map index to a divert position; overflow routes share the last position
       const divertIndex = i < totalDiverts ? i : totalDiverts - 1;

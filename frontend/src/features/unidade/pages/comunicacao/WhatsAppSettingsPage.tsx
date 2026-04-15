@@ -35,13 +35,13 @@ export function WhatsAppSettingsPage() {
     <div className="space-y-4 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <MessageCircle className="w-8 h-8 text-green-500" />
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">WhatsApp</h1>
-            <p className="text-sm text-gray-500">Configure a integracao com WhatsApp Business</p>
-          </div>
-        </div>
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="w-8 h-8 text-green-500" />
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">WhatsApp Global</h1>
+                    <p className="text-sm text-gray-500">Configure a instância e o webhook compartilhados por todas as unidades.</p>
+                  </div>
+                </div>
         <button
           onClick={handleRefresh}
           disabled={llm.saving}

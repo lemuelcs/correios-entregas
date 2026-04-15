@@ -197,12 +197,8 @@ model Unidade {
   unitizadores Unitizador[]
   previsoes   VolumePrevisao[]
 
-  // WPP-PILOT relations
-  wppPilotConfig WppPilotConfig?
-
   lockers             LockerCorreios[]
   fluxoConfigs        FluxoConfig[]
-  fluxosEntrega       FluxoEntregaDestinatario[]
 
   @@map("unidades")
 }
@@ -256,6 +252,7 @@ model Carteiro {
   matricula       String       @unique
   modalPrincipal  ModalEntrega @default(A_PE)
   cnh             String?
+  telefonePiloto  String?
   ativo           Boolean      @default(true)
   familiaridadeH3 Json         @default("{}")
   createdAt       DateTime     @default(now())
@@ -265,11 +262,6 @@ model Carteiro {
   unidade Unidade  @relation(fields: [unidadeId], references: [id])
   pontos  PontoDia[]
   rotas   Rota[]
-
-  // WPP-PILOT relations
-  wppPilotSessions  WppPilotSession[]
-  wppProxySessions  WppProxyPilotSession[]
-  wppInsucessoFluxo WppInsucessoFluxo[]
 
   @@map("carteiros")
 }
@@ -337,7 +329,6 @@ model Objeto {
   eventos    ObjetoEvento[]
   nps        NpsResposta?
   interacoes InteracaoObjeto[]
-  fluxosEntrega FluxoEntregaDestinatario[]
 
   @@index([codigoRastreio])
   @@index([unidadeId, statusAtual])
@@ -445,10 +436,6 @@ model Rota {
   objetos   Objeto[]
   sortPlan  SortPlan?
   snapshots RitmoSnapshot[]
-
-  // WPP-PILOT relations
-  wppProxySessions  WppProxyPilotSession[]
-  wppInsucessoFluxo WppInsucessoFluxo[]
 
   @@index([unidadeId, statusAtual])
   @@index([carteiroId])
@@ -619,305 +606,10 @@ model ConfiguracaoGlobal {
   @@map("configuracao_global")
 }
 
-// ——— WPP-PILOT ENUMS —————————————————————————————————————————
-
-enum WppParticipantType {
-  CARTEIRO
-  DESTINATARIO
-  GESTAO
-  UNIDADE
-  UNKNOWN
-}
-
-enum WppConversationState {
-  BOT_ACTIVE
-  PROXY_ACTIVE
-  DISPATCHER_ACTIVE
-  CLOSED
-  OPTED_OUT
-}
-
-enum WppProxyPilotStatus {
-  ACTIVE
-  ENDED
-  EXPIRED
-}
-
-enum WppInsucessoStatus {
-  AGUARDANDO_RESPOSTA
-  RETORNO_HOJE
-  REAGENDADO
-  SEM_RESPOSTA
-  SEM_TELEFONE
-  ERRO_ENVIO
-}
-
-enum MessageDirection {
-  INBOUND
-  OUTBOUND
-}
-
-enum MessageDeliveryStatus {
-  PENDING
-  SENT
-  DELIVERED
-  READ
-  FAILED
-}
-
-enum StatusFluxoEntrega {
-  AGUARDANDO_RESPOSTA
-  CONFIRMADO_PRESENCA
-  ENTREGAR_VIZINHO
-  REAGENDAR_AMANHA
-  RETIRAR_AGENCIA
-  RETIRAR_LOCKER
-  EXPIRADO
-}
-
-// ——— WPP-PILOT MODELS ————————————————————————————————————————
-
-// Configuracao da instancia Evolution API por Unidade
-model WppPilotConfig {
-  id           String  @id @default(uuid())
-  unidadeId    String  @unique
-  unidade      Unidade @relation(fields: [unidadeId], references: [id])
-
-  instanceName String @unique
-  phoneNumber  String
-  unidadeNome  String @default("Unidade")
-
-  // Locale/timezone
-  locale   String @default("pt_BR")
-  timezone String @default("America/Sao_Paulo")
-
-  botEnabled       Boolean @default(true)
-  proxyEnabled     Boolean @default(true)
-  maxProxyHours    Int     @default(4)
-  maxProxyMessages Int     @default(50)
-  optOutKeywords   Json    @default("[\"PARAR\",\"SAIR\",\"STOP\"]")
-
-  // LLM / IA
-  llmEnabled Boolean @default(false)
-  llmConfig  Json    @default("{}")
-
-  connected     Boolean   @default(false)
-  connectedAt   DateTime?
-  lastWebhookAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  sessions      WppPilotSession[]
-  proxySessions WppProxyPilotSession[]
-  insucessos    WppInsucessoFluxo[]
-  llmUsageLogs  LlmUsageLog[]
-
-  @@map("wpp_pilot_config")
-}
-
-// Sessao de conversa — 1 por numero de telefone
-model WppPilotSession {
-  id           String         @id @default(uuid())
-  instanceName String
-  config       WppPilotConfig @relation(fields: [instanceName], references: [instanceName])
-
-  phone           String             @default("")
-  participantType WppParticipantType @default(UNKNOWN)
-  carteiroId      String?
-  carteiro        Carteiro?          @relation(fields: [carteiroId], references: [id])
-
-  state         WppConversationState @default(BOT_ACTIVE)
-  lastMessageAt DateTime?
-  totalMessages Int                  @default(0)
-
-  // Dispatcher
-  dispatcherAtivo Boolean   @default(false)
-  dispatcherNome  String?
-  dispatcherSince DateTime?
-  botSilenciado   Boolean   @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  messages           WppPilotMessage[]
-  dispatcherSessions WppDispatcherSession[]
-
-  @@unique([instanceName, phone])
-  @@index([instanceName, state])
-  @@map("wpp_pilot_sessions")
-}
-
-// Mensagens individuais
-model WppPilotMessage {
-  id        String          @id @default(uuid())
-  sessionId String
-  session   WppPilotSession @relation(fields: [sessionId], references: [id])
-
-  waMessageId    String? @unique
-  direction      String
-  messageType    String
-  content        String? @db.Text
-  isProxied      Boolean @default(false)
-  proxySessionId String?
-
-  // Status de entrega (OUTBOUND via webhook messages.update)
-  deliveryStatus String @default("SENT")
-
-  createdAt DateTime @default(now())
-
-  @@index([sessionId, createdAt])
-  @@index([waMessageId])
-  @@map("wpp_pilot_messages")
-}
-
-// Canal proxy anonimo carteiro <-> destinatario
-model WppProxyPilotSession {
-  id           String         @id @default(uuid())
-  instanceName String
-  config       WppPilotConfig @relation(fields: [instanceName], references: [instanceName])
-  unidadeId    String
-
-  carteiroPhone       String
-  carteiroId          String?
-  carteiro            Carteiro? @relation(fields: [carteiroId], references: [id])
-  destinatarioPhoneEnc String   // AES-256-GCM: "ivHex:authTagHex:encHex"
-
-  rotaId   String?
-  rota     Rota?   @relation(fields: [rotaId], references: [id])
-  paradaId String?
-
-  status       WppProxyPilotStatus @default(ACTIVE)
-  messageCount Int                 @default(0)
-  expiresAt    DateTime
-  endedAt      DateTime?
-  endReason    String?
-
-  createdAt DateTime             @default(now())
-  auditLogs WppProxyPilotAudit[]
-
-  @@index([instanceName, status])
-  @@index([carteiroPhone])
-  @@map("wpp_proxy_pilot_sessions")
-}
-
-// Audit log do proxy (apenas hash — LGPD)
-model WppProxyPilotAudit {
-  id             String               @id @default(uuid())
-  proxySessionId String
-  proxySession   WppProxyPilotSession @relation(fields: [proxySessionId], references: [id])
-
-  direction   String
-  messageHash String
-  charCount   Int?
-  createdAt   DateTime @default(now())
-
-  @@index([proxySessionId])
-  @@map("wpp_proxy_pilot_audit")
-}
-
-// Fluxo de insucesso com destinatario
-model WppInsucessoFluxo {
-  id           String         @id @default(uuid())
-  instanceName String
-  config       WppPilotConfig @relation(fields: [instanceName], references: [instanceName])
-  unidadeId    String
-
-  carteiroId    String
-  carteiro      Carteiro @relation(fields: [carteiroId], references: [id])
-  carteiroPhone String
-
-  pacoteInsucessoId String
-  rotaId            String?
-  rota              Rota?   @relation(fields: [rotaId], references: [id])
-  destinatarioPhone String?
-  destinatarioNome  String?
-
-  status WppInsucessoStatus @default(AGUARDANDO_RESPOSTA)
-
-  mensagemEnviadaEm     DateTime?
-  respostaRecebidaEm    DateTime?
-  carteiroNotificadoEm  DateTime?
-  expiresAt             DateTime
-  respostaRaw           String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([instanceName, status])
-  @@index([pacoteInsucessoId])
-  @@index([carteiroPhone])
-  @@map("wpp_insucesso_fluxo")
-}
-
-// Sessao de dispatcher humano numa conversa
-model WppDispatcherSession {
-  id           String @id @default(uuid())
-  instanceName String
-  unidadeId    String
-
-  dispatcherId   String
-  dispatcherNome String
-
-  wppSessionId String
-  wppSession   WppPilotSession @relation(fields: [wppSessionId], references: [id])
-
-  ativo     Boolean   @default(true)
-  entradaEm DateTime  @default(now())
-  saidaEm   DateTime?
-
-  mensagens WppDispatcherMsg[]
-
-  @@index([wppSessionId, ativo])
-  @@index([dispatcherId])
-  @@map("wpp_dispatcher_sessions")
-}
-
-// Mensagens enviadas pelo dispatcher
-model WppDispatcherMsg {
-  id                  String               @id @default(uuid())
-  dispatcherSessionId String
-  dispatcherSession   WppDispatcherSession @relation(fields: [dispatcherSessionId], references: [id])
-
-  waMessageId String? @unique
-  content     String  @db.Text
-  direction   String  @default("OUTBOUND")
-  toPhone     String
-
-  createdAt DateTime @default(now())
-
-  @@index([dispatcherSessionId])
-  @@map("wpp_dispatcher_msgs")
-}
-
-// Log de uso e custo LLM por unidade
-model LlmUsageLog {
-  id             String  @id @default(uuid())
-  configId       String
-  config         WppPilotConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
-  conversationId String?
-
-  provider     String  @db.VarChar(30)
-  model        String  @db.VarChar(50)
-  inputTokens  Int     @default(0)
-  outputTokens Int     @default(0)
-  costUsd      Decimal @default(0) @db.Decimal(10, 6)
-  latencyMs    Int     @default(0)
-
-  useCase      String  @db.VarChar(50)
-  success      Boolean @default(true)
-  errorMessage String? @db.Text
-
-  createdAt DateTime @default(now())
-
-  @@index([configId, createdAt])
-  @@index([provider, model])
-  @@map("llm_usage_logs")
-}
-
 // ——— FLUXO ENTREGA MODELS ———————————————————————————————————
 
 model LockerCorreios {
-  id           String   @id @default(uuid())
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
   nome         String
   codigo       String   @unique
   logradouro   String
@@ -933,43 +625,15 @@ model LockerCorreios {
   ativo        Boolean  @default(true)
   unidadeId    String?
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
 
-  unidade Unidade? @relation(fields: [unidadeId], references: [id])
+  unidade Unidade? @relation(fields: [unidadeId], references: [id], onUpdate: NoAction)
 
   @@map("lockers_correios")
 }
 
-model FluxoEntregaDestinatario {
-  id                String             @id @default(uuid())
-  instanceName      String
-  unidadeId         String
-  objetoId          String
-  destinatarioPhone String
-  destinatarioNome  String?
-
-  status            StatusFluxoEntrega @default(AGUARDANDO_RESPOSTA)
-
-  mensagemEnviadaEm   DateTime?
-  respostaRecebidaEm  DateTime?
-  respostaRaw         String?
-  opcaoEscolhida      String?
-  expiresAt           DateTime
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  objeto  Objeto  @relation(fields: [objetoId], references: [id])
-  unidade Unidade @relation(fields: [unidadeId], references: [id])
-
-  @@index([instanceName, status])
-  @@index([objetoId])
-  @@index([destinatarioPhone])
-  @@map("fluxo_entrega_destinatario")
-}
-
 model FluxoConfig {
-  id        String   @id @default(uuid())
+  id        String   @id @default(dbgenerated("gen_random_uuid()"))
   unidadeId String?
   codigo    String
   versao    Int      @default(1)
@@ -977,9 +641,9 @@ model FluxoConfig {
   definicao Json
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
-  unidade Unidade? @relation(fields: [unidadeId], references: [id])
+  unidade Unidade? @relation(fields: [unidadeId], references: [id], onUpdate: NoAction)
 
   @@unique([unidadeId, codigo])
   @@map("fluxo_configs")

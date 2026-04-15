@@ -133,7 +133,7 @@ export default function WhatsAppBotTab({
             </div>
             {instanceCheck && !instanceChecking && (
               <div className="mt-1.5">
-                {instanceCheck.takenByOther && <p className="flex items-center gap-1 text-xs text-red-600"><XCircle className="w-3.5 h-3.5 shrink-0" />Esta instancia ja esta em uso por outro tenant.</p>}
+                {instanceCheck.takenByOther && <p className="flex items-center gap-1 text-xs text-red-600"><XCircle className="w-3.5 h-3.5 shrink-0" />Esta instancia ja esta reservada pelo sistema.</p>}
                 {!instanceCheck.takenByOther && instanceCheck.instanceExists && (
                   <p className={`flex items-center gap-1 text-xs ${instanceCheck.isConnected ? 'text-amber-600' : 'text-gray-500'}`}>
                     {instanceCheck.isConnected ? <><Wifi className="w-3.5 h-3.5 shrink-0" />Instancia encontrada e conectada.</> : <><WifiOff className="w-3.5 h-3.5 shrink-0" />Instancia encontrada, mas desconectada.</>}
@@ -149,7 +149,7 @@ export default function WhatsAppBotTab({
             <input type="text" value={wppPilotForm.phoneNumber} onChange={(e) => setWppPilotForm((p) => ({ ...p, phoneNumber: e.target.value }))} placeholder="5561996522173" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003399]/30 text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nome do tenant (exibido no bot)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome exibido no bot</label>
             <input type="text" value={wppPilotForm.unidadeNome} onChange={(e) => setWppPilotForm((p) => ({ ...p, unidadeNome: e.target.value }))} placeholder="Correios Entregas" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003399]/30 text-sm" />
           </div>
           <div>

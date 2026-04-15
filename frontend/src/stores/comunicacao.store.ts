@@ -51,6 +51,15 @@ interface ComunicacaoState {
   fetchLlmConfig: () => Promise<void>;
   updateLlmConfig: (data: { llmEnabled?: boolean; llmConfig?: Record<string, unknown> }) => Promise<void>;
   fetchLlmAnalytics: () => Promise<void>;
+
+  enviarNotificacao: (phone: string, text: string) => Promise<void>;
+  criarInstancia: (data: Record<string, unknown>) => Promise<{ ok: boolean; qrcode?: string; instanceName?: string; webhookError?: string | null }>;
+  reiniciarInstancia: () => Promise<void>;
+  excluirInstancia: () => Promise<void>;
+  configurarWebhook: () => Promise<{ ok: boolean; webhookUrl?: string; webhookInfo?: unknown }>;
+  listarInstancias: () => Promise<{ name: string; connectionStatus?: string }[]>;
+  checkInstance: (instanceName: string) => Promise<{ available: boolean; takenByOther: boolean; instanceExists: boolean; isConnected: boolean }>;
+  testLlmConfig: () => Promise<{ success: boolean; response?: string; error?: string }>;
 }
 
 export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
@@ -275,6 +284,104 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
       set({ llmAnalytics: result.data, loading: false });
     } catch (e: any) {
       set({ error: e.message, loading: false });
+    }
+  },
+
+  // ── Notify (Enviar Mensagem) ────────────────────────────────────
+
+  enviarNotificacao: async (phone, text) => {
+    set({ loading: true, error: null });
+    try {
+      await api.post('/comunicacao/notify', { phone, text });
+      set({ loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
+    }
+  },
+
+  // ── Instance Lifecycle ──────────────────────────────────────────
+
+  criarInstancia: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      const result = await api.post<{ ok: boolean; qrcode?: string; instanceName?: string; webhookError?: string | null }>(
+        '/comunicacao/admin/instance/criar',
+        data,
+      );
+      set({ loading: false });
+      return result;
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
+    }
+  },
+
+  reiniciarInstancia: async () => {
+    set({ loading: true, error: null });
+    try {
+      await api.post('/comunicacao/admin/instance/reiniciar');
+      set({ loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
+    }
+  },
+
+  excluirInstancia: async () => {
+    set({ loading: true, error: null });
+    try {
+      await api.delete('/comunicacao/admin/instance');
+      set({ instanciaStatus: { connected: false, state: 'close', instanceName: null }, loading: false });
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
+    }
+  },
+
+  configurarWebhook: async () => {
+    set({ loading: true, error: null });
+    try {
+      const result = await api.post<{ ok: boolean; webhookUrl?: string; webhookInfo?: unknown }>(
+        '/comunicacao/admin/configurar-webhook',
+      );
+      set({ loading: false });
+      return result;
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
+    }
+  },
+
+  listarInstancias: async () => {
+    try {
+      const result = await api.get<{ instances: { name: string; connectionStatus?: string }[] }>(
+        '/comunicacao/admin/instance/listar',
+      );
+      return result.instances ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  checkInstance: async (instanceName) => {
+    const result = await api.get<{ available: boolean; takenByOther: boolean; instanceExists: boolean; isConnected: boolean }>(
+      `/comunicacao/admin/check-instance?instanceName=${encodeURIComponent(instanceName)}`,
+    );
+    return result;
+  },
+
+  testLlmConfig: async () => {
+    set({ loading: true, error: null });
+    try {
+      const result = await api.post<{ data: { success: boolean; response?: string; error?: string } }>(
+        '/comunicacao/admin/llm-config/test',
+      );
+      set({ loading: false });
+      return result.data;
+    } catch (e: any) {
+      set({ error: e.message, loading: false });
+      throw e;
     }
   },
 }));

@@ -2,11 +2,19 @@ import { useEffect, useState } from 'react';
 import { useGestaoConfigStore } from '@/stores/gestao-config.store';
 import { Panel } from '@/shared/ui/Panel';
 import toast from 'react-hot-toast';
+import { Bot, Brain, MessageCircle, RefreshCcw } from 'lucide-react';
 
-type Tab = 'integracoes' | 'whatsapp' | 'vroom-osrm';
-const tabs: Array<{ id: Tab; label: string }> = [
+import { useWppPilotConfig } from '@/features/unidade/pages/comunicacao/hooks/useWppPilotConfig';
+import { useLlmConfig } from '@/features/unidade/pages/comunicacao/hooks/useLlmConfig';
+import WhatsAppBotTab from '@/features/unidade/pages/comunicacao/components/WhatsAppBotTab';
+import WhatsAppLlmTab from '@/features/unidade/pages/comunicacao/components/WhatsAppLlmTab';
+import QrCodeModal from '@/features/unidade/pages/comunicacao/components/QrCodeModal';
+
+type Tab = 'integracoes' | 'whatsapp-bot' | 'ia-llm' | 'vroom-osrm';
+const tabs: Array<{ id: Tab; label: string; icon?: typeof Bot }> = [
   { id: 'integracoes', label: 'Integracoes' },
-  { id: 'whatsapp', label: 'WhatsApp' },
+  { id: 'whatsapp-bot', label: 'Bot WhatsApp', icon: Bot },
+  { id: 'ia-llm', label: 'IA / LLM', icon: Brain },
   { id: 'vroom-osrm', label: 'VROOM / OSRM' },
 ];
 
@@ -27,18 +35,6 @@ const INTEGRATION_KEYS = [
   { chave: 'VIACEP_URL', label: 'ViaCEP URL', group: 'Geocoding' },
 ];
 
-const WHATSAPP_KEYS = [
-  { chave: 'WPP_GLOBAL_INSTANCE_NAME', label: 'Instance Name' },
-  { chave: 'WPP_GLOBAL_PHONE', label: 'Telefone do Bot' },
-  { chave: 'WPP_GLOBAL_BOT_ENABLED', label: 'Bot Habilitado' },
-  { chave: 'WPP_GLOBAL_PROXY_ENABLED', label: 'Proxy Habilitado' },
-  { chave: 'WPP_GLOBAL_LLM_ENABLED', label: 'LLM Habilitado' },
-  { chave: 'WPP_GLOBAL_LLM_PROVIDER', label: 'LLM Provider' },
-  { chave: 'WPP_GLOBAL_LLM_MODEL', label: 'LLM Model' },
-  { chave: 'WPP_GLOBAL_LOCALE', label: 'Locale' },
-  { chave: 'WPP_GLOBAL_TIMEZONE', label: 'Timezone' },
-];
-
 const VROOM_OSRM_KEYS = [
   { chave: 'OSRM_URL', label: 'OSRM URL', group: 'OSRM' },
   { chave: 'OSRM_TIMEOUT_MS', label: 'OSRM Timeout (ms)', group: 'OSRM' },
@@ -52,6 +48,10 @@ export function GestaoAjustesPage() {
   const { configs, loading, fetchAll, upsert } = useGestaoConfigStore();
   const [activeTab, setActiveTab] = useState<Tab>('integracoes');
   const [values, setValues] = useState<Record<string, string>>({});
+
+  // WhatsApp Bot + LLM hooks
+  const pilot = useWppPilotConfig();
+  const llm = useLlmConfig(pilot.bootstrapData, pilot.refetch);
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -126,14 +126,17 @@ export function GestaoAjustesPage() {
             key={t.id}
             onClick={() => setActiveTab(t.id)}
             className={[
-              'px-4 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px',
+              'flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px',
               activeTab === t.id ? 'border-correios-blue text-correios-blue' : 'border-transparent text-slate-500 hover:text-slate-700',
             ].join(' ')}
-          >{t.label}</button>
+          >
+            {t.icon && <t.icon className="w-4 h-4" />}
+            {t.label}
+          </button>
         ))}
       </div>
 
-      {loading ? (
+      {loading && activeTab === 'integracoes' || loading && activeTab === 'vroom-osrm' ? (
         <p className="py-8 text-center text-sm text-slate-400">Carregando...</p>
       ) : (
         <>
@@ -146,21 +149,80 @@ export function GestaoAjustesPage() {
             </Panel>
           )}
 
-          {activeTab === 'whatsapp' && (
-            <Panel title="WhatsApp Global" description="Configuracao global do bot WhatsApp para todas as unidades.">
-              <div className="space-y-4">
-                {WHATSAPP_KEYS.map(k => (
-                  <div key={k.chave}>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">{k.label}</label>
-                    <div className="flex gap-2">
-                      <input className={inputClass} value={getValue(k.chave)} onChange={e => setValue(k.chave, e.target.value)} placeholder={k.chave} />
-                      <button onClick={() => handleSave(k.chave)} className="shrink-0 rounded-lg border border-correios-blue px-3 py-2 text-xs font-semibold text-correios-blue hover:bg-correios-blue-50">Salvar</button>
-                    </div>
+          {activeTab === 'whatsapp-bot' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <MessageCircle className="w-8 h-8 text-green-500" />
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">WhatsApp Global</h1>
+                    <p className="text-sm text-gray-500">Configure a instância, webhook e canal de envio globais.</p>
                   </div>
-                ))}
-                <button onClick={() => handleSaveAll(WHATSAPP_KEYS)} className="rounded-lg bg-correios-blue px-6 py-2 text-sm font-semibold text-white hover:bg-correios-blue-mid">Salvar Todas</button>
+                </div>
+                <button
+                  onClick={() => pilot.refetch()}
+                  disabled={llm.saving}
+                  className="flex items-center gap-2 px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                  Atualizar
+                </button>
               </div>
-            </Panel>
+
+              {pilot.isLoading && !pilot.bootstrapData ? (
+                <div className="flex items-center justify-center min-h-[400px]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003399]" />
+                </div>
+              ) : (
+                <WhatsAppBotTab
+                  wppPilot={pilot.wppPilot}
+                  wppPilotForm={pilot.wppPilotForm}
+                  setWppPilotForm={pilot.setWppPilotForm}
+                  wppPilotSaving={pilot.wppPilotSaving}
+                  wppPilotConfiguringWebhook={pilot.wppPilotConfiguringWebhook}
+                  creatingInstance={pilot.creatingInstance}
+                  connecting={pilot.connecting}
+                  restarting={pilot.restarting}
+                  deleting={pilot.deleting}
+                  onRefresh={() => pilot.refetch()}
+                  onSave={pilot.handleSaveWppPilot}
+                  onReconfigureWebhook={pilot.handleReconfigureWebhook}
+                  onCreateInstance={pilot.handleCreateInstance}
+                  onConnectInstance={pilot.handleConnectInstance}
+                  onRestartInstance={pilot.handleRestartInstance}
+                  onDeleteInstance={pilot.handleDeleteInstance}
+                />
+              )}
+            </div>
+          )}
+
+          {activeTab === 'ia-llm' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Brain className="w-8 h-8 text-purple-500" />
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">IA / LLM Global</h1>
+                    <p className="text-sm text-gray-500">Configure o modelo de linguagem compartilhado pelo sistema.</p>
+                  </div>
+                </div>
+              </div>
+
+              {pilot.isLoading && !pilot.bootstrapData ? (
+                <div className="flex items-center justify-center min-h-[400px]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#003399]" />
+                </div>
+              ) : (
+                <WhatsAppLlmTab
+                  llmConfig={llm.llmConfig}
+                  setLlmConfig={llm.setLlmConfig}
+                  saving={llm.saving}
+                  onSave={llm.handleSaveLlm}
+                  llmTesting={llm.llmTesting}
+                  onTest={llm.handleTestLlm}
+                />
+              )}
+            </div>
           )}
 
           {activeTab === 'vroom-osrm' && (
@@ -173,6 +235,14 @@ export function GestaoAjustesPage() {
           )}
         </>
       )}
+
+      <QrCodeModal
+        open={!!pilot.qrCode}
+        qrCode={pilot.qrCode ?? ''}
+        connecting={pilot.connecting}
+        onRefreshQr={pilot.handleConnectInstance}
+        onClose={() => pilot.setQrCode(null)}
+      />
     </div>
   );
 }

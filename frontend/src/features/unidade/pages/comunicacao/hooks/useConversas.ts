@@ -79,10 +79,6 @@ export function useConversas(activeTab: string) {
     };
   }, [activeTab, selectedId, fetchMensagens]);
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [mensagens]);
 
   const handleSelectConversa = (id: string) => {
     setSelectedId(id);

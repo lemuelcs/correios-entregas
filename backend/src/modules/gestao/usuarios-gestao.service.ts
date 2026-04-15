@@ -58,7 +58,8 @@ export class UsuariosGestaoService {
     });
     if (!usuario) throw new AppError(404, 'Usuário não encontrado');
 
-    const { senha: _, ...withoutPassword } = usuario;
+    const { senha, ...withoutPassword } = usuario;
+    void senha;
     return withoutPassword;
   }
 
@@ -85,7 +86,8 @@ export class UsuariosGestaoService {
       },
     });
 
-    const { senha: _, ...withoutPassword } = usuario;
+    const { senha, ...withoutPassword } = usuario;
+    void senha;
     return withoutPassword;
   }
 
@@ -105,7 +107,8 @@ export class UsuariosGestaoService {
       include: { unidade: { select: { id: true, nome: true, codigo: true } } },
     });
 
-    const { senha: _, ...withoutPassword } = usuario;
+    const { senha, ...withoutPassword } = usuario;
+    void senha;
     return withoutPassword;
   }
 }

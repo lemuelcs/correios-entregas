@@ -10,6 +10,23 @@ class ApiClient {
     return headers;
   }
 
+  private async parseResponseBody(res: Response): Promise<unknown> {
+    const contentType = res.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      return res.json();
+    }
+
+    const text = await res.text();
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  }
+
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const res = await fetch(`${BASE_URL}${path}`, {
       method,
@@ -36,9 +53,9 @@ class ApiClient {
               headers: { ...this.getHeaders(), Authorization: `Bearer ${accessToken}` },
               body: body ? JSON.stringify(body) : undefined,
             });
-            if (retryRes.ok) return retryRes.json();
+            if (retryRes.ok) return await this.parseResponseBody(retryRes) as T;
           }
-        } catch {}
+        } catch { /* token refresh failed */ }
       }
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
@@ -46,11 +63,29 @@ class ApiClient {
     }
 
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
-      throw new Error(error.error || `HTTP ${res.status}`);
+      const parsed = await this.parseResponseBody(res);
+
+      if (parsed && typeof parsed === 'object') {
+        const errorMessage =
+          'error' in parsed && typeof parsed.error === 'string'
+            ? parsed.error
+            : 'message' in parsed && typeof parsed.message === 'string'
+              ? parsed.message
+              : null;
+
+        if (errorMessage) {
+          throw new Error(errorMessage);
+        }
+      }
+
+      if (typeof parsed === 'string' && parsed.trim()) {
+        throw new Error(parsed.trim());
+      }
+
+      throw new Error(`HTTP ${res.status}`);
     }
 
-    return res.json();
+    return await this.parseResponseBody(res) as T;
   }
 
   get<T>(path: string) { return this.request<T>('GET', path); }

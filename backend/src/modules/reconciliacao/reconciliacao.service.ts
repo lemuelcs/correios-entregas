@@ -99,7 +99,7 @@ export class ReconciliacaoService {
     };
   }
 
-  async finalizarRota(rotaId: string, atorId: string) {
+  async finalizarRota(rotaId: string, _atorId: string) {
     const rota = await prisma.rota.findUnique({
       where: { id: rotaId },
       include: {

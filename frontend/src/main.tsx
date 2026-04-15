@@ -36,13 +36,12 @@ import { MonitoramentoPage } from './features/unidade/pages/MonitoramentoPage';
 import { ReconciliacaoPage } from './features/unidade/pages/ReconciliacaoPage';
 import { CadastrosConfigPage } from './features/unidade/pages/CadastrosConfigPage';
 import { ComunicacaoPage } from './features/unidade/pages/comunicacao/ComunicacaoPage';
-import { WhatsAppSettingsPage } from './features/unidade/pages/comunicacao/WhatsAppSettingsPage';
-
 // Gestao (Sede) pages
 import { GestaoUnidadesPage } from './features/gestao/pages/GestaoUnidadesPage';
 import { GestaoSEsPage } from './features/gestao/pages/GestaoSEsPage';
 import { GestaoUsuariosPage } from './features/gestao/pages/GestaoUsuariosPage';
 import { GestaoAjustesPage } from './features/gestao/pages/GestaoAjustesPage';
+import ComunicacaoConfigPage from './features/gestao/pages/ComunicacaoConfigPage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -55,6 +54,7 @@ createRoot(document.getElementById('root')!).render(
           <Route index element={<GestaoUnidadesPage />} />
           <Route path="ses" element={<GestaoSEsPage />} />
           <Route path="usuarios" element={<GestaoUsuariosPage />} />
+          <Route path="comunicacao" element={<ComunicacaoConfigPage />} />
           <Route path="ajustes" element={<GestaoAjustesPage />} />
           <Route path="*" element={<Navigate to="/gestao" replace />} />
         </Route>
@@ -75,7 +75,6 @@ createRoot(document.getElementById('root')!).render(
           <Route path="ponto" element={<CadastrosConfigPage section="ponto" />} />
           <Route path="configuracoes" element={<CadastrosConfigPage section="configuracoes" />} />
           <Route path="comunicacao" element={<ComunicacaoPage />} />
-          <Route path="configuracoes/whatsapp" element={<WhatsAppSettingsPage />} />
           <Route path="*" element={<Navigate to="/unidade" replace />} />
         </Route>
 

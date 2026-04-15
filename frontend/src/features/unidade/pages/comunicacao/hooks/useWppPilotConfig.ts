@@ -68,7 +68,7 @@ export function useWppPilotConfig() {
         proxyEnabled: wppPilotForm.proxyEnabled,
         llmEnabled: wppPilotForm.llmEnabled,
       });
-      toast.success('Configuracao salva e webhook configurado');
+      toast.success('Configuracao global salva e webhook configurado');
       await refetch();
     } catch (err) {
       toast.error((err as Error).message || 'Erro ao salvar configuracao');
@@ -81,7 +81,7 @@ export function useWppPilotConfig() {
     setWppPilotConfiguringWebhook(true);
     try {
       await api.post('/comunicacao/admin/configurar-webhook');
-      toast.success('Webhook reconfigurado');
+      toast.success('Webhook global reconfigurado');
       await refetch();
     } catch (err) {
       toast.error((err as Error).message || 'Erro ao reconfigurar webhook');
@@ -101,9 +101,10 @@ export function useWppPilotConfig() {
         timezone: wppPilotForm.timezone,
         botEnabled: wppPilotForm.botEnabled,
         proxyEnabled: wppPilotForm.proxyEnabled,
+        llmEnabled: wppPilotForm.llmEnabled,
       });
       if (result.qrcode) setQrCode(result.qrcode);
-      toast.success('Instancia criada');
+      toast.success('Instancia global criada');
       await refetch();
     } catch (err) {
       toast.error((err as Error).message || 'Erro ao criar instancia');
@@ -133,7 +134,7 @@ export function useWppPilotConfig() {
     setRestarting(true);
     try {
       await api.post('/comunicacao/admin/instance/reiniciar');
-      toast.success('Instancia reiniciada');
+      toast.success('Instancia global reiniciada');
       await refetch();
     } catch (err) {
       toast.error((err as Error).message || 'Erro ao reiniciar');
@@ -146,7 +147,7 @@ export function useWppPilotConfig() {
     setDeleting(true);
     try {
       await api.delete('/comunicacao/admin/instance');
-      toast.success('Instancia excluida');
+      toast.success('Instancia global excluida');
       await refetch();
     } catch (err) {
       toast.error((err as Error).message || 'Erro ao excluir');

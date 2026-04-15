@@ -67,16 +67,21 @@ export interface AdminConfig {
   instanceName?: string;
   phoneNumber?: string;
   dspNome?: string;
+  unidadeNome?: string;
   locale?: string;
   timezone?: string;
   botEnabled?: boolean;
   proxyEnabled?: boolean;
+  llmEnabled?: boolean;
+  llmConfig?: LlmConfigForm;
+  flowDefinition?: Record<string, unknown>;
+  terminology?: Record<string, string>;
   instanceExists?: boolean;
   connected?: boolean;
   connectedAt?: string | null;
   lastWebhookAt?: string | null;
   webhook?: {
-    current: unknown;
+    current: { url: string; events: string[]; webhookByEvents?: boolean } | null;
     expected: { url: string; events: string[] };
     ok: boolean;
   };
@@ -133,6 +138,45 @@ export interface TemplateHSM {
   idioma: string;
   variaveis: string[];
   corpo: string;
+}
+
+// ── Instance check result ──────────────────────────────────────────────────
+
+export interface InstanceCheckResult {
+  available: boolean;
+  takenByOther: boolean;
+  evolutionState: 'open' | 'close' | 'connecting' | null;
+  instanceExists: boolean;
+  isConnected: boolean;
+}
+
+// ── WhatsApp Bot form data ─────────────────────────────────────────────────
+
+export interface WhatsAppBotFormData {
+  instanceName: string;
+  phoneNumber: string;
+  unidadeNome: string;
+  locale: string;
+  timezone: string;
+  botEnabled: boolean;
+  proxyEnabled: boolean;
+  llmEnabled: boolean;
+}
+
+export type SetWppPilotFormData = React.Dispatch<React.SetStateAction<WhatsAppBotFormData>>;
+
+// ── LLM Config form ────────────────────────────────────────────────────────
+
+export interface LlmConfigForm {
+  provider: 'openai' | 'anthropic' | 'google' | 'openrouter';
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  complexityRouting?: {
+    enabled: boolean;
+    model?: string;
+    triggers?: string[];
+  };
 }
 
 // ── Dashboard chart types (computed on frontend from stats) ────────────────

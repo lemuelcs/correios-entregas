@@ -31,9 +31,16 @@ export const gestaoNavItems: GestaoNavItem[] = [
     shortLabel: 'US',
   },
   {
+    path: '/gestao/comunicacao',
+    title: 'Comunicação',
+    subtitle: 'Gestão de WhatsApp, Bot e White-Label do Tenant.',
+    group: 'Sistema',
+    shortLabel: 'CM',
+  },
+  {
     path: '/gestao/ajustes',
     title: 'Ajustes',
-    subtitle: 'Integracoes, WhatsApp, VROOM/OSRM e configuracoes globais.',
+    subtitle: 'Integracoes, VROOM/OSRM e configuracoes globais.',
     group: 'Sistema',
     shortLabel: 'AJ',
   },

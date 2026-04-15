@@ -17,13 +17,6 @@ export const unidadeNavItems: UnidadeNavItem[] = [
     end: true,
   },
   {
-    path: '/unidade/configuracoes/whatsapp',
-    title: 'Config. WhatsApp',
-    subtitle: 'Bot, instancia e configuracao de IA/LLM.',
-    group: 'Comunicacao',
-    shortLabel: 'CW',
-  },
-  {
     path: '/unidade',
     title: 'Dashboard',
     subtitle: 'Visao geral da operacao do dia, nivel de servico e rotas em curso.',

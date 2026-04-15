@@ -110,8 +110,6 @@ export class RecebimentoService {
     const agora = new Date();
     const nomeUnidade = unitizador.unidade.nome;
     const objetoIds = unitizador.objetos.map((o) => o.id);
-    const divergenciaObjetoIds = new Set(divergencias.map((d) => d.objetoId));
-
     const resultado = await prisma.$transaction(async (tx) => {
       // Update all objects in unitizador to EM_CONFERENCIA
       if (objetoIds.length > 0) {

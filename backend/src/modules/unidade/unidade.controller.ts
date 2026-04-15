@@ -48,7 +48,22 @@ export class UnidadeController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const data = createUnidadeSchema.parse(req.body);
-      const unidade = await unidadeService.create(data);
+      const unidade = await unidadeService.create({
+        codigo: data.codigo,
+        nome: data.nome,
+        tipo: data.tipo,
+        logradouro: data.logradouro,
+        numero: data.numero,
+        complemento: data.complemento,
+        bairro: data.bairro,
+        cidade: data.cidade,
+        uf: data.uf,
+        cep: data.cep,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        modeloTriagem: data.modeloTriagem,
+        configTriagem: data.configTriagem,
+      });
       res.status(201).json(unidade);
     } catch (err) {
       next(err);
@@ -90,7 +105,14 @@ export class UnidadeController {
     try {
       const id = req.params.id as string;
       const faixas = faixasCepSchema.parse(req.body);
-      const result = await unidadeService.updateFaixasCep(id, faixas);
+      const result = await unidadeService.updateFaixasCep(
+        id,
+        faixas.map((faixa) => ({
+          inicio: faixa.inicio,
+          fim: faixa.fim,
+          distritoCodigo: faixa.distritoCodigo,
+        })),
+      );
       res.json(result);
     } catch (err) {
       next(err);

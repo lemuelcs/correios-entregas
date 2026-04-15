@@ -37,6 +37,7 @@ const SIZE_CLASSES: Record<BadgeSize, string> = {
 
 interface BadgeProps {
   children: ReactNode;
+  className?: string;
   dot?: boolean;
   size?: BadgeSize;
   variant?: BadgeVariant;
@@ -44,6 +45,7 @@ interface BadgeProps {
 
 export function Badge({
   children,
+  className,
   dot = false,
   size = 'md',
   variant = 'neutral',
@@ -54,6 +56,7 @@ export function Badge({
         'inline-flex items-center gap-1.5 rounded-full font-semibold ring-1 ring-inset',
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
+        className ?? '',
       ].join(' ')}
     >
       {dot ? <span className={['pulse-dot h-1.5 w-1.5 rounded-full', DOT_CLASSES[variant]].join(' ')} /> : null}

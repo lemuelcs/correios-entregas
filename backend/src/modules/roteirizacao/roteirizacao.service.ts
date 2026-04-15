@@ -58,7 +58,7 @@ export class RoteirizacaoService {
     unidadeId: string,
     modo: ModoOtimizacao = 'ABSOLUTO',
     solver: SolverUsado = 'VROOM',
-    atorId: string,
+    _atorId: string,
   ) {
     // 1. Fetch geocoded objects ready for routing
     const objetos = await prisma.objeto.findMany({
@@ -477,7 +477,7 @@ export class RoteirizacaoService {
    * Approve a solved result: persist Rotas, Paradas, SortPlans to the database.
    * Handles both VROOM and PyVRP result formats.
    */
-  async aprovar(jobId: string, atorId: string) {
+  async aprovar(jobId: string, _atorId: string) {
     const found = await this.findJob(jobId);
     if (!found) {
       throw new AppError(404, 'Job não encontrado');

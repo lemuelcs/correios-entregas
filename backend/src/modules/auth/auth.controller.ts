@@ -22,7 +22,12 @@ export class AuthController {
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const data = loginSchema.parse(req.body);
-      const result = await authService.login(data);
+      const result = await authService.login({
+        cpf: data.cpf,
+        email: data.email,
+        matricula: data.matricula,
+        senha: data.senha!,
+      });
       res.json(result);
     } catch (err) {
       next(err);

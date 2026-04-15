@@ -5,7 +5,6 @@ import { prisma } from '../../shared/utils/prisma';
 import { AppError } from '../../shared/middleware/error-handler.middleware';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production-32chars';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-change-in-prod-32ch';
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
 
@@ -49,7 +48,8 @@ export class AuthService {
 
     const tokens = await this.generateTokens(usuario.id, usuario.role, usuario.unidadeId);
 
-    const { senha: _, ...userWithoutPassword } = usuario;
+    const { senha: senhaHash, ...userWithoutPassword } = usuario;
+    void senhaHash;
     return { ...tokens, user: userWithoutPassword };
   }
 
@@ -95,7 +95,8 @@ export class AuthService {
       throw new AppError(404, 'Usuário não encontrado');
     }
 
-    const { senha: _, ...userWithoutPassword } = usuario;
+    const { senha: senhaHash, ...userWithoutPassword } = usuario;
+    void senhaHash;
     return userWithoutPassword;
   }
 
