@@ -1,6 +1,17 @@
 # Módulo de Comunicação WhatsApp (WPP-PILOT) — Guia de Migração
 
-> Documentação completa para copiar o módulo de comunicação do projeto **Temelio** para o projeto **Correios-Entregas**.
+> Documento histórico da extração inicial do módulo de comunicação do projeto **Temelio** para o **Correios-Entregas**.
+>
+> Status atual: a implementação local `correios-entregas/whatsapp-service` foi aposentada. O produto deve consumir o microserviço central de WhatsApp publicado no repositório `delivyo-services`, exposto via gateway em `http://localhost/services/whatsapp`.
+
+---
+
+## 0. Estado Atual da Arquitetura
+
+- o frontend do `correios-entregas` consome `/comunicacao/*` via proxy para `/services/whatsapp`
+- a Evolution compartilhada é consumida via `http://localhost/services/evolution`
+- a implementação local `whatsapp-service/` não faz mais parte do runtime suportado
+- este documento permanece como referência histórica de domínio e contrato, não como instrução de deploy local
 
 ---
 
