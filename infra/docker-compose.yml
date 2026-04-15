@@ -34,7 +34,7 @@ services:
     image: curlimages/curl:8.12.1
     container_name: correios-osrm-download
     volumes:
-      - ./osrm-data:/data
+      - ../../delivyo-services/infra/osrm-data:/data
     command:
       - sh
       - -lc
@@ -55,7 +55,7 @@ services:
       osrm-download:
         condition: service_completed_successfully
     volumes:
-      - ./osrm-data:/data
+      - ../../delivyo-services/infra/osrm-data:/data
     command:
       - sh
       - -lc
@@ -81,7 +81,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./osrm-data:/data
+      - ../../delivyo-services/infra/osrm-data:/data
     command: osrm-routed --algorithm mld /data/centro-oeste-latest.osrm
 
   vroom:
