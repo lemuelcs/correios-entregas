@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: redis/Dockerfile
     container_name: correiosentrega-redis
+    profiles: ["legacy"]
     restart: unless-stopped
     volumes:
       - redis-data:/data
@@ -18,6 +19,7 @@ services:
       context: .
       dockerfile: osrm/Dockerfile
     container_name: correiosentrega-osrm
+    profiles: ["legacy"]
     restart: unless-stopped
     volumes:
       - osrm-data:/data
@@ -37,6 +39,7 @@ services:
       context: .
       dockerfile: vroom/Dockerfile
     container_name: correiosentrega-vroom
+    profiles: ["legacy"]
     restart: unless-stopped
     environment:
       VROOM_ROUTER: osrm
@@ -51,15 +54,16 @@ services:
       start_period: 20s
 
   evolution-api:
-    image: atendai/evolution-api:v2.2.3
+    image: correiosentrega-evolution-local:2.3.3
     container_name: correiosentrega-evolution
+    profiles: ["legacy"]
     restart: unless-stopped
     environment:
       SERVER_URL: http://evolution-api:8080
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-change_me_evolution_key}
       DATABASE_PROVIDER: postgresql
       DATABASE_ENABLED: "true"
-      DATABASE_CONNECTION_URI: postgresql://temellodev:temellodev123@host.docker.internal:5432/correios_evolution_db
+      DATABASE_CONNECTION_URI: postgresql://usr_correiosentrega:Correios123@host.docker.internal:5432/WhatsAppDB
       DATABASE_CONNECTION_CLIENT_NAME: correios_evolution
       DATABASE_SAVE_DATA_INSTANCE: "true"
       DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
@@ -71,7 +75,8 @@ services:
       CACHE_REDIS_PREFIX_KEY: correios_evolution
       CACHE_REDIS_SAVE_INSTANCES: "false"
       WEBHOOK_GLOBAL_ENABLED: "false"
-      LOG_LEVEL: warn
+      CONFIG_SESSION_PHONE_VERSION: 2.3000.1020885143
+      LOG_LEVEL: info
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -89,35 +94,28 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: backend/Dockerfile.dev
     container_name: correiosentrega-backend
     restart: unless-stopped
     env_file:
       - backend/.env
     environment:
-      DATABASE_URL: postgresql://usr_correiosentrega:Correios123@host.docker.internal:5432/correiosentrega_dev?schema=public
-      REDIS_URL: redis://redis:6379
-      OSRM_URL: http://osrm:5000
-      VROOM_URL: http://vroom:3000
-      EVOLUTION_API_URL: http://evolution-api:8080
-      EVOLUTION_PILOT_URL: http://evolution-api:8080
+      DATABASE_URL: postgresql://temellodev:temellodev123@host.docker.internal:5432/correiosentrega_dev?schema=public
+      REDIS_URL: redis://host.docker.internal:6379
+      OSRM_URL: http://host.docker.internal:5001
+      VROOM_URL: http://host.docker.internal:3000
+      EVOLUTION_API_URL: http://host.docker.internal/services/evolution
+      EVOLUTION_PILOT_URL: http://host.docker.internal/services/evolution
       EVOLUTION_API_KEY: change_me_evolution_key
       EVOLUTION_PILOT_API_KEY: change_me_evolution_key
-      EVOLUTION_PILOT_WEBHOOK_SECRET: change_me_webhook_secret
+      EVOLUTION_PILOT_WEBHOOK_SECRET: ""
       APP_URL: http://backend:3002
       PORT: 3002
-      FRONTEND_URL: http://localhost:5180
+      FRONTEND_URL: http://localhost:5181
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      redis:
-        condition: service_healthy
-      osrm:
-        condition: service_healthy
-      vroom:
-        condition: service_healthy
-      evolution-api:
-        condition: service_healthy
+    volumes:
+      - ./backend:/app/backend
     ports:
       - "3002:3002"
     healthcheck:
@@ -127,23 +125,68 @@ services:
       retries: 10
       start_period: 20s
 
+  whatsapp-service:
+    build:
+      context: ./whatsapp-service
+      dockerfile: Dockerfile
+    container_name: correiosentrega-whatsapp
+    profiles: ["legacy"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://usr_correiosentrega:Correios123@host.docker.internal:5432/WhatsAppDB?schema=public
+      REDIS_URL: redis://redis:6379
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_API_KEY: change_me_evolution_key
+      EVOLUTION_PILOT_URL: http://evolution-api:8080
+      EVOLUTION_PILOT_API_KEY: change_me_evolution_key
+      EVOLUTION_PILOT_WEBHOOK_SECRET: ""
+      PORT: 3003
+      FRONTEND_URL: http://localhost:5180
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+      evolution-api:
+        condition: service_healthy
+    ports:
+      - "3003:3003"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3003/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
+      dockerfile: frontend/Dockerfile.dev
     container_name: correiosentrega-frontend
     restart: unless-stopped
+    environment:
+      VITE_API_TARGET: http://backend:3002
+      VITE_WHATSAPP_API_TARGET: http://host.docker.internal
+      VITE_WHATSAPP_API_GATEWAY_PREFIX: /services/whatsapp
+    volumes:
+      - ./frontend/src:/app/frontend/src
+      - ./frontend/public:/app/frontend/public
+      - ./frontend/index.html:/app/frontend/index.html
+      - ./frontend/vite.config.ts:/app/frontend/vite.config.ts
+      - ./frontend/tailwind.config.ts:/app/frontend/tailwind.config.ts:ro
+      - ./frontend/tsconfig.json:/app/frontend/tsconfig.json:ro
+      - ./frontend/tsconfig.app.json:/app/frontend/tsconfig.app.json:ro
     depends_on:
       backend:
         condition: service_healthy
     ports:
-      - "5180:80"
+      - "5181:5180"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:5180/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 10s
+      start_period: 30s
 
 volumes:
   redis-data:
