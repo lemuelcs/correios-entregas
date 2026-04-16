@@ -3,6 +3,11 @@
 > Documento histórico da extração inicial do módulo de comunicação do projeto **Temelio** para o **Correios-Entregas**.
 >
 > Status atual: a implementação local `correios-entregas/whatsapp-service` foi aposentada. O produto deve consumir o microserviço central de WhatsApp publicado no repositório `delivyo-services`, exposto via gateway em `http://localhost/services/whatsapp`.
+>
+> Leitura correta deste documento hoje:
+> - referências a `WPP-PILOT`, `WppPilot*` e arquivos locais descrevem a arquitetura histórica da migração
+> - elas não representam mais o runtime atual do `correios-entregas`
+> - no estado atual, o produto usa apenas o microserviço central atrás de `/services/whatsapp`
 
 ---
 
@@ -27,7 +32,7 @@ O módulo de comunicação implementa integração WhatsApp via **Evolution API*
 - **Multi-provider LLM** (OpenAI, Anthropic, Google, Groq, OpenRouter)
 - **Gerenciamento de instância** Evolution API (criar, conectar via QR, reiniciar, excluir)
 
-### Arquitetura
+### Arquitetura Histórica da Extração
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -62,7 +67,7 @@ O módulo de comunicação implementa integração WhatsApp via **Evolution API*
 
 ## 2. Inventário Completo de Arquivos
 
-### 2.1 Backend — `backend/src/modules/communication/`
+### 2.1 Backend Original da Extração — `backend/src/modules/communication/`
 
 ```
 communication.module.ts              # Registro Express (12 linhas)
@@ -135,7 +140,7 @@ __tests__/
 
 ### 2.2 Prisma Schema — `backend/prisma/schema/communication.prisma`
 
-**Modelos WPP-PILOT (ativos):**
+**Modelos WPP-PILOT na época da extração local:**
 
 | Modelo | Propósito |
 |--------|-----------|
@@ -148,7 +153,7 @@ __tests__/
 | `WppDispatcherSession` | Sessão dispatcher humano — entrada/saída timestamped |
 | `WppDispatcherMsg` | Mensagem enviada por humano |
 
-**Modelos WABA (legado, dados existentes):**
+**Modelos WABA legados / compatibilidade:**
 
 | Modelo | Propósito |
 |--------|-----------|

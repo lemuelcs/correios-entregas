@@ -23,6 +23,10 @@ Este repositório concentra o que é específico do produto Correios Entregas:
 - a infraestrutura legada local deste repositório deve existir apenas em `profiles: ["legacy"]`
 - o domínio de WhatsApp/comunicação, incluindo a Evolution API, é consumido via gateway do hub central, não por implementação local neste repositório
 
+Nomenclatura histórica:
+- nomes como `WppPilot`, `WPP-PILOT` e afins ainda podem aparecer em documentação e em partes do frontend por compatibilidade de contrato
+- isso não significa existência de runtime local de WhatsApp neste repositório
+
 ## Endpoints Locais Relevantes
 
 - backend: `http://localhost:3002`
