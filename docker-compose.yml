@@ -97,6 +97,7 @@ services:
       dockerfile: backend/Dockerfile.dev
     container_name: correiosentrega-backend
     restart: unless-stopped
+    mem_limit: 256m
     env_file:
       - backend/.env
     environment:
@@ -164,6 +165,7 @@ services:
       dockerfile: frontend/Dockerfile.dev
     container_name: correiosentrega-frontend
     restart: unless-stopped
+    mem_limit: 256m
     environment:
       VITE_API_TARGET: http://backend:3002
       VITE_WHATSAPP_API_TARGET: http://host.docker.internal
