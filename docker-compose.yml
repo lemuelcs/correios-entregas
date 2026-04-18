@@ -82,8 +82,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    ports:
-      - "8081:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/ || exit 1"]
       interval: 10s
@@ -119,6 +117,37 @@ services:
       - ./backend:/app/backend
     ports:
       - "3002:3002"
+    networks:
+      - default
+      - delivyo_shared_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=delivyo-services_delivyo_network"
+      # Router API (HTTP regular)
+      - "traefik.http.routers.correios-api.rule=Host(`correios.delivyodev.com`) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
+      - "traefik.http.routers.correios-api.entrypoints=websecure"
+      - "traefik.http.routers.correios-api.tls=true"
+      - "traefik.http.routers.correios-api.tls.certresolver=cloudflare"
+      - "traefik.http.routers.correios-api.priority=100"
+      - "traefik.http.routers.correios-api.middlewares=sec-headers@file,compress@file,rate-limit-api@file"
+      - "traefik.http.routers.correios-api.service=correios-backend"
+      # Router SSE (sem buffering, sem compress)
+      - "traefik.http.routers.correios-sse.rule=Host(`correios.delivyodev.com`) && PathPrefix(`/events`)"
+      - "traefik.http.routers.correios-sse.entrypoints=websecure"
+      - "traefik.http.routers.correios-sse.tls=true"
+      - "traefik.http.routers.correios-sse.tls.certresolver=cloudflare"
+      - "traefik.http.routers.correios-sse.priority=110"
+      - "traefik.http.routers.correios-sse.middlewares=sec-headers@file,sse-passthrough@file"
+      - "traefik.http.routers.correios-sse.service=correios-backend"
+      # Router Auth (rate limit mais estrito contra brute force)
+      - "traefik.http.routers.correios-auth.rule=Host(`correios.delivyodev.com`) && (Path(`/api/v1/auth/login`) || Path(`/api/v1/auth/refresh`))"
+      - "traefik.http.routers.correios-auth.entrypoints=websecure"
+      - "traefik.http.routers.correios-auth.tls=true"
+      - "traefik.http.routers.correios-auth.tls.certresolver=cloudflare"
+      - "traefik.http.routers.correios-auth.priority=200"
+      - "traefik.http.routers.correios-auth.middlewares=sec-headers@file,rate-limit-auth@file"
+      - "traefik.http.routers.correios-auth.service=correios-backend"
+      - "traefik.http.services.correios-backend.loadbalancer.server.port=3002"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3002/health >/dev/null || exit 1"]
       interval: 15s
@@ -150,8 +179,6 @@ services:
         condition: service_healthy
       evolution-api:
         condition: service_healthy
-    ports:
-      - "3003:3003"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3003/health >/dev/null || exit 1"]
       interval: 15s
@@ -183,6 +210,19 @@ services:
         condition: service_healthy
     ports:
       - "5181:5180"
+    networks:
+      - default
+      - delivyo_shared_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=delivyo-services_delivyo_network"
+      - "traefik.http.routers.correios-web.rule=Host(`correios.delivyodev.com`)"
+      - "traefik.http.routers.correios-web.entrypoints=websecure"
+      - "traefik.http.routers.correios-web.tls=true"
+      - "traefik.http.routers.correios-web.tls.certresolver=cloudflare"
+      - "traefik.http.routers.correios-web.priority=50"
+      - "traefik.http.routers.correios-web.middlewares=sec-headers@file,compress@file"
+      - "traefik.http.services.correios-web.loadbalancer.server.port=5180"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:5180/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
       interval: 15s
@@ -193,3 +233,11 @@ services:
 volumes:
   redis-data:
   osrm-data:
+
+networks:
+  default:
+    name: correios_network
+    driver: bridge
+  delivyo_shared_network:
+    external: true
+    name: delivyo-services_delivyo_network

@@ -15,8 +15,15 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 5180,
-    host: true,
+    strictPort: true,
+    allowedHosts: ['.delivyodev.com', 'correios.delivyodev.com'],
+    hmr: {
+      protocol: 'wss',
+      host: 'correios.delivyodev.com',
+      clientPort: 443,
+    },
     watch: {
       usePolling: true,
     },
