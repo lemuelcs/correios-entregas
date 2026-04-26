@@ -222,6 +222,15 @@ services:
       - "traefik.http.routers.correios-web.tls.certresolver=cloudflare"
       - "traefik.http.routers.correios-web.priority=50"
       - "traefik.http.routers.correios-web.middlewares=sec-headers@file,compress@file"
+      - "traefik.http.routers.correios-web.service=correios-web"
+      # Domínio público correiosdev.com (zona Cloudflare separada)
+      - "traefik.http.routers.correios-web-public.rule=Host(`correiosdev.com`) || Host(`www.correiosdev.com`)"
+      - "traefik.http.routers.correios-web-public.entrypoints=websecure"
+      - "traefik.http.routers.correios-web-public.tls=true"
+      - "traefik.http.routers.correios-web-public.tls.certresolver=cloudflare"
+      - "traefik.http.routers.correios-web-public.priority=50"
+      - "traefik.http.routers.correios-web-public.middlewares=sec-headers@file,compress@file"
+      - "traefik.http.routers.correios-web-public.service=correios-web"
       - "traefik.http.services.correios-web.loadbalancer.server.port=5180"
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:5180/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]

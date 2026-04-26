@@ -18,7 +18,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5180,
     strictPort: true,
-    allowedHosts: ['.delivyodev.com', 'correios.delivyodev.com'],
+    allowedHosts: ['.delivyodev.com', 'correios.delivyodev.com', '.correiosdev.com'],
     hmr: {
       protocol: 'wss',
       host: 'correios.delivyodev.com',
