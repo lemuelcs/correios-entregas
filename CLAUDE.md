@@ -6,10 +6,10 @@ Sistema de gestao logistica para operacoes de entrega dos Correios brasileiros. 
 
 ## Arquitetura
 
-- **Monorepo Turbo**: 3 workspaces (backend, frontend, whatsapp-service)
+- **Monorepo Turbo**: 2 workspaces (backend, frontend)
 - **Backend**: Express 4 + TypeScript + Prisma 6 + PostgreSQL 18 (TimescaleDB)
 - **Frontend**: React 19 + Vite 6 + Tailwind CSS 4 + Zustand 5
-- **WhatsApp Service**: servico standalone para Evolution API (perfil legacy)
+- **WhatsApp**: consome o hub centralizado em `delivyo-services/microservices/ms-whatsapp` via `/api/v1/comunicacao/*` (proxy HTTP). Nao ha mais fork local.
 - **Auth**: JWT + refresh tokens
 - **Jobs assincronos**: BullMQ (Redis) — VROOM, PyVRP, geocoding, DnE sync, NPS
 - **Real-time**: SSE (Server-Sent Events) para monitoramento ao vivo
@@ -70,7 +70,6 @@ frontend/src/
   shared/               # Componentes UI globais
   main.tsx              # Entry point React
 
-whatsapp-service/       # Servico WhatsApp/Evolution (perfil legacy)
 infra/                  # Configs de infra compartilhada
 osrm/                   # Docker files OSRM
 vroom/                  # Docker files VROOM
@@ -155,18 +154,19 @@ cd frontend && npm run lint            # eslint src/
 
 ## Infraestrutura Docker
 
-- `postgres` — TimescaleDB PostgreSQL 18
-- `redis` — Redis 7 (cache + fila de jobs)
 - `osrm` — Open Street Routing Machine (perfil legacy)
 - `vroom` — VROOM VRP solver (perfil legacy)
-- `evolution-api` — WhatsApp Evolution API (perfil legacy)
 - `backend` — Express API (porta 3002)
 - `frontend` — Vite dev server (porta 5181)
-- `whatsapp-service` — Processador WhatsApp (perfil legacy)
+
+**Servicos consumidos do hub `delivyo-services` (rede `delivyo-services_delivyo_network`):**
+- `postgres` — TimescaleDB PostgreSQL 18
+- `redis` — Redis 7 (cache + fila de jobs)
+- `ms-whatsapp` — WhatsApp/Evolution centralizado (via `http://host.docker.internal/services/whatsapp`)
 
 **Perfis Docker:**
 - Sem perfil = sempre ativo (backend, frontend)
-- `legacy` = servicos opcionais (redis, osrm, vroom, evolution-api, whatsapp-service)
+- `legacy` = servicos opcionais locais (osrm, vroom)
 
 ## Variaveis de Ambiente
 
@@ -190,9 +190,11 @@ OSRM_URL                  # OSRM endpoint
 VROOM_URL                 # VROOM endpoint
 PYVRP_URL                 # PyVRP endpoint
 
-# WhatsApp
-EVOLUTION_API_URL          # Evolution API
-EVOLUTION_API_KEY          # Chave auth
+# WhatsApp Hub (proxy para delivyo-services/ms-whatsapp)
+WHATSAPP_HUB_BASE_URL      # Ex: http://host.docker.internal/services/whatsapp
+WHATSAPP_HUB_API_PREFIX    # Ex: /api/comunicacao
+WHATSAPP_HUB_TIMEOUT_MS    # Ex: 10000
+WHATSAPP_HUB_TENANT_ID     # Ex: CORREIOS
 
 # App
 PORT=3002                 # Porta backend

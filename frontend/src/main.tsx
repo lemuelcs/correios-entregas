@@ -42,6 +42,7 @@ import { GestaoSEsPage } from './features/gestao/pages/GestaoSEsPage';
 import { GestaoUsuariosPage } from './features/gestao/pages/GestaoUsuariosPage';
 import { GestaoAjustesPage } from './features/gestao/pages/GestaoAjustesPage';
 import ComunicacaoConfigPage from './features/gestao/pages/ComunicacaoConfigPage';
+import { GestaoTerminologiaPage } from './features/gestao/pages/GestaoTerminologiaPage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -55,6 +56,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="ses" element={<GestaoSEsPage />} />
           <Route path="usuarios" element={<GestaoUsuariosPage />} />
           <Route path="comunicacao" element={<ComunicacaoConfigPage />} />
+          <Route path="terminologia" element={<GestaoTerminologiaPage />} />
           <Route path="ajustes" element={<GestaoAjustesPage />} />
           <Route path="*" element={<Navigate to="/gestao" replace />} />
         </Route>

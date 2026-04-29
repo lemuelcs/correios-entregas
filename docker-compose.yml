@@ -1,19 +1,9 @@
 services:
-  redis:
-    build:
-      context: .
-      dockerfile: redis/Dockerfile
-    container_name: correiosentrega-redis
-    profiles: ["legacy"]
-    restart: unless-stopped
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
+  # NOTE: redis e evolution-api foram removidos deste compose (Sprint 3 / ADR-002).
+  # O backend agora consome o hub centralizado em `delivyo-services`:
+  #   - Redis: container `delivyo-redis` na rede `delivyo-services_delivyo_network`
+  #   - Evolution / WhatsApp: via gateway Traefik em http://host.docker.internal/services/whatsapp
+  # Para subir esses servicos, use: cd /root/dev/delivyo-services && docker compose up -d
   osrm:
     build:
       context: .
@@ -53,42 +43,6 @@ services:
       retries: 10
       start_period: 20s
 
-  evolution-api:
-    image: correiosentrega-evolution-local:2.3.3
-    container_name: correiosentrega-evolution
-    profiles: ["legacy"]
-    restart: unless-stopped
-    environment:
-      SERVER_URL: http://evolution-api:8080
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-change_me_evolution_key}
-      DATABASE_PROVIDER: postgresql
-      DATABASE_ENABLED: "true"
-      DATABASE_CONNECTION_URI: postgresql://usr_correiosentrega:Correios123@host.docker.internal:5432/WhatsAppDB
-      DATABASE_CONNECTION_CLIENT_NAME: correios_evolution
-      DATABASE_SAVE_DATA_INSTANCE: "true"
-      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
-      DATABASE_SAVE_MESSAGE_UPDATE: "true"
-      DATABASE_SAVE_DATA_CONTACTS: "true"
-      DATABASE_SAVE_DATA_CHATS: "true"
-      CACHE_REDIS_ENABLED: "true"
-      CACHE_REDIS_URI: redis://redis:6379/1
-      CACHE_REDIS_PREFIX_KEY: correios_evolution
-      CACHE_REDIS_SAVE_INSTANCES: "false"
-      WEBHOOK_GLOBAL_ENABLED: "false"
-      CONFIG_SESSION_PHONE_VERSION: 2.3000.1020885143
-      LOG_LEVEL: info
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 60s
-
   backend:
     build:
       context: .
@@ -103,11 +57,11 @@ services:
       REDIS_URL: redis://host.docker.internal:6379
       OSRM_URL: http://host.docker.internal:5001
       VROOM_URL: http://host.docker.internal:3000
-      EVOLUTION_API_URL: http://host.docker.internal/services/evolution
-      EVOLUTION_PILOT_URL: http://host.docker.internal/services/evolution
-      EVOLUTION_API_KEY: change_me_evolution_key
-      EVOLUTION_PILOT_API_KEY: change_me_evolution_key
-      EVOLUTION_PILOT_WEBHOOK_SECRET: ""
+      # WhatsApp via hub centralizado (delivyo-services/microservices/ms-whatsapp)
+      WHATSAPP_HUB_BASE_URL: http://host.docker.internal/services/whatsapp
+      WHATSAPP_HUB_API_PREFIX: /api/comunicacao
+      WHATSAPP_HUB_TIMEOUT_MS: 10000
+      WHATSAPP_HUB_TENANT_ID: CORREIOS
       APP_URL: http://backend:3002
       PORT: 3002
       FRONTEND_URL: http://localhost:5181
@@ -150,37 +104,6 @@ services:
       - "traefik.http.services.correios-backend.loadbalancer.server.port=3002"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3002/health >/dev/null || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
-  whatsapp-service:
-    build:
-      context: ./whatsapp-service
-      dockerfile: Dockerfile
-    container_name: correiosentrega-whatsapp
-    profiles: ["legacy"]
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://usr_correiosentrega:Correios123@host.docker.internal:5432/WhatsAppDB?schema=public
-      REDIS_URL: redis://redis:6379
-      EVOLUTION_API_URL: http://evolution-api:8080
-      EVOLUTION_API_KEY: change_me_evolution_key
-      EVOLUTION_PILOT_URL: http://evolution-api:8080
-      EVOLUTION_PILOT_API_KEY: change_me_evolution_key
-      EVOLUTION_PILOT_WEBHOOK_SECRET: ""
-      PORT: 3003
-      FRONTEND_URL: http://localhost:5180
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      redis:
-        condition: service_healthy
-      evolution-api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:3003/health >/dev/null || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -240,7 +163,6 @@ services:
       start_period: 30s
 
 volumes:
-  redis-data:
   osrm-data:
 
 networks:

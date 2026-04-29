@@ -38,6 +38,13 @@ export const gestaoNavItems: GestaoNavItem[] = [
     shortLabel: 'CM',
   },
   {
+    path: '/gestao/terminologia',
+    title: 'Terminologia',
+    subtitle: 'Personalize os nomes usados pelo sistema (ex.: Carteiro vs Motorista).',
+    group: 'Sistema',
+    shortLabel: 'TM',
+  },
+  {
     path: '/gestao/ajustes',
     title: 'Ajustes',
     subtitle: 'Integracoes, VROOM/OSRM e configuracoes globais.',

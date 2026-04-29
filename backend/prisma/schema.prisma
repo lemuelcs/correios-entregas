@@ -183,46 +183,46 @@ model Unidade {
   faixasCep     Json          @default("[]")
   modeloTriagem ModeloTriagem @default(MANUAL)
   configTriagem Json          @default("{}")
-  horarioAbre  String? // "08:00"
-  horarioFecha String? // "18:00"
+  horarioAbre   String? // "08:00"
+  horarioFecha  String? // "18:00"
   ativa         Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  se          SuperintendenciaEstadual? @relation(fields: [seId], references: [id])
-  usuarios    Usuario[]
-  carteiros   Carteiro[]
-  objetos     Objeto[]
-  rotas       Rota[]
+  se           SuperintendenciaEstadual? @relation(fields: [seId], references: [id])
+  usuarios     Usuario[]
+  carteiros    Carteiro[]
+  objetos      Objeto[]
+  rotas        Rota[]
   unitizadores Unitizador[]
-  previsoes   VolumePrevisao[]
+  previsoes    VolumePrevisao[]
 
-  lockers             LockerCorreios[]
-  fluxoConfigs        FluxoConfig[]
+  lockers      LockerCorreios[]
+  fluxoConfigs FluxoConfig[]
 
   @@map("unidades")
 }
 
 model Usuario {
-  id                       String   @id @default(uuid())
-  unidadeId                String?
-  cpf                      String?  @unique
-  email                    String?  @unique
-  matricula                String?  @unique
-  senha                    String
-  nome                     String
-  role                     Role
-  telefoneCelular          String?
-  telefoneComercial        String?
-  endResidencialCidade     String?
-  endResidencialUf         String?  @db.Char(2)
-  endResidencialCep        String?  @db.Char(8)
-  endResidencialLogradouro String?
-  endResidencialNumero     String?
+  id                        String   @id @default(uuid())
+  unidadeId                 String?
+  cpf                       String?  @unique
+  email                     String?  @unique
+  matricula                 String?  @unique
+  senha                     String
+  nome                      String
+  role                      Role
+  telefoneCelular           String?
+  telefoneComercial         String?
+  endResidencialCidade      String?
+  endResidencialUf          String?  @db.Char(2)
+  endResidencialCep         String?  @db.Char(8)
+  endResidencialLogradouro  String?
+  endResidencialNumero      String?
   endResidencialComplemento String?
-  ativo                    Boolean  @default(true)
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  ativo                     Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
   unidade       Unidade?       @relation(fields: [unidadeId], references: [id])
   carteiro      Carteiro?
@@ -258,8 +258,8 @@ model Carteiro {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  usuario Usuario  @relation(fields: [usuarioId], references: [id])
-  unidade Unidade  @relation(fields: [unidadeId], references: [id])
+  usuario Usuario    @relation(fields: [usuarioId], references: [id])
+  unidade Unidade    @relation(fields: [unidadeId], references: [id])
   pontos  PontoDia[]
   rotas   Rota[]
 
@@ -323,9 +323,9 @@ model Objeto {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
-  unidade    Unidade       @relation(fields: [unidadeId], references: [id])
-  unitizador Unitizador?   @relation(fields: [unitizadorId], references: [id])
-  rota       Rota?         @relation(fields: [rotaId], references: [id])
+  unidade    Unidade           @relation(fields: [unidadeId], references: [id])
+  unitizador Unitizador?       @relation(fields: [unitizadorId], references: [id])
+  rota       Rota?             @relation(fields: [rotaId], references: [id])
   eventos    ObjetoEvento[]
   nps        NpsResposta?
   interacoes InteracaoObjeto[]
@@ -338,32 +338,32 @@ model Objeto {
 }
 
 model Unitizador {
-  id             String           @id @default(uuid())
-  codigo         String           @unique
-  qrCode         String           @unique
-  tipo           TipoUnitizador
-  unidadeId      String
-  larguraCm      Decimal?         @db.Decimal(8, 2)
-  alturaCm       Decimal?         @db.Decimal(8, 2)
-  profundidadeCm Decimal?         @db.Decimal(8, 2)
-  volumeLitros   Decimal?         @db.Decimal(10, 3)
-  capacidadeKg   Decimal?         @db.Decimal(8, 2)
-  placa          String?
-  modeloVeiculo  String?
-  modal          ModalEntrega?
-  statusVeiculo  StatusVeiculo?
-  statusAtual    StatusUnitizador @default(DISPONIVEL)
-  localizacaoAtual Json           @default("{\"tipo\":\"ESPACO_FISICO\",\"referencia\":\"\"}")
-  rotaAtualId    String?
-  parentId       String?
-  ativo          Boolean          @default(true)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id               String           @id @default(uuid())
+  codigo           String           @unique
+  qrCode           String           @unique
+  tipo             TipoUnitizador
+  unidadeId        String
+  larguraCm        Decimal?         @db.Decimal(8, 2)
+  alturaCm         Decimal?         @db.Decimal(8, 2)
+  profundidadeCm   Decimal?         @db.Decimal(8, 2)
+  volumeLitros     Decimal?         @db.Decimal(10, 3)
+  capacidadeKg     Decimal?         @db.Decimal(8, 2)
+  placa            String?
+  modeloVeiculo    String?
+  modal            ModalEntrega?
+  statusVeiculo    StatusVeiculo?
+  statusAtual      StatusUnitizador @default(DISPONIVEL)
+  localizacaoAtual Json             @default("{\"tipo\":\"ESPACO_FISICO\",\"referencia\":\"\"}")
+  rotaAtualId      String?
+  parentId         String?
+  ativo            Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  unidade         Unidade              @relation(fields: [unidadeId], references: [id])
+  unidade         Unidade               @relation(fields: [unidadeId], references: [id])
   objetos         Objeto[]
   historico       UnitizadorHistorico[]
-  rotaComoVeiculo Rota?                @relation("VeiculoRota")
+  rotaComoVeiculo Rota?                 @relation("VeiculoRota")
 
   @@index([unidadeId])
   @@index([codigo])
@@ -377,7 +377,7 @@ model UnitizadorHistorico {
   statusNovo          StatusUnitizador
   localizacaoAnterior Json
   localizacaoNova     Json
-  ocorridoEm         DateTime         @default(now())
+  ocorridoEm          DateTime         @default(now())
   atorId              String
   motivo              String?
 
@@ -429,9 +429,9 @@ model Rota {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
-  unidade   Unidade    @relation(fields: [unidadeId], references: [id])
-  carteiro  Carteiro   @relation(fields: [carteiroId], references: [id])
-  veiculo   Unitizador @relation("VeiculoRota", fields: [veiculoId], references: [id])
+  unidade   Unidade         @relation(fields: [unidadeId], references: [id])
+  carteiro  Carteiro        @relation(fields: [carteiroId], references: [id])
+  veiculo   Unitizador      @relation("VeiculoRota", fields: [veiculoId], references: [id])
   paradas   Parada[]
   objetos   Objeto[]
   sortPlan  SortPlan?
@@ -567,13 +567,13 @@ model GpsSnapshot {
 }
 
 model RitmoSnapshot {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   rotaId           String
   paradasFeitas    Int
   objetosEntregues Int
-  sphAtual         Decimal  @db.Decimal(6, 2)
+  sphAtual         Decimal   @db.Decimal(6, 2)
   retornoProjetado DateTime?
-  ocorridoEm       DateTime @default(now())
+  ocorridoEm       DateTime  @default(now())
 
   rota Rota @relation(fields: [rotaId], references: [id])
 
@@ -633,11 +633,11 @@ model LockerCorreios {
 }
 
 model FluxoConfig {
-  id        String   @id @default(dbgenerated("gen_random_uuid()"))
+  id        String  @id @default(dbgenerated("gen_random_uuid()"))
   unidadeId String?
   codigo    String
-  versao    Int      @default(1)
-  ativo     Boolean  @default(true)
+  versao    Int     @default(1)
+  ativo     Boolean @default(true)
   definicao Json
 
   createdAt DateTime @default(now())
