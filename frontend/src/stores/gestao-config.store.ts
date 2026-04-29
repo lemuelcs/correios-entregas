@@ -7,7 +7,7 @@ interface GestaoConfigState {
   loading: boolean;
   error: string | null;
   fetchAll: () => Promise<void>;
-  upsert: (chave: string, valor: any, descricao?: string) => Promise<void>;
+  upsert: (chave: string, valor: unknown, descricao?: string) => Promise<void>;
 }
 
 export const useGestaoConfigStore = create<GestaoConfigState>((set, get) => ({
@@ -20,8 +20,8 @@ export const useGestaoConfigStore = create<GestaoConfigState>((set, get) => ({
     try {
       const data = await api.get<ConfiguracaoGlobal[]>('/gestao/configuracoes');
       set({ configs: data, loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err), loading: false });
     }
   },
 

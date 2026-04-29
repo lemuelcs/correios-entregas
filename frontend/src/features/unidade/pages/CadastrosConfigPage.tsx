@@ -70,7 +70,7 @@ function ForecastSection() {
   // Use API data when available, fall back to mock data for development/demo
   // TODO: replace with API data when backend matches
   const forecastSeries = previsoes.length > 0
-    ? previsoes.map((p: any) => [p.data ?? p.label, p.volume ?? p.value] as const)
+    ? previsoes.map((p) => [p.data, p.quantidadeEstimada] as const)
     : mockForecastSeries;
 
   const maxVolume = Math.max(...forecastSeries.map(([, value]) => value));
@@ -173,11 +173,11 @@ function CarteirosSection() {
   // Use API data when available, fall back to mock data for development/demo
   // TODO: replace with API data when backend matches
   const carteiroTeam = carteiros.length > 0
-    ? carteiros.map((c: any) => ({
-        name: c.nome ?? c.name ?? '',
-        modal: c.modal ?? '',
-        status: c.status ?? '',
-        familiarity: c.familiaridade ?? c.familiarity ?? '',
+    ? carteiros.map((c) => ({
+        name: c.usuario?.nome ?? '',
+        modal: c.modalPrincipal ?? '',
+        status: c.ativo ? 'Ativo' : 'Inativo',
+        familiarity: '',
       }))
     : mockCarteiroTeam;
 
@@ -213,15 +213,23 @@ function PontoSection() {
   // Use API data when available, fall back to mock data for development/demo
   // TODO: replace with API data when backend matches
   const attendance = pontoDia.length > 0
-    ? pontoDia.map((p: any) => ({
-        name: p.nome ?? p.name ?? '',
-        shift: p.turno ?? p.shift ?? '',
-        status: p.status ?? '',
+    ? pontoDia.map((p) => ({
+        name: p.usuario.nome,
+        shift: p.ponto?.horaEntrada ?? '',
+        status: p.ponto?.presente ? 'Presente' : 'Ausente',
       }))
     : mockAttendance;
 
   const handleRegistrarPonto = (nome: string) => {
-    registrarPonto({ nome, horario: new Date().toISOString() }).then(() => fetchPontoDia());
+    const item = pontoDia.find((p) => p.usuario.nome === nome);
+    if (!item) return;
+    const today = new Date().toISOString().split('T')[0];
+    registrarPonto({
+      carteiroId: item.id,
+      data: today,
+      presente: true,
+      horaEntrada: new Date().toISOString(),
+    }).then(() => fetchPontoDia());
   };
 
   if (loading && pontoDia.length === 0) {
@@ -267,15 +275,11 @@ function ConfiguracoesSection() {
   }, [unidadeId, fetchUnidade]);
 
   // TODO: replace with API data when backend matches — Unidade type may not have all config fields
-  const u = unidade as any;
   const unidadeConfiguracoes = unidade
     ? [
         { label: 'Unidade', value: unidade.nome ?? '' },
         { label: 'Modelo de triagem', value: unidade.modeloTriagem ?? '' },
-        { label: 'Faixas de CEP', value: (unidade.faixasCep ?? []).map((f: any) => `${f.inicio}-${f.fim}`).join(', ') || '' },
-        { label: 'Integracao SRO', value: u?.integracaoSro ?? '' },
-        { label: 'Integracao solver', value: u?.integracaoSolver ?? '' },
-        { label: 'Janela de despacho', value: u?.janelaDespacho ?? '' },
+        { label: 'Faixas de CEP', value: (unidade.faixasCep ?? []).map((f) => `${f.inicio}-${f.fim}`).join(', ') || '' },
       ].filter((c) => c.value)
     : mockConfiguracoes;
 

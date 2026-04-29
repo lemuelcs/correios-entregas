@@ -21,8 +21,8 @@ export const useGestaoUnidadesStore = create<GestaoUnidadesState>((set, get) => 
     try {
       const data = await api.get<Unidade[]>('/gestao/unidades');
       set({ unidades: data, loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err), loading: false });
     }
   },
 

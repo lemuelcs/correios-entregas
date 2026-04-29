@@ -16,13 +16,31 @@ interface UsuarioListItem {
   createdAt: string;
 }
 
+interface UsuarioFormData {
+  nome?: string;
+  cpf?: string;
+  email?: string;
+  matricula?: string;
+  senha?: string;
+  role?: string;
+  unidadeId?: string;
+  telefoneCelular?: string;
+  telefoneComercial?: string;
+  endResidencialCidade?: string;
+  endResidencialUf?: string;
+  endResidencialCep?: string;
+  endResidencialLogradouro?: string;
+  endResidencialNumero?: string;
+  endResidencialComplemento?: string;
+}
+
 interface GestaoUsuariosState {
   usuarios: UsuarioListItem[];
   loading: boolean;
   error: string | null;
   fetchAll: (filters?: { role?: string; unidadeId?: string }) => Promise<void>;
-  create: (data: any) => Promise<void>;
-  update: (id: string, data: any) => Promise<void>;
+  create: (data: UsuarioFormData) => Promise<void>;
+  update: (id: string, data: UsuarioFormData) => Promise<void>;
 }
 
 export const useGestaoUsuariosStore = create<GestaoUsuariosState>((set, get) => ({
@@ -39,8 +57,8 @@ export const useGestaoUsuariosStore = create<GestaoUsuariosState>((set, get) => 
       const qs = params.toString() ? `?${params.toString()}` : '';
       const data = await api.get<UsuarioListItem[]>(`/gestao/usuarios${qs}`);
       set({ usuarios: data, loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err), loading: false });
     }
   },
 

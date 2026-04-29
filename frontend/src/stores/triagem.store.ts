@@ -1,9 +1,16 @@
 import { create } from 'zustand';
 import { api } from '../services/api';
-import type { SortPlan, SimulacaoTriagem } from '../types/api.types';
+import type { SortPlan, SimulacaoTriagem, TriagemStatus } from '../types/api.types';
+
+interface ConfigurarSessaoData {
+  modeloTriagem: string;
+  estruturas: number;
+  posicoesPorEstrutura: number;
+  throughputHora?: number;
+}
 
 interface TriagemState {
-  status: any | null;
+  status: TriagemStatus | null;
   sortPlan: SortPlan | null;
   simulacao: SimulacaoTriagem | null;
   loading: boolean;
@@ -13,7 +20,7 @@ interface TriagemState {
   fetchSortPlan: (rotaId: string) => Promise<void>;
   validarSortPlan: (rotaId: string) => Promise<void>;
   simular: (qtd?: number) => Promise<void>;
-  configurarSessao: (config: any) => Promise<void>;
+  configurarSessao: (config: ConfigurarSessaoData) => Promise<void>;
 }
 
 export const useTriagemStore = create<TriagemState>((set) => ({
@@ -26,10 +33,10 @@ export const useTriagemStore = create<TriagemState>((set) => ({
   fetchStatus: async () => {
     set({ loading: true, error: null });
     try {
-      const status = await api.get<any>('/triagem/status');
+      const status = await api.get<TriagemStatus>('/triagem/status');
       set({ status, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -38,8 +45,8 @@ export const useTriagemStore = create<TriagemState>((set) => ({
     try {
       const sortPlan = await api.get<SortPlan>(`/triagem/sort-plan/${rotaId}`);
       set({ sortPlan, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -48,8 +55,8 @@ export const useTriagemStore = create<TriagemState>((set) => ({
     try {
       const sortPlan = await api.post<SortPlan>(`/triagem/sort-plan/${rotaId}/validar`);
       set({ sortPlan, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -58,8 +65,8 @@ export const useTriagemStore = create<TriagemState>((set) => ({
     try {
       const simulacao = await api.post<SimulacaoTriagem>('/triagem/simular', qtd != null ? { qtd } : undefined);
       set({ simulacao, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -68,8 +75,8 @@ export const useTriagemStore = create<TriagemState>((set) => ({
     try {
       await api.post('/triagem/configurar-sessao', config);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 }));

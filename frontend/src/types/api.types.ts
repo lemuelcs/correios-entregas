@@ -105,7 +105,7 @@ export interface Unidade {
 export interface ConfiguracaoGlobal {
   id: string;
   chave: string;
-  valor: any;
+  valor: unknown;
   descricao?: string;
 }
 
@@ -308,4 +308,165 @@ export interface ResumoRota {
   sph: number;
   duracaoMinutos: number;
   objetosPendentesRetorno: Objeto[];
+}
+
+// ── Recebimento ───────────────────────────────────────────────────────
+
+export interface ScanUnitizadorResult {
+  id: string;
+  codigo: string;
+  qrCode: string;
+  tipo: TipoUnitizador;
+  statusAtual: StatusUnitizador;
+  objetos: Objeto[];
+}
+
+export interface Divergencia {
+  objetoId: string;
+  tipo: string;
+  descricao: string;
+}
+
+export interface RelatorioRecebimento {
+  data: string;
+  totalRecebidos: number;
+  totalDivergencias: number;
+  totalAvarias: number;
+  unitizadoresProcessados: number;
+}
+
+// ── Monitoramento ─────────────────────────────────────────────────────
+
+export interface MonitoramentoKpis {
+  data: string;
+  totalRotas: number;
+  rotasAtivas: number;
+  fadr: number;
+  spr: number;
+  sph: number;
+  utilizacao: number;
+  otdr: number;
+  pnovRate: number;
+  nps: number | null;
+  totalObjetos: number;
+  totalEntregues: number;
+  totalPnovs: number;
+}
+
+export interface MonitoramentoAlerta {
+  rota?: string;
+  descricao?: string;
+  severidade?: string;
+  route?: string;
+  issue?: string;
+  severity?: string;
+}
+
+// ── Despacho ──────────────────────────────────────────────────────────
+
+export interface PontoDiaItem {
+  id: string;
+  matricula: string;
+  modalPrincipal: ModalEntrega;
+  usuario: { id: string; nome: string; email?: string };
+  ponto: {
+    id: string;
+    carteiroId: string;
+    data: string;
+    presente: boolean;
+    horaEntrada?: string;
+    observacao?: string;
+  } | null;
+}
+
+// ── Triagem ───────────────────────────────────────────────────────────
+
+export interface TriagemStatus {
+  objetos: {
+    recebidoUnidade: number;
+    emConferencia: number;
+    triado: number;
+    totalPendentes: number;
+    totalProcessados: number;
+    percentualConcluido: number;
+  };
+  sortPlans: {
+    total: number;
+    validados: number;
+    pendentes: number;
+  };
+}
+
+// ── Roteirizacao ──────────────────────────────────────────────────────
+
+export interface JobStatusDetalhado {
+  jobId: string | undefined;
+  solver: string;
+  state: string;
+  progress: number | object;
+  createdAt: string | null;
+  processedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface RoteirizacaoStop {
+  objetoId?: string;
+  codigoRastreio?: string;
+  cep?: string;
+  logradouro?: string;
+  location?: number[];
+  arrival?: number;
+  duration?: number;
+  distance?: number;
+}
+
+export interface RoteirizacaoRota {
+  vehicleIndex: number;
+  carteiroId?: string;
+  matricula?: string;
+  veiculoId?: string;
+  veiculoCodigo?: string;
+  totalObjetos: number;
+  distanciaKm: number;
+  duracaoMin: number;
+  stops: RoteirizacaoStop[];
+}
+
+export interface RoteirizacaoResultado {
+  jobId: string;
+  summary: Record<string, number>;
+  rotas: RoteirizacaoRota[];
+  unassigned: { objetoId?: string; codigoRastreio?: string; location?: number[] | null }[];
+  metadata: {
+    unidadeId: string;
+    modo: string;
+    solver: string;
+    totalVeiculos: number;
+    totalObjetos: number;
+  };
+}
+
+// ── SSE event payloads ────────────────────────────────────────────────
+
+export interface SseRotaUpdate extends Partial<Rota> {
+  id: string;
+}
+
+export interface SseAlerta {
+  rota?: string;
+  descricao?: string;
+  severidade?: string;
+}
+
+export interface SseGpsUpdate {
+  rotaId: string;
+  latitude: number;
+  longitude: number;
+  velocidade?: number | null;
+}
+
+export interface SseObjetoEntregue {
+  objetoId: string;
+  codigoRastreio: string;
+  rotaId: string;
 }

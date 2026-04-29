@@ -100,7 +100,7 @@ export function DetalhePage() {
           {[
             ['Remetente', remetente],
             ['Servico', servico],
-            ['Peso', hasApiData ? `${((objetoDetalhe as any)?.pesoGramas ?? 0) / 1000} kg` : '1,2 kg'],
+            ['Peso', hasApiData ? `${(objetoDetalhe.pesoGramas ?? 0) / 1000} kg` : '1,2 kg'],
             ['Previsao', previsao],
           ].map(([label, value]) => (
             <div key={label}>

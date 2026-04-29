@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../stores/auth.store';
 import { api } from '../services/api';
-import type { Role } from '../types/api.types';
+import type { Role, User } from '../types/api.types';
 
 const HOME_BY_ROLE: Record<Role, string> = {
   GESTAO: '/gestao',
@@ -34,9 +34,9 @@ export function useAuthGuard(requiredRole?: Role) {
     if (!user && !hydrating.current) {
       hydrating.current = true;
       api
-        .get<any>('/auth/me')
+        .get<{ user?: User } | User>('/auth/me')
         .then((data) => {
-          const u = data.user ?? data;
+          const u = ('user' in data && data.user) ? data.user : data as User;
           useAuthStore.setState({ user: u });
         })
         .catch(() => {

@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { api } from '../services/api';
-import type { Rota } from '../types/api.types';
+import type { Rota, MonitoramentoKpis, MonitoramentoAlerta } from '../types/api.types';
 
 interface MonitoramentoState {
   rotasAtivas: Rota[];
-  kpis: any | null;
-  alertas: any[];
+  kpis: MonitoramentoKpis | null;
+  alertas: MonitoramentoAlerta[];
   loading: boolean;
   error: string | null;
 
@@ -26,18 +26,18 @@ export const useMonitoramentoStore = create<MonitoramentoState>((set) => ({
     try {
       const rotasAtivas = await api.get<Rota[]>('/monitoramento/rotas-ativas');
       set({ rotasAtivas, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
   fetchKpis: async (unidadeId) => {
     set({ loading: true, error: null });
     try {
-      const kpis = await api.get<any>(`/monitoramento/kpis/${unidadeId}`);
+      const kpis = await api.get<MonitoramentoKpis>(`/monitoramento/kpis/${unidadeId}`);
       set({ kpis, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 

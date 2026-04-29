@@ -4,6 +4,21 @@ import { useGestaoUnidadesStore } from '@/stores/gestao-unidades.store';
 import { Panel } from '@/shared/ui/Panel';
 import { Badge } from '@/shared/ui/Badge';
 
+interface UsuarioListItem {
+  id: string;
+  cpf?: string;
+  email?: string;
+  matricula?: string;
+  nome: string;
+  role: string;
+  unidadeId?: string;
+  unidade?: { id: string; nome: string; codigo: string } | null;
+  telefoneCelular?: string;
+  telefoneComercial?: string;
+  ativo: boolean;
+  createdAt: string;
+}
+
 const ROLES = ['GESTAO', 'UNIDADE', 'CARTEIRO', 'DESTINATARIO'] as const;
 const ROLE_LABELS: Record<string, string> = { GESTAO: 'Gestao', UNIDADE: 'Unidade', CARTEIRO: 'Carteiro', DESTINATARIO: 'Destinatario' };
 const ROLE_VARIANT: Record<string, 'blue' | 'info' | 'warning' | 'success'> = { GESTAO: 'blue', UNIDADE: 'info', CARTEIRO: 'warning', DESTINATARIO: 'success' };
@@ -34,7 +49,7 @@ export function GestaoUsuariosPage() {
     setShowForm(true);
   }
 
-  function openEdit(u: any) {
+  function openEdit(u: UsuarioListItem) {
     setEditId(u.id);
     setForm({
       cpf: u.cpf ?? '', email: u.email ?? '', matricula: u.matricula ?? '', senha: '', nome: u.nome,
@@ -48,7 +63,7 @@ export function GestaoUsuariosPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const payload: any = { ...form };
+    const payload: Record<string, string | boolean | undefined> = { ...form };
     // Clean up empty strings
     for (const key of Object.keys(payload)) {
       if (payload[key] === '') delete payload[key];

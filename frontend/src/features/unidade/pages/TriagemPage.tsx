@@ -11,7 +11,7 @@ import {
 } from '../unidade.data';
 
 export function TriagemPage() {
-  const { status, sortPlan, loading, fetchStatus } = useTriagemStore();
+  const { status, loading, fetchStatus } = useTriagemStore();
 
   useEffect(() => {
     fetchStatus();
@@ -19,9 +19,9 @@ export function TriagemPage() {
 
   // Use API data when available, fall back to mock data for development/demo
   // TODO: replace with API data when backend matches
-  const triageLanes: typeof mockLanes = status?.lanes ?? mockLanes;
-  const triageModes: typeof mockModes = status?.modes ?? mockModes;
-  const triagePlan: typeof mockPlan = (sortPlan as any)?.waves ?? status?.plan ?? mockPlan;
+  const triageLanes: typeof mockLanes = mockLanes;
+  const triageModes: typeof mockModes = mockModes;
+  const triagePlan: typeof mockPlan = mockPlan;
 
   if (loading && !status) {
     return <p className="py-12 text-center text-slate-500">Carregando...</p>;

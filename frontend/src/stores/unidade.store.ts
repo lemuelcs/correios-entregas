@@ -24,8 +24,8 @@ export const useUnidadeStore = create<UnidadeState>((set) => ({
     try {
       const dashboard = await api.get<DashboardData>(`/unidades/${unidadeId}/dashboard`);
       set({ dashboard, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -34,8 +34,8 @@ export const useUnidadeStore = create<UnidadeState>((set) => ({
     try {
       const unidade = await api.get<Unidade>(`/unidades/${id}`);
       set({ unidade, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -44,8 +44,8 @@ export const useUnidadeStore = create<UnidadeState>((set) => ({
     try {
       const unidade = await api.put<Unidade>(`/unidades/${id}/faixas-cep`, { faixas });
       set({ unidade, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 }));

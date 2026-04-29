@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
+import type { SseRotaUpdate, SseAlerta, SseGpsUpdate, SseObjetoEntregue } from '../types/api.types';
 
 interface SseOptions {
-  onRotaUpdate?: (data: any) => void;
-  onAlerta?: (data: any) => void;
-  onGpsUpdate?: (data: any) => void;
-  onObjetoEntregue?: (data: any) => void;
+  onRotaUpdate?: (data: SseRotaUpdate) => void;
+  onAlerta?: (data: SseAlerta) => void;
+  onGpsUpdate?: (data: SseGpsUpdate) => void;
+  onObjetoEntregue?: (data: SseObjetoEntregue) => void;
 }
 
 const BASE_URL = '/api/v1';
@@ -39,28 +40,28 @@ export function useSse(unidadeId: string | undefined, options: SseOptions) {
 
     source.addEventListener('rota_update', (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data) as SseRotaUpdate;
         optionsRef.current.onRotaUpdate?.(data);
       } catch { /* ignore malformed messages */ }
     });
 
     source.addEventListener('alerta', (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data) as SseAlerta;
         optionsRef.current.onAlerta?.(data);
       } catch { /* ignore malformed messages */ }
     });
 
     source.addEventListener('gps_update', (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data) as SseGpsUpdate;
         optionsRef.current.onGpsUpdate?.(data);
       } catch { /* ignore malformed messages */ }
     });
 
     source.addEventListener('objeto_entregue', (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data) as SseObjetoEntregue;
         optionsRef.current.onObjetoEntregue?.(data);
       } catch { /* ignore malformed messages */ }
     });

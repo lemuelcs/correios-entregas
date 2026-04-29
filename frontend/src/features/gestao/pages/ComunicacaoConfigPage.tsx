@@ -19,8 +19,8 @@ export default function ComunicacaoConfigPage() {
   const store = useComunicacaoStore();
   const [activeTab, setActiveTab] = useState<'instance' | 'flow' | 'whitelabel'>('instance');
   const [qrcode, setQrCode] = useState<string | null>(null);
-  const [localFlow, setFlow] = useState<any>({});
-  const [localTerminology, setTerminology] = useState<any>({
+  const [localFlow, setFlow] = useState<Record<string, Record<number, { type?: string; payload?: string }>>>({});
+  const [localTerminology, setTerminology] = useState<Record<string, string>>({
     unit: 'Estação',
     agent: 'Motorista',
     pack: 'Encomenda',
@@ -34,7 +34,7 @@ export default function ComunicacaoConfigPage() {
 
   useEffect(() => {
     if (store.adminConfig) {
-      setFlow(store.adminConfig.flowDefinition || {});
+      setFlow((store.adminConfig.flowDefinition as Record<string, Record<number, { type?: string; payload?: string }>>) || {});
       setTerminology(store.adminConfig.terminology || {});
     }
   }, [store.adminConfig]);

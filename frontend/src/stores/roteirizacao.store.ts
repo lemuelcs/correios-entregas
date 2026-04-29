@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { api } from '../services/api';
+import type { JobStatusDetalhado, RoteirizacaoResultado } from '../types/api.types';
 
 interface RoteirizacaoState {
   jobId: string | null;
-  jobStatus: any | null;
-  resultado: any | null;
+  jobStatus: JobStatusDetalhado | null;
+  resultado: RoteirizacaoResultado | null;
   loading: boolean;
   error: string | null;
 
@@ -27,28 +28,28 @@ export const useRoteirizacaoStore = create<RoteirizacaoState>((set) => ({
     try {
       const res = await api.post<{ jobId: string }>('/roteirizacao/executar', { modo, solver });
       set({ jobId: res.jobId, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
   pollJobStatus: async (jobId) => {
     set({ loading: true, error: null });
     try {
-      const jobStatus = await api.get<any>(`/roteirizacao/job/${jobId}`);
+      const jobStatus = await api.get<JobStatusDetalhado>(`/roteirizacao/job/${jobId}`);
       set({ jobStatus, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
   fetchResultado: async (jobId) => {
     set({ loading: true, error: null });
     try {
-      const resultado = await api.get<any>(`/roteirizacao/resultado/${jobId}`);
+      const resultado = await api.get<RoteirizacaoResultado>(`/roteirizacao/resultado/${jobId}`);
       set({ resultado, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -57,8 +58,8 @@ export const useRoteirizacaoStore = create<RoteirizacaoState>((set) => ({
     try {
       await api.post(`/roteirizacao/aprovar/${jobId}`);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -67,8 +68,8 @@ export const useRoteirizacaoStore = create<RoteirizacaoState>((set) => ({
     try {
       await api.delete(`/roteirizacao/rota/${rotaId}`);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 }));

@@ -13,26 +13,26 @@ export function RoteirizacaoPage() {
 
   // Poll job status when a job is active
   useEffect(() => {
-    if (jobId && jobStatus?.status !== 'DONE') {
+    if (jobId && jobStatus?.state !== 'completed') {
       const interval = setInterval(() => pollJobStatus(jobId), 3000);
       return () => clearInterval(interval);
     }
-  }, [jobId, jobStatus?.status, pollJobStatus]);
+  }, [jobId, jobStatus?.state, pollJobStatus]);
 
   // Fetch resultado when job is done
   useEffect(() => {
-    if (jobId && jobStatus?.status === 'DONE') {
+    if (jobId && jobStatus?.state === 'completed') {
       fetchResultado(jobId);
     }
-  }, [jobId, jobStatus?.status, fetchResultado]);
+  }, [jobId, jobStatus?.state, fetchResultado]);
 
   const handleExecutar = () => executar();
   const handleAprovar = () => { if (jobId) aprovar(jobId); };
 
   // Use API data when available, fall back to mock data for development/demo
   // TODO: replace with API data when backend matches
-  const routeScenarios: typeof mockScenarios = resultado?.scenarios ?? mockScenarios;
-  const routeOptimizationResults: typeof mockResults = resultado?.routes ?? mockResults;
+  const routeScenarios: typeof mockScenarios = mockScenarios;
+  const routeOptimizationResults: typeof mockResults = mockResults;
 
   if (loading && !resultado) {
     return <p className="py-12 text-center text-slate-500">Carregando...</p>;
@@ -102,7 +102,7 @@ export function RoteirizacaoPage() {
         >
           {loading ? 'Processando...' : 'Executar roteirizacao'}
         </button>
-        {jobId && jobStatus?.status === 'DONE' && (
+        {jobId && jobStatus?.state === 'completed' && (
           <button
             onClick={handleAprovar}
             disabled={loading}
@@ -111,9 +111,9 @@ export function RoteirizacaoPage() {
             Aprovar resultado
           </button>
         )}
-        {jobId && jobStatus?.status && jobStatus.status !== 'DONE' && (
+        {jobId && jobStatus?.state && jobStatus.state !== 'completed' && (
           <span className="flex items-center rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700">
-            Status: {jobStatus.status}
+            Status: {jobStatus.state}
           </span>
         )}
       </div>

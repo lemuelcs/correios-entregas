@@ -18,13 +18,13 @@ export function DespachoPage() {
   // TODO: replace with API data when backend matches
   const dispatchChecklist = mockChecklist;
   const dispatchRoutes = rotasPendentes.length > 0
-    ? rotasPendentes.map((r: any) => ({
-        route: r.codigo ?? r.route,
-        carteiro: r.carteiro ?? '',
-        vehicle: r.veiculo ?? r.vehicle ?? '',
-        objects: r.objetos ?? r.objects ?? 0,
-        window: r.janela ?? r.window ?? '',
-        ready: r.pronta ?? r.ready ?? false,
+    ? rotasPendentes.map((r) => ({
+        route: r.codigo,
+        carteiro: r.carteiro?.usuario?.nome ?? '',
+        vehicle: r.veiculo?.codigo ?? '',
+        objects: r.totalObjetos,
+        window: r.horarioDespachoAlvo ?? '',
+        ready: r.statusAtual === 'DISPONIVEL',
       }))
     : mockRoutes;
 

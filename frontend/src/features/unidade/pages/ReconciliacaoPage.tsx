@@ -34,11 +34,11 @@ export function ReconciliacaoPage() {
   const reconciliationSummary = mockSummary;
   const reconciliationReturns = mockReturns;
   const reconciliationPending = pendentes.length > 0
-    ? pendentes.map((p: any) => ({
-        objectCode: p.codigoRastreio ?? p.objectCode ?? '',
-        route: p.rota ?? p.route ?? '',
-        reason: p.motivo ?? p.reason ?? '',
-        action: p.acao ?? p.action ?? '',
+    ? pendentes.map((p) => ({
+        objectCode: p.codigoRastreio,
+        route: p.rotaId ?? '',
+        reason: p.statusAtual,
+        action: 'Finalizar',
       }))
     : mockPending;
 

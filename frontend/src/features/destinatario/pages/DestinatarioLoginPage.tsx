@@ -26,8 +26,8 @@ export function DestinatarioLoginPage({ initialTab = 'login' }: DestinatarioLogi
       const isCpf = /^\d/.test(credential.replace(/\D/g, ''));
       await login(isCpf ? { cpf: credential, senha } : { email: credential, senha });
       navigate('/destinatario');
-    } catch (e: any) {
-      setError(e.message || 'Erro ao fazer login');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao fazer login');
     } finally {
       setLoading(false);
     }

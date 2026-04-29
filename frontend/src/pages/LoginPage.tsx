@@ -37,15 +37,15 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const credentials: any = { senha };
+      const credentials: { cpf?: string; matricula?: string; email?: string; senha: string } = { senha };
       credentials[identifierType] = identifier;
       const user = await login(credentials);
       if (user.role === 'GESTAO') navigate('/gestao');
       else if (user.role === 'UNIDADE') navigate('/unidade');
       else if (user.role === 'CARTEIRO') navigate('/carteiro');
       else navigate('/destinatario');
-    } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
     } finally {
       setLoading(false);
     }

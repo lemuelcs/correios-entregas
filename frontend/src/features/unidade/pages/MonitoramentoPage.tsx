@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '@/stores/auth.store';
 import { useMonitoramentoStore } from '@/stores/monitoramento.store';
 import { useSse } from '@/hooks/useSse';
+import type { Rota } from '@/types/api.types';
 import { AlertBanner } from '@/shared/ui/AlertBanner';
 import { Badge } from '@/shared/ui/Badge';
 import { Panel } from '@/shared/ui/Panel';
@@ -55,7 +56,7 @@ function getCurrentHour(): number {
  * - Planned series: from estimativaChegada
  * - Executed series: from chegadaReal (status CONCLUIDA)
  */
-function buildScatterData(rotasAtivas: any[]) {
+function buildScatterData(rotasAtivas: Rota[]) {
   const planned: Array<{ hora: number; parada: number }> = [];
   const executed: Array<{ hora: number; parada: number }> = [];
 
@@ -69,8 +70,8 @@ function buildScatterData(rotasAtivas: any[]) {
           parada: p.sequencia,
         });
       }
-      if (p.statusAtual === 'CONCLUIDA' && p.chegadaReal) {
-        const d = new Date(p.chegadaReal);
+      if (p.statusAtual === 'CONCLUIDA' && p.estimativaChegada) {
+        const d = new Date(p.estimativaChegada);
         executed.push({
           hora: d.getHours() + d.getMinutes() / 60,
           parada: p.sequencia,
@@ -107,23 +108,24 @@ export function MonitoramentoPage() {
   }, [fetchRotasAtivas]);
 
   // Use API data when available, fall back to mock data for development/demo
+  type AlertVariant = 'info' | 'success' | 'warning' | 'danger';
   const monitoringAlerts =
     alertas.length > 0
-      ? alertas.map((a: any) => ({
+      ? alertas.map((a) => ({
           route: a.rota ?? a.route ?? '',
           issue: a.descricao ?? a.issue ?? '',
-          severity: a.severidade ?? a.severity ?? 'warning',
+          severity: (a.severidade ?? a.severity ?? 'warning') as AlertVariant,
         }))
       : mockAlerts;
   const liveRoutes =
     rotasAtivas.length > 0
-      ? rotasAtivas.map((r: any) => ({
-          route: r.codigo ?? r.route ?? '',
-          carteiro: r.carteiro ?? '',
-          planned: r.planejado ?? r.planned ?? 0,
-          actual: r.executado ?? r.actual ?? 0,
-          lastEvent: r.ultimoEvento ?? r.lastEvent ?? '',
-          incidents: r.incidentes ?? r.incidents ?? 0,
+      ? rotasAtivas.map((r) => ({
+          route: r.codigo,
+          carteiro: r.carteiro?.usuario?.nome ?? '',
+          planned: r.totalParadas,
+          actual: r.totalEntregues,
+          lastEvent: r.iniciadoEm ?? '',
+          incidents: r.totalInsucessos,
         }))
       : mockLiveRoutes;
 

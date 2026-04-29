@@ -24,8 +24,8 @@ export const useReconciliacaoStore = create<ReconciliacaoState>((set) => ({
     try {
       await api.post('/reconciliacao/scan-retorno', { codigoRastreio });
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -34,8 +34,8 @@ export const useReconciliacaoStore = create<ReconciliacaoState>((set) => ({
     try {
       const pendentes = await api.get<Objeto[]>(`/reconciliacao/pendentes/${rotaId}`);
       set({ pendentes, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -44,8 +44,8 @@ export const useReconciliacaoStore = create<ReconciliacaoState>((set) => ({
     try {
       await api.post(`/reconciliacao/finalizar-rota/${rotaId}`);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -54,8 +54,8 @@ export const useReconciliacaoStore = create<ReconciliacaoState>((set) => ({
     try {
       await api.post('/reconciliacao/agendar-nova-tentativa', { objetoId, data });
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -64,8 +64,8 @@ export const useReconciliacaoStore = create<ReconciliacaoState>((set) => ({
     try {
       await api.post('/reconciliacao/encaminhar-agencia', { objetoId });
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 }));

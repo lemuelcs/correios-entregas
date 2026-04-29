@@ -12,6 +12,7 @@ export interface ObjetoDestinatario {
   previsaoEntrega?: string;
   tentativasEntrega: number;
   maxTentativas: number;
+  pesoGramas?: number;
   eventos?: ObjetoEvento[];
 }
 
@@ -27,7 +28,7 @@ export interface Interacao {
   id: string;
   objetoId: string;
   tipo: string;
-  dados?: Record<string, any>;
+  dados?: Record<string, unknown>;
   criadoEm: string;
   status: string;
 }
@@ -50,7 +51,7 @@ interface DestinatarioState {
   fetchObjetos: () => Promise<void>;
   vincularObjeto: (codigoRastreio: string) => Promise<void>;
   fetchObjetoDetalhe: (codigo: string) => Promise<void>;
-  criarInteracao: (data: { objetoId: string; tipo: string; dados?: Record<string, any> }) => Promise<void>;
+  criarInteracao: (data: { objetoId: string; tipo: string; dados?: Record<string, unknown> }) => Promise<void>;
   fetchInteracoes: (objetoId: string) => Promise<void>;
   responderNps: (payload: NpsPayload) => Promise<void>;
 }
@@ -69,8 +70,8 @@ export const useDestinatarioStore = create<DestinatarioState>((set) => ({
     try {
       const objetos = await api.get<ObjetoDestinatario[]>('/destinatario/objetos');
       set({ objetos, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -81,8 +82,8 @@ export const useDestinatarioStore = create<DestinatarioState>((set) => ({
       // Refresh the list after linking
       const objetos = await api.get<ObjetoDestinatario[]>('/destinatario/objetos');
       set({ objetos, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -91,8 +92,8 @@ export const useDestinatarioStore = create<DestinatarioState>((set) => ({
     try {
       const objetoDetalhe = await api.get<ObjetoDestinatario>(`/destinatario/objetos/${codigo}`);
       set({ objetoDetalhe, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -101,8 +102,8 @@ export const useDestinatarioStore = create<DestinatarioState>((set) => ({
     try {
       await api.post('/destinatario/interacao', data);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -111,8 +112,8 @@ export const useDestinatarioStore = create<DestinatarioState>((set) => ({
     try {
       const interacoes = await api.get<Interacao[]>(`/destinatario/interacoes/${objetoId}`);
       set({ interacoes, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -121,8 +122,8 @@ export const useDestinatarioStore = create<DestinatarioState>((set) => ({
     try {
       await api.post('/destinatario/nps', payload);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 }));

@@ -1,11 +1,16 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useGestaoUnidadesStore } from '@/stores/gestao-unidades.store';
 import { useGestaoSEsStore } from '@/stores/gestao-ses.store';
+import type { Unidade, TipoUnidade } from '@/types/api.types';
 import { Panel } from '@/shared/ui/Panel';
 import { Badge } from '@/shared/ui/Badge';
 
-const emptyForm = {
-  codigo: '', mcu: '', nome: '', tipo: 'CDD' as const, seId: '',
+const emptyForm: {
+  codigo: string; mcu: string; nome: string; tipo: TipoUnidade; seId: string;
+  logradouro: string; numero: string; complemento: string; bairro: string;
+  cidade: string; uf: string; cep: string; latitude: string; longitude: string; faixasCep: string;
+} = {
+  codigo: '', mcu: '', nome: '', tipo: 'CDD', seId: '',
   logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '', cep: '',
   latitude: '', longitude: '', faixasCep: '[]',
 };
@@ -19,7 +24,7 @@ export function GestaoUnidadesPage() {
 
   useEffect(() => { fetchAll(); fetchSEs(); }, []);
 
-  function openEdit(u: any) {
+  function openEdit(u: Unidade) {
     setEditId(u.id);
     setForm({
       codigo: u.codigo, mcu: u.mcu ?? '', nome: u.nome, tipo: u.tipo, seId: u.seId ?? '',
@@ -68,7 +73,7 @@ export function GestaoUnidadesPage() {
             <div><label className="mb-1 block text-xs font-medium text-slate-600">Codigo</label><input className={inputClass} value={form.codigo} onChange={e => setForm({...form, codigo: e.target.value})} required /></div>
             <div><label className="mb-1 block text-xs font-medium text-slate-600">MCU</label><input className={inputClass} value={form.mcu} onChange={e => setForm({...form, mcu: e.target.value})} /></div>
             <div><label className="mb-1 block text-xs font-medium text-slate-600">Nome</label><input className={inputClass} value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} required /></div>
-            <div><label className="mb-1 block text-xs font-medium text-slate-600">Tipo</label><select className={inputClass} value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value as any})}><option value="CDD">CDD</option><option value="CEE">CEE</option><option value="HIBRIDA">Hibrida</option></select></div>
+            <div><label className="mb-1 block text-xs font-medium text-slate-600">Tipo</label><select className={inputClass} value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value as TipoUnidade})}><option value="CDD">CDD</option><option value="CEE">CEE</option><option value="HIBRIDA">Hibrida</option></select></div>
             <div><label className="mb-1 block text-xs font-medium text-slate-600">Superintendencia</label><select className={inputClass} value={form.seId} onChange={e => setForm({...form, seId: e.target.value})}><option value="">Nenhuma</option>{ses.map(s => <option key={s.id} value={s.id}>{s.sigla} - {s.nome}</option>)}</select></div>
             <div><label className="mb-1 block text-xs font-medium text-slate-600">CEP</label><input className={inputClass} value={form.cep} onChange={e => setForm({...form, cep: e.target.value.replace(/\D/g, '')})} maxLength={8} required /></div>
             <div><label className="mb-1 block text-xs font-medium text-slate-600">Logradouro</label><input className={inputClass} value={form.logradouro} onChange={e => setForm({...form, logradouro: e.target.value})} required /></div>

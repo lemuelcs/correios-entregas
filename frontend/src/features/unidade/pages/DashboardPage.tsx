@@ -18,7 +18,7 @@ import {
 
 export function DashboardPage() {
   const unidadeId = useAuthStore((s) => s.user?.unidadeId);
-  const { dashboard, loading: dashLoading, fetchDashboard } = useUnidadeStore();
+  const { loading: dashLoading, fetchDashboard } = useUnidadeStore();
   const { rotasAtivas, loading: monLoading, fetchRotasAtivas, fetchKpis } = useMonitoramentoStore();
 
   useEffect(() => {
@@ -33,19 +33,18 @@ export function DashboardPage() {
 
   // Use API data when available, fall back to mock data for development/demo
   // TODO: replace with API data when backend matches — DashboardData shape differs from mock
-  const dashData = dashboard as any;
-  const dashboardAlerts: typeof mockAlerts = dashData?.alerts ?? mockAlerts;
-  const dashboardKpis: DashboardKpi[] = dashData?.kpis ?? mockKpis;
-  const routePulse: typeof mockPulse = dashData?.routePulse ?? mockPulse;
-  const incomingUnitizers: typeof mockUnitizers = dashData?.incomingUnitizers ?? mockUnitizers;
+  const dashboardAlerts: typeof mockAlerts = mockAlerts;
+  const dashboardKpis: DashboardKpi[] = mockKpis;
+  const routePulse: typeof mockPulse = mockPulse;
+  const incomingUnitizers: typeof mockUnitizers = mockUnitizers;
   const routeSnapshots: typeof mockSnapshots = (rotasAtivas.length > 0
-    ? rotasAtivas.map((r: any) => ({
-        route: r.codigo ?? r.route,
-        district: r.bairro ?? r.district ?? '',
-        carteiro: r.carteiro ?? '',
-        progress: r.progresso ?? r.progress ?? 0,
-        objects: r.objetos ?? r.objects ?? 0,
-        prediction: r.previsao ?? r.prediction ?? '',
+    ? rotasAtivas.map((r) => ({
+        route: r.codigo,
+        district: '',
+        carteiro: r.carteiro?.usuario?.nome ?? '',
+        progress: r.totalObjetos > 0 ? Math.round((r.totalEntregues / r.totalObjetos) * 100) : 0,
+        objects: r.totalObjetos,
+        prediction: r.horarioDespachoAlvo ?? '',
       }))
     : mockSnapshots);
 

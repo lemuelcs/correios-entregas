@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useGestaoSEsStore } from '@/stores/gestao-ses.store';
+import type { SuperintendenciaEstadual } from '@/types/api.types';
 import { Panel } from '@/shared/ui/Panel';
 import { Badge } from '@/shared/ui/Badge';
 
@@ -13,7 +14,7 @@ export function GestaoSEsPage() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  function openEdit(se: any) {
+  function openEdit(se: SuperintendenciaEstadual) {
     setEditId(se.id);
     setForm({ nome: se.nome, sigla: se.sigla, cidade: se.cidade, uf: se.uf, isSede: se.isSede });
     setShowForm(true);

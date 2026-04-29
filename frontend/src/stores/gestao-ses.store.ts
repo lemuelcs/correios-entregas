@@ -22,8 +22,8 @@ export const useGestaoSEsStore = create<GestaoSEsState>((set, get) => ({
     try {
       const data = await api.get<SuperintendenciaEstadual[]>('/gestao/ses');
       set({ ses: data, loading: false });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err), loading: false });
     }
   },
 

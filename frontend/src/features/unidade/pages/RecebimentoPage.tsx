@@ -26,11 +26,11 @@ export function RecebimentoPage() {
 
   // Use API data when available, fall back to mock data for development/demo
   // TODO: replace with API data when backend matches
-  const recebimentoQueue: typeof mockQueue = relatorio?.queue ?? mockQueue;
-  const recebimentoHistory: typeof mockHistory = relatorio?.history ?? mockHistory;
+  const recebimentoQueue: typeof mockQueue = mockQueue;
+  const recebimentoHistory: typeof mockHistory = mockHistory;
 
-  // Derive last-scan display from store or fallback
-  const lastScan = ultimoScan ?? {
+  // Derive last-scan display from store or fallback mock
+  const mockLastScan = {
     code: 'BAG-SP-1042',
     expectedObjects: 438,
     origin: 'CTE Guarulhos 02',
@@ -38,6 +38,12 @@ export function RecebimentoPage() {
     responsible: 'Maria Prado',
     message: 'Lacre divergente identificado. Manifesto encaminhado para tratativa antes da liberacao da bag.',
   };
+  const lastScanCode = ultimoScan?.codigo ?? mockLastScan.code;
+  const lastScanMessage = mockLastScan.message;
+  const lastScanExpectedObjects = ultimoScan ? String(ultimoScan.objetos.length) : String(mockLastScan.expectedObjects);
+  const lastScanOrigin = mockLastScan.origin;
+  const lastScanWindow = mockLastScan.window;
+  const lastScanResponsible = mockLastScan.responsible;
 
   if (loading && !relatorio) {
     return <p className="py-12 text-center text-slate-500">Carregando...</p>;
@@ -76,18 +82,18 @@ export function RecebimentoPage() {
           <div className="rounded-[28px] border-2 border-dashed border-correios-blue/25 bg-correios-blue-50/55 p-6">
             <div className="rounded-[24px] bg-white p-6 shadow-inner">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-correios-blue/60">Ultima leitura</p>
-              <p className="mt-2 text-2xl font-black tracking-[0.22em] text-correios-blue">{lastScan.code ?? lastScan.codigo ?? 'BAG-SP-1042'}</p>
+              <p className="mt-2 text-2xl font-black tracking-[0.22em] text-correios-blue">{lastScanCode}</p>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                {lastScan.message ?? lastScan.mensagem ?? 'Lacre divergente identificado. Manifesto encaminhado para tratativa antes da liberacao da bag.'}
+                {lastScanMessage}
               </p>
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {[
-                ['Objetos previstos', String(lastScan.expectedObjects ?? lastScan.objetosPrevistos ?? '438')],
-                ['Origem', lastScan.origin ?? lastScan.origem ?? 'CTE Guarulhos 02'],
-                ['Janela', lastScan.window ?? lastScan.janela ?? '08:20'],
-                ['Responsavel', lastScan.responsible ?? lastScan.responsavel ?? 'Maria Prado'],
+                ['Objetos previstos', lastScanExpectedObjects],
+                ['Origem', lastScanOrigin],
+                ['Janela', lastScanWindow],
+                ['Responsavel', lastScanResponsible],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-2xl bg-white px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{label}</p>

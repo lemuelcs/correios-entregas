@@ -1,9 +1,22 @@
 import { create } from 'zustand';
 import { api } from '../services/api';
-import type { Carteiro, Rota, VolumePrevisao } from '../types/api.types';
+import type { Carteiro, Rota, VolumePrevisao, PontoDiaItem } from '../types/api.types';
+
+interface RegistrarPontoData {
+  carteiroId: string;
+  data: string;
+  presente: boolean;
+  horaEntrada?: string;
+  observacao?: string;
+}
+
+interface LiberarRotaData {
+  horarioDespachoAlvo?: string;
+  observacao?: string;
+}
 
 interface DespachoState {
-  pontoDia: any[];
+  pontoDia: PontoDiaItem[];
   carteiros: Carteiro[];
   rotasPendentes: Rota[];
   previsoes: VolumePrevisao[];
@@ -11,13 +24,13 @@ interface DespachoState {
   error: string | null;
 
   fetchPontoDia: () => Promise<void>;
-  registrarPonto: (data: any) => Promise<void>;
+  registrarPonto: (data: RegistrarPontoData) => Promise<void>;
   fetchCarteiros: () => Promise<void>;
   fetchRotasPendentes: () => Promise<void>;
-  liberarRota: (rotaId: string, data: any) => Promise<void>;
+  liberarRota: (rotaId: string, data: LiberarRotaData) => Promise<void>;
   cancelarRota: (rotaId: string) => Promise<void>;
   fetchPrevisaoVolume: () => Promise<void>;
-  criarPrevisaoVolume: (data: any) => Promise<void>;
+  criarPrevisaoVolume: (data: Omit<VolumePrevisao, 'id'>) => Promise<void>;
 }
 
 export const useDespachoStore = create<DespachoState>((set) => ({
@@ -31,10 +44,10 @@ export const useDespachoStore = create<DespachoState>((set) => ({
   fetchPontoDia: async () => {
     set({ loading: true, error: null });
     try {
-      const pontoDia = await api.get<any[]>('/despacho/ponto-dia');
+      const pontoDia = await api.get<PontoDiaItem[]>('/despacho/ponto-dia');
       set({ pontoDia, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -43,8 +56,8 @@ export const useDespachoStore = create<DespachoState>((set) => ({
     try {
       await api.post('/despacho/ponto-dia/registrar', data);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -53,8 +66,8 @@ export const useDespachoStore = create<DespachoState>((set) => ({
     try {
       const carteiros = await api.get<Carteiro[]>('/despacho/carteiros');
       set({ carteiros, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -63,8 +76,8 @@ export const useDespachoStore = create<DespachoState>((set) => ({
     try {
       const rotasPendentes = await api.get<Rota[]>('/despacho/rotas-pendentes');
       set({ rotasPendentes, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -73,8 +86,8 @@ export const useDespachoStore = create<DespachoState>((set) => ({
     try {
       await api.post(`/despacho/liberar-rota/${rotaId}`, data);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -83,8 +96,8 @@ export const useDespachoStore = create<DespachoState>((set) => ({
     try {
       await api.post(`/despacho/cancelar-rota/${rotaId}`);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -93,8 +106,8 @@ export const useDespachoStore = create<DespachoState>((set) => ({
     try {
       const previsoes = await api.get<VolumePrevisao[]>('/despacho/previsao-volume');
       set({ previsoes, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -103,8 +116,8 @@ export const useDespachoStore = create<DespachoState>((set) => ({
     try {
       await api.post('/despacho/previsao-volume', data);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 }));

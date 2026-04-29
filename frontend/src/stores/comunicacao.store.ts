@@ -83,8 +83,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       const conversas = await api.get<Conversa[]>('/comunicacao/conversas');
       set({ conversas, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -95,8 +95,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
       // Set conversaAtual from the conversas list if available
       const conversa = get().conversas.find((c) => c.id === conversaId) ?? null;
       set({ mensagens, conversaAtual: conversa, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -105,8 +105,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.post(`/comunicacao/dispatcher/${dispatcherSessionId}/mensagem`, { content });
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -119,8 +119,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
       });
       set({ loading: false });
       return result;
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
       throw e;
     }
   },
@@ -130,8 +130,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.post(`/comunicacao/dispatcher/${dispatcherSessionId}/sair`);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -142,8 +142,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       const sessoes = await api.get<ProxySession[]>('/comunicacao/proxy/sessions');
       set({ sessoes, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -156,8 +156,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
         sessoes: state.sessoes.filter((s) => s.id !== sessionId),
         loading: false,
       }));
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -168,8 +168,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       const templates = await api.get<TemplateHSM[]>('/comunicacao/templates');
       set({ templates, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -178,8 +178,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.post('/comunicacao/templates', data);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -190,8 +190,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       const instanciaStatus = await api.get<InstanciaStatus>('/comunicacao/status');
       set({ instanciaStatus, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -203,8 +203,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
       );
       set({ loading: false });
       return { qrcode: result.qrcode, alreadyConnected: result.alreadyConnected };
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
       throw e;
     }
   },
@@ -214,8 +214,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.delete('/comunicacao/admin/instance');
       set({ instanciaStatus: { connected: false, state: 'close', instanceName: null }, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -226,8 +226,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       const adminConfig = await api.get<AdminConfig>('/comunicacao/admin/config');
       set({ adminConfig, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -236,8 +236,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.post('/comunicacao/admin/config', data);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -250,8 +250,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
       const qs = params.toString() ? `?${params.toString()}` : '';
       const adminStats = await api.get<AdminStats>(`/comunicacao/admin/stats${qs}`);
       set({ adminStats, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -262,8 +262,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       const result = await api.get<{ data: LlmConfig }>('/comunicacao/admin/llm-config');
       set({ llmConfig: result.data, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -272,8 +272,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.put('/comunicacao/admin/llm-config', data);
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -282,8 +282,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       const result = await api.get<{ data: LlmAnalytics }>('/comunicacao/admin/llm-analytics');
       set({ llmAnalytics: result.data, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
     }
   },
 
@@ -294,8 +294,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.post('/comunicacao/notify', { phone, text });
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
       throw e;
     }
   },
@@ -311,8 +311,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
       );
       set({ loading: false });
       return result;
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
       throw e;
     }
   },
@@ -322,8 +322,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.post('/comunicacao/admin/instance/reiniciar');
       set({ loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
       throw e;
     }
   },
@@ -333,8 +333,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
     try {
       await api.delete('/comunicacao/admin/instance');
       set({ instanciaStatus: { connected: false, state: 'close', instanceName: null }, loading: false });
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
       throw e;
     }
   },
@@ -347,8 +347,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
       );
       set({ loading: false });
       return result;
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
       throw e;
     }
   },
@@ -379,8 +379,8 @@ export const useComunicacaoStore = create<ComunicacaoState>((set, get) => ({
       );
       set({ loading: false });
       return result.data;
-    } catch (e: any) {
-      set({ error: e.message, loading: false });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : String(e), loading: false });
       throw e;
     }
   },

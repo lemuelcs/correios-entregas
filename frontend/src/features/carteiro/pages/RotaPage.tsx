@@ -185,8 +185,8 @@ function ProxyButton({
       });
       setProxySessionId(sessionId);
       setEstado('ativo');
-    } catch (e: any) {
-      setErro(e?.message ?? 'Erro ao abrir canal');
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro ao abrir canal');
       setEstado('erro');
     }
   }
