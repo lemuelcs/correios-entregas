@@ -59,9 +59,11 @@ services:
       VROOM_URL: http://host.docker.internal:3000
       # WhatsApp via hub centralizado (delivyo-services/microservices/ms-whatsapp)
       WHATSAPP_HUB_BASE_URL: http://host.docker.internal/services/whatsapp
-      WHATSAPP_HUB_API_PREFIX: /api/comunicacao
+      WHATSAPP_HUB_API_PREFIX: /api/v1/comunicacao
       WHATSAPP_HUB_TIMEOUT_MS: 10000
       WHATSAPP_HUB_TENANT_ID: CORREIOS
+      # JWT_SECRET compartilhado com ms-whatsapp para inter-service auth (proxy reemite token).
+      WHATSAPP_HUB_JWT_SECRET: dev-jwt-secret-change-in-production-32chars
       APP_URL: http://backend:3002
       PORT: 3002
       FRONTEND_URL: http://localhost:5181
@@ -78,7 +80,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=delivyo-services_delivyo_network"
       # Router API (HTTP regular)
-      - "traefik.http.routers.correios-api.rule=Host(`correios.delivyodev.com`) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
+      - "traefik.http.routers.correios-api.rule=(Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
       - "traefik.http.routers.correios-api.entrypoints=websecure"
       - "traefik.http.routers.correios-api.tls=true"
       - "traefik.http.routers.correios-api.tls.certresolver=cloudflare"
@@ -86,7 +88,7 @@ services:
       - "traefik.http.routers.correios-api.middlewares=sec-headers@file,compress@file,rate-limit-api@file"
       - "traefik.http.routers.correios-api.service=correios-backend"
       # Router SSE (sem buffering, sem compress)
-      - "traefik.http.routers.correios-sse.rule=Host(`correios.delivyodev.com`) && PathPrefix(`/events`)"
+      - "traefik.http.routers.correios-sse.rule=(Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && PathPrefix(`/events`)"
       - "traefik.http.routers.correios-sse.entrypoints=websecure"
       - "traefik.http.routers.correios-sse.tls=true"
       - "traefik.http.routers.correios-sse.tls.certresolver=cloudflare"
@@ -94,7 +96,7 @@ services:
       - "traefik.http.routers.correios-sse.middlewares=sec-headers@file,sse-passthrough@file"
       - "traefik.http.routers.correios-sse.service=correios-backend"
       # Router Auth (rate limit mais estrito contra brute force)
-      - "traefik.http.routers.correios-auth.rule=Host(`correios.delivyodev.com`) && (Path(`/api/v1/auth/login`) || Path(`/api/v1/auth/refresh`))"
+      - "traefik.http.routers.correios-auth.rule=(Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && (Path(`/api/v1/auth/login`) || Path(`/api/v1/auth/refresh`))"
       - "traefik.http.routers.correios-auth.entrypoints=websecure"
       - "traefik.http.routers.correios-auth.tls=true"
       - "traefik.http.routers.correios-auth.tls.certresolver=cloudflare"

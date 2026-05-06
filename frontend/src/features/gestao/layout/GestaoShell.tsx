@@ -10,6 +10,7 @@ export function GestaoShell() {
 
   const location = useLocation();
   const page = getGestaoPageMeta(location.pathname);
+  const isWhatsAppArea = location.pathname === '/gestao/whatsapp' || location.pathname.startsWith('/gestao/whatsapp/');
 
   return (
     <div className="min-h-screen bg-correios-surface lg:flex">
@@ -18,7 +19,7 @@ export function GestaoShell() {
 
       <div className="min-w-0 flex-1">
         <GestaoHeader subtitle={page.subtitle} title={page.title} />
-        <main className="px-5 py-5 lg:px-8 lg:py-6">
+        <main className={isWhatsAppArea ? 'p-0' : 'px-5 py-5 lg:px-8 lg:py-6'}>
           <Outlet />
         </main>
       </div>

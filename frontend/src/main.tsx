@@ -41,8 +41,9 @@ import { GestaoUnidadesPage } from './features/gestao/pages/GestaoUnidadesPage';
 import { GestaoSEsPage } from './features/gestao/pages/GestaoSEsPage';
 import { GestaoUsuariosPage } from './features/gestao/pages/GestaoUsuariosPage';
 import { GestaoAjustesPage } from './features/gestao/pages/GestaoAjustesPage';
-import ComunicacaoConfigPage from './features/gestao/pages/ComunicacaoConfigPage';
 import { GestaoTerminologiaPage } from './features/gestao/pages/GestaoTerminologiaPage';
+import { gestaoWhatsAppSections, unidadeWhatsAppSections } from './pages/whatsapp/whatsappConsole.config';
+import { WhatsAppConsoleHostPage, WhatsAppFlowEditorHostPage } from './pages/whatsapp/WhatsAppConsoleHostPage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -55,7 +56,16 @@ createRoot(document.getElementById('root')!).render(
           <Route index element={<GestaoUnidadesPage />} />
           <Route path="ses" element={<GestaoSEsPage />} />
           <Route path="usuarios" element={<GestaoUsuariosPage />} />
-          <Route path="comunicacao" element={<ComunicacaoConfigPage />} />
+          <Route path="comunicacao" element={<Navigate to="/gestao/whatsapp/configuracoes" replace />} />
+          <Route path="whatsapp" element={<Navigate to="/gestao/whatsapp/configuracoes" replace />} />
+          {gestaoWhatsAppSections.map((section) => (
+            <Route
+              key={section.path}
+              path={section.path.replace('/gestao/', '')}
+              element={<WhatsAppConsoleHostPage initialPath={section.consolePath} platformAdmin />}
+            />
+          ))}
+          <Route path="whatsapp/flows/:flowId/edit" element={<WhatsAppFlowEditorHostPage platformAdmin />} />
           <Route path="terminologia" element={<GestaoTerminologiaPage />} />
           <Route path="ajustes" element={<GestaoAjustesPage />} />
           <Route path="*" element={<Navigate to="/gestao" replace />} />
@@ -76,7 +86,17 @@ createRoot(document.getElementById('root')!).render(
           <Route path="carteiros" element={<CadastrosConfigPage section="carteiros" />} />
           <Route path="ponto" element={<CadastrosConfigPage section="ponto" />} />
           <Route path="configuracoes" element={<CadastrosConfigPage section="configuracoes" />} />
-          <Route path="comunicacao" element={<ComunicacaoPage />} />
+          <Route path="comunicacao" element={<Navigate to="/unidade/whatsapp/conversas" replace />} />
+          <Route path="whatsapp" element={<Navigate to="/unidade/whatsapp/conversas" replace />} />
+          {unidadeWhatsAppSections.map((section) => (
+            <Route
+              key={section.path}
+              path={section.path.replace('/unidade/', '')}
+              element={<WhatsAppConsoleHostPage initialPath={section.consolePath} />}
+            />
+          ))}
+          <Route path="whatsapp/flows/:flowId/edit" element={<WhatsAppFlowEditorHostPage />} />
+          <Route path="comunicacao-legado" element={<ComunicacaoPage />} />
           <Route path="*" element={<Navigate to="/unidade" replace />} />
         </Route>
 

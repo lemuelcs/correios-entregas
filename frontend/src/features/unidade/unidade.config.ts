@@ -1,3 +1,5 @@
+import { unidadeWhatsAppSections } from '@/pages/whatsapp/whatsappConsole.config';
+
 export interface UnidadeNavItem {
   end?: boolean;
   group: string;
@@ -8,14 +10,13 @@ export interface UnidadeNavItem {
 }
 
 export const unidadeNavItems: UnidadeNavItem[] = [
-  {
-    path: '/unidade/comunicacao',
-    title: 'WhatsApp',
-    subtitle: 'Dashboard, conversas e envio de mensagens WhatsApp.',
-    group: 'Comunicacao',
-    shortLabel: 'WA',
-    end: true,
-  },
+  ...unidadeWhatsAppSections.map((section) => ({
+    path: section.path,
+    title: section.title,
+    subtitle: section.subtitle,
+    group: 'WhatsApp',
+    shortLabel: section.shortLabel,
+  })),
   {
     path: '/unidade',
     title: 'Dashboard',

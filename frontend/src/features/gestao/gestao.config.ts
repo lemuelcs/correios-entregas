@@ -1,3 +1,5 @@
+import { gestaoWhatsAppSections } from '@/pages/whatsapp/whatsappConsole.config';
+
 export interface GestaoNavItem {
   end?: boolean;
   group: string;
@@ -31,13 +33,6 @@ export const gestaoNavItems: GestaoNavItem[] = [
     shortLabel: 'US',
   },
   {
-    path: '/gestao/comunicacao',
-    title: 'Comunicação',
-    subtitle: 'Gestão de WhatsApp, Bot e White-Label do Tenant.',
-    group: 'Sistema',
-    shortLabel: 'CM',
-  },
-  {
     path: '/gestao/terminologia',
     title: 'Terminologia',
     subtitle: 'Personalize os nomes usados pelo sistema (ex.: Carteiro vs Motorista).',
@@ -51,6 +46,13 @@ export const gestaoNavItems: GestaoNavItem[] = [
     group: 'Sistema',
     shortLabel: 'AJ',
   },
+  ...gestaoWhatsAppSections.map((section) => ({
+    path: section.path,
+    title: section.title,
+    subtitle: section.subtitle,
+    group: 'WhatsApp',
+    shortLabel: section.shortLabel,
+  })),
 ];
 
 function normalizePath(pathname: string) {

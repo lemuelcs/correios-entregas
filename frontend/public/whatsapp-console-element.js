@@ -1,0 +1,1 @@
+../../../delivyo-services/apps/whatsapp-console/dist/whatsapp-console-element.js

@@ -24,7 +24,7 @@ services:
       VROOM_URL: http://vroom:3000
       # WhatsApp via hub centralizado (delivyo-services/microservices/ms-whatsapp)
       WHATSAPP_HUB_BASE_URL: ${WHATSAPP_HUB_BASE_URL:-http://traefik/services/whatsapp}
-      WHATSAPP_HUB_API_PREFIX: ${WHATSAPP_HUB_API_PREFIX:-/api/comunicacao}
+      WHATSAPP_HUB_API_PREFIX: ${WHATSAPP_HUB_API_PREFIX:-/api/v1/comunicacao}
       WHATSAPP_HUB_TIMEOUT_MS: ${WHATSAPP_HUB_TIMEOUT_MS:-10000}
       WHATSAPP_HUB_TENANT_ID: ${WHATSAPP_HUB_TENANT_ID:-CORREIOS}
       APP_URL: https://correios.delivyo.com

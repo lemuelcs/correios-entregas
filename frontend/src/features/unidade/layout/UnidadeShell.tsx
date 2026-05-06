@@ -10,6 +10,7 @@ export function UnidadeShell() {
 
   const location = useLocation();
   const page = getUnidadePageMeta(location.pathname);
+  const isWhatsAppArea = location.pathname === '/unidade/whatsapp' || location.pathname.startsWith('/unidade/whatsapp/');
 
   return (
     <div className="min-h-screen bg-correios-surface lg:flex">
@@ -18,7 +19,7 @@ export function UnidadeShell() {
 
       <div className="min-w-0 flex-1">
         <UnidadeHeader subtitle={page.subtitle} title={page.title} />
-        <main className="px-5 py-5 lg:px-8 lg:py-6">
+        <main className={isWhatsAppArea ? 'p-0' : 'px-5 py-5 lg:px-8 lg:py-6'}>
           <Outlet />
         </main>
       </div>

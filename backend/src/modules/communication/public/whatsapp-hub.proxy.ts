@@ -24,8 +24,25 @@ function buildHubUrl(req: Request): string {
   return `${WHATSAPP_HUB_BASE_URL}${WHATSAPP_HUB_API_PREFIX}${pathWithQuery}`;
 }
 
+/**
+ * Mapeia a role local (Correios Entregas) para a role esperada pelo hub central
+ * de WhatsApp, que reconhece ADMIN/MASTER/USER. Operadores administrativos do
+ * Correios (GESTAO) sao mapeados para ADMIN no hub.
+ */
+function mapRoleForHub(localRole: string | undefined): string {
+  switch (localRole) {
+    case 'GESTAO':
+      return 'ADMIN';
+    default:
+      return localRole ?? 'USER';
+  }
+}
+
 function buildProxyToken(req: Request): string {
-  const secret = process.env.JWT_SECRET;
+  // Secret usado para assinar o JWT enviado ao hub central. Permite separar do
+  // JWT_SECRET local (que assina tokens de usuario do Correios Entregas) caso o
+  // hub use um segredo diferente.
+  const secret = process.env.WHATSAPP_HUB_JWT_SECRET || process.env.JWT_SECRET;
 
   if (!secret) {
     throw new AppError(500, 'JWT_SECRET não configurado para proxy do hub de WhatsApp');
@@ -38,7 +55,7 @@ function buildProxyToken(req: Request): string {
   return jwt.sign(
     {
       sub: req.user.sub,
-      role: req.user.role,
+      role: mapRoleForHub(req.user.role),
       tenantId: WHATSAPP_HUB_TENANT_ID,
       dspId: WHATSAPP_HUB_TENANT_ID,
       unidadeId: req.user.unidadeId,
