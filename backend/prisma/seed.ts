@@ -374,18 +374,20 @@ async function main() {
   console.log('  ✓ 2 Lockers Correios criados');
 
   // 12. FluxoConfig — Fluxo "Saiu para Entrega" (configurável sem deploy)
-  await prisma.fluxoConfig.upsert({
-    where: { unidadeId_codigo: { unidadeId: null as any, codigo: 'FLUXO_ENTREGA' } },
-    update: {
-      definicao: fluxoEntregaDefinicao(),
-      versao: { increment: 1 },
-    },
-    create: {
-      codigo: 'FLUXO_ENTREGA',
-      unidadeId: null,
-      definicao: fluxoEntregaDefinicao(),
-    },
+  // upsert não funciona com unidadeId null em unique composto; usar findFirst + create/update
+  const existingFluxo = await prisma.fluxoConfig.findFirst({
+    where: { unidadeId: null, codigo: 'FLUXO_ENTREGA' },
   });
+  if (existingFluxo) {
+    await prisma.fluxoConfig.update({
+      where: { id: existingFluxo.id },
+      data: { definicao: fluxoEntregaDefinicao(), versao: { increment: 1 } },
+    });
+  } else {
+    await prisma.fluxoConfig.create({
+      data: { codigo: 'FLUXO_ENTREGA', unidadeId: null, definicao: fluxoEntregaDefinicao() },
+    });
+  }
   console.log('  ✓ FluxoConfig FLUXO_ENTREGA criado');
 
   console.log('\n✅ Seed concluído!');

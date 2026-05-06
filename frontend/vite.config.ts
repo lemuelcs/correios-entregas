@@ -26,6 +26,9 @@ export default defineConfig({
     },
     watch: {
       usePolling: true,
+      interval: 3000,
+      binaryInterval: 5000,
+      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
     },
     proxy: {
       '/api/v1/comunicacao': {

@@ -115,11 +115,17 @@ services:
       dockerfile: frontend/Dockerfile.dev
     container_name: correiosentrega-frontend
     restart: unless-stopped
-    mem_limit: 256m
+    cpus: "0.75"
+    mem_limit: 768m
+    mem_reservation: 256m
     environment:
       VITE_API_TARGET: http://backend:3002
       VITE_WHATSAPP_API_TARGET: http://host.docker.internal
       VITE_WHATSAPP_API_GATEWAY_PREFIX: /services/whatsapp
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "3000"
+      WATCHPACK_POLLING: "true"
+      NODE_OPTIONS: --max-old-space-size=512
     volumes:
       - ./frontend/src:/app/frontend/src
       - ./frontend/public:/app/frontend/public
@@ -133,6 +139,11 @@ services:
         condition: service_healthy
     ports:
       - "5181:5180"
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     networks:
       - default
       - delivyo_shared_network
