@@ -33,6 +33,8 @@ function mapRoleForHub(localRole: string | undefined): string {
   switch (localRole) {
     case 'GESTAO':
       return 'ADMIN';
+    case 'UNIDADE':
+      return 'GESTOR';
     default:
       return localRole ?? 'USER';
   }

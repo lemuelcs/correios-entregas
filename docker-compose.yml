@@ -53,8 +53,8 @@ services:
     env_file:
       - backend/.env
     environment:
-      DATABASE_URL: postgresql://temellodev:temellodev123@host.docker.internal:5432/correiosentrega_dev?schema=public
-      REDIS_URL: redis://host.docker.internal:6379
+      DATABASE_URL: postgresql://temellodev:temellodev123@delivyo_postgres:5432/correiosentrega_dev?schema=public
+      REDIS_URL: redis://delivyo_redis:6379
       OSRM_URL: http://host.docker.internal:5001
       VROOM_URL: http://host.docker.internal:3000
       # WhatsApp via hub centralizado (delivyo-services/microservices/ms-whatsapp)
