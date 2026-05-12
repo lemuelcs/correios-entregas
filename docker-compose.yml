@@ -53,8 +53,8 @@ services:
     env_file:
       - backend/.env
     environment:
-      DATABASE_URL: postgresql://temellodev:temellodev123@delivyo_postgres:5432/correiosentrega_dev?schema=public
-      REDIS_URL: redis://delivyo_redis:6379
+      DATABASE_URL: postgresql://temellodev:temellodev123@infra_postgres:5432/correiosentrega_dev?schema=public
+      REDIS_URL: redis://infra_redis:6379
       OSRM_URL: http://host.docker.internal:5001
       VROOM_URL: http://host.docker.internal:3000
       # WhatsApp via hub centralizado (delivyo-services/microservices/ms-whatsapp)
@@ -75,10 +75,10 @@ services:
       - "3002:3002"
     networks:
       - default
-      - delivyo_shared_network
+      - delivyo_network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=delivyo-services_delivyo_network"
+      - "traefik.docker.network=delivyo_network"
       # Router API (HTTP regular)
       - "traefik.http.routers.correios-api.rule=(Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
       - "traefik.http.routers.correios-api.entrypoints=websecure"
@@ -148,10 +148,10 @@ services:
         max-file: "5"
     networks:
       - default
-      - delivyo_shared_network
+      - delivyo_network
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=delivyo-services_delivyo_network"
+      - "traefik.docker.network=delivyo_network"
       - "traefik.http.routers.correios-web.rule=Host(`correios.delivyodev.com`)"
       - "traefik.http.routers.correios-web.entrypoints=websecure"
       - "traefik.http.routers.correios-web.tls=true"
@@ -182,6 +182,6 @@ networks:
   default:
     name: correios_network
     driver: bridge
-  delivyo_shared_network:
+  delivyo_network:
     external: true
-    name: delivyo-services_delivyo_network
+    name: delivyo_network
