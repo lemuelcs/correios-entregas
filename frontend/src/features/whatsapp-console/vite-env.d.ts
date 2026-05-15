@@ -17,8 +17,12 @@ declare module 'react' {
       'auth-token': string;
       'chatwoot-url'?: string;
       class?: string;
+      'cross-tenant-conversations'?: 'true' | 'false';
       'initial-path'?: string;
+      locale?: string;
+      mode?: 'admin' | 'tenant';
       'platform-admin'?: 'true' | 'false';
+      'system-name'?: string;
     };
   }
   }

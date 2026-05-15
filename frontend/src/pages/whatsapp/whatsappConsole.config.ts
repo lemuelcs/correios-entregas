@@ -115,13 +115,11 @@ export const gestaoWhatsAppSections: WhatsAppConsoleSection[] = [
     subtitle: 'Visao consolidada de custos, uso de LLM e performance do canal.',
     shortLabel: 'AN',
   },
-  {
-    path: '/gestao/whatsapp/conversas',
-    consolePath: '/conversas',
-    title: 'WhatsApp Conversas',
-    subtitle: 'Acesso rapido ao atendimento humano embutido via Chatwoot.',
-    shortLabel: 'CV',
-  },
+  // Conversas: removido do escopo Gestao em modo admin.
+  // O atendimento humano (Chatwoot embedded via SSO) e exclusivo do escopo
+  // Unidade — vide `UnidadeWhatsAppConsolePage` + `ChatwootEmbedded`.
+  // Correios pode habilitar `cross-tenant-conversations` no futuro caso queira
+  // re-introduzir uma visao consolidada aqui.
 ];
 
 export function findWhatsAppSection(pathname: string, sections: WhatsAppConsoleSection[]) {

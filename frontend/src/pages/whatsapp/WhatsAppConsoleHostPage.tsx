@@ -48,8 +48,10 @@ export function WhatsAppConsoleHostPage({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(() => typeof window !== 'undefined' && !!customElements.get('whatsapp-console'));
 
-  const apiUrl = useMemo(() => `${window.location.origin}/api/v1`, []);
+  // Proxy do ms-whatsapp no backend Correios fica em /api/v1/comunicacao.
+  const apiUrl = useMemo(() => `${window.location.origin}/api/v1/comunicacao`, []);
   const chatwootUrl = import.meta.env.VITE_CHATWOOT_BASE_URL || '';
+  const mode = platformAdmin ? 'admin' : 'tenant';
 
   useEffect(() => {
     let cancelled = false;
@@ -101,8 +103,12 @@ export function WhatsAppConsoleHostPage({
         auth-token={accessToken || ''}
         chatwoot-url={chatwootUrl}
         className="block min-h-[calc(100vh-12rem)] w-full"
+        cross-tenant-conversations="false"
         initial-path={initialPath}
+        locale="pt_BR"
+        mode={mode}
         platform-admin={platformAdmin ? 'true' : 'false'}
+        system-name="Correios Entregas"
       />
     </div>
   );

@@ -2,21 +2,32 @@ import { useEffect, useMemo, useState } from 'react';
 import { LoaderCircle, TriangleAlert } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { loadWhatsAppConsoleElement } from '../utils/loadWhatsAppConsoleElement';
-import { getWhatsAppConsoleRuntimeConfig } from '../utils/runtime-config';
+import { getWhatsAppConsoleRuntimeConfig, type WhatsAppConsoleMode } from '../utils/runtime-config';
 
 export interface WhatsAppConsoleHostProps {
   apiUrl?: string;
   chatwootUrl?: string;
+  crossTenantConversations?: boolean;
   initialPath?: string;
+  locale?: string;
+  mode?: WhatsAppConsoleMode;
   platformAdmin?: boolean;
+  systemName?: string;
 }
 
 export function WhatsAppConsoleHost({
   apiUrl,
   chatwootUrl,
+  crossTenantConversations,
   initialPath = '/configuracoes',
+  locale,
+  mode,
   platformAdmin = false,
+  systemName,
 }: WhatsAppConsoleHostProps) {
+  // Convencao Correios: token persistido como `accessToken` no localStorage
+  // (vide `services/api.ts` e `stores/auth.store.ts`). Mantemos fallback caso
+  // o estado do Zustand ainda nao tenha hidratado.
   const accessToken = useAuthStore((state) => state.accessToken) ?? localStorage.getItem('accessToken') ?? '';
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
 
@@ -25,10 +36,14 @@ export function WhatsAppConsoleHost({
       apiUrl,
       authToken: accessToken,
       chatwootUrl,
+      crossTenantConversations,
       initialPath,
+      locale,
+      mode,
       platformAdmin,
+      systemName,
     }),
-    [accessToken, apiUrl, chatwootUrl, initialPath, platformAdmin],
+    [accessToken, apiUrl, chatwootUrl, crossTenantConversations, initialPath, locale, mode, platformAdmin, systemName],
   );
 
   useEffect(() => {
@@ -60,9 +75,9 @@ export function WhatsAppConsoleHost({
           <div className="space-y-1">
             <h2 className="font-semibold">Nao foi possivel carregar o console do WhatsApp.</h2>
             <p className="text-sm text-red-600">
-              Verifique se o bundle do Web Component foi gerado em
+              Verifique se o bundle do Web Component esta publicado em
               {' '}
-              <code>/root/dev/delivyo-services/apps/whatsapp-console/dist</code>.
+              <code>public/whatsapp-console-element.js</code>.
             </p>
           </div>
         </div>
@@ -82,12 +97,16 @@ export function WhatsAppConsoleHost({
       )}
 
       <whatsapp-console
-        key={`${runtimeConfig.initialPath}:${runtimeConfig.platformAdmin ? 'admin' : 'workspace'}`}
+        key={`${runtimeConfig.initialPath}:${runtimeConfig.mode}`}
         api-url={runtimeConfig.apiUrl}
         chatwoot-url={runtimeConfig.chatwootUrl}
         auth-token={runtimeConfig.authToken}
+        cross-tenant-conversations={runtimeConfig.crossTenantConversations ? 'true' : 'false'}
         initial-path={runtimeConfig.initialPath}
+        locale={runtimeConfig.locale}
+        mode={runtimeConfig.mode}
         platform-admin={runtimeConfig.platformAdmin ? 'true' : 'false'}
+        system-name={runtimeConfig.systemName}
         className="block min-h-[78vh] w-full"
       />
     </section>
