@@ -15,7 +15,7 @@ import { destinatarioRoutes } from './modules/destinatario/destinatario.routes';
 import { monitoramentoRoutes } from './modules/monitoramento/monitoramento.routes';
 import { reconciliacaoRoutes } from './modules/reconciliacao/reconciliacao.routes';
 import { gestaoRoutes } from './modules/gestao/gestao.routes';
-import { comunicacaoRoutes } from './modules/communication/communication.module';
+import { comunicacaoRoutes, chatwootRoutes } from './modules/communication/communication.module';
 import { sseManager } from './modules/monitoramento/sse.manager';
 import { authenticate } from './shared/middleware/auth.middleware';
 import { sgodExporter } from './integrations/sgod/sgod.exporter';
@@ -62,6 +62,8 @@ app.use('/api/v1/destinatario', destinatarioRoutes);
 app.use('/api/v1/monitoramento', monitoramentoRoutes);
 app.use('/api/v1/reconciliacao', reconciliacaoRoutes);
 app.use('/api/v1/gestao', gestaoRoutes);
+// Chatwoot SSO precisa vir ANTES do proxy catch-all do hub.
+app.use('/api/v1/comunicacao/chatwoot', chatwootRoutes);
 app.use('/api/v1/comunicacao', comunicacaoRoutes);
 
 // SGOD export
