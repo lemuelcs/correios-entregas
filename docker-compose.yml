@@ -53,8 +53,8 @@ services:
     env_file:
       - backend/.env
     environment:
-      DATABASE_URL: postgresql://correios_user:Correios@135@infra_postgres:5432/correiosentregas_db?schema=public
-      REDIS_URL: redis://:Temelio%40135@infra_redis:6379
+      DATABASE_URL: ${CORREIOS_DATABASE_URL}
+      REDIS_URL: ${CORREIOS_REDIS_URL}
       OSRM_URL: http://host.docker.internal:5001
       VROOM_URL: http://host.docker.internal:3000
       # WhatsApp via hub centralizado (delivyo-services/microservices/ms-whatsapp)
@@ -63,7 +63,7 @@ services:
       WHATSAPP_HUB_TIMEOUT_MS: 10000
       WHATSAPP_HUB_TENANT_ID: CORREIOS
       # JWT_SECRET compartilhado com ms-whatsapp para inter-service auth (proxy reemite token).
-      WHATSAPP_HUB_JWT_SECRET: dev-jwt-secret-change-in-production-32chars
+      WHATSAPP_HUB_JWT_SECRET: ${CORREIOS_WHATSAPP_HUB_JWT_SECRET}
       APP_URL: http://backend:3002
       PORT: 3002
       FRONTEND_URL: http://localhost:5181
