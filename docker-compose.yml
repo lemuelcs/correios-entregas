@@ -53,8 +53,8 @@ services:
     env_file:
       - backend/.env
     environment:
-      DATABASE_URL: postgresql://temellodev:temellodev123@infra_postgres:5432/correiosentrega_dev?schema=public
-      REDIS_URL: redis://infra_redis:6379
+      DATABASE_URL: postgresql://correios_user:Correios@135@infra_postgres:5432/correiosentregas_db?schema=public
+      REDIS_URL: redis://:Temelio%40135@infra_redis:6379
       OSRM_URL: http://host.docker.internal:5001
       VROOM_URL: http://host.docker.internal:3000
       # WhatsApp via hub centralizado (delivyo-services/microservices/ms-whatsapp)
@@ -80,7 +80,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=delivyo_network"
       # Router API (HTTP regular)
-      - "traefik.http.routers.correios-api.rule=(Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
+      - "traefik.http.routers.correios-api.rule=(Host(`dev.correiosdev.com`) || Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && (PathPrefix(`/api`) || PathPrefix(`/health`))"
       - "traefik.http.routers.correios-api.entrypoints=websecure"
       - "traefik.http.routers.correios-api.tls=true"
       - "traefik.http.routers.correios-api.tls.certresolver=cloudflare"
@@ -88,7 +88,7 @@ services:
       - "traefik.http.routers.correios-api.middlewares=sec-headers@file,compress@file,rate-limit-api@file"
       - "traefik.http.routers.correios-api.service=correios-backend"
       # Router SSE (sem buffering, sem compress)
-      - "traefik.http.routers.correios-sse.rule=(Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && PathPrefix(`/events`)"
+      - "traefik.http.routers.correios-sse.rule=(Host(`dev.correiosdev.com`) || Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && PathPrefix(`/events`)"
       - "traefik.http.routers.correios-sse.entrypoints=websecure"
       - "traefik.http.routers.correios-sse.tls=true"
       - "traefik.http.routers.correios-sse.tls.certresolver=cloudflare"
@@ -96,7 +96,7 @@ services:
       - "traefik.http.routers.correios-sse.middlewares=sec-headers@file,sse-passthrough@file"
       - "traefik.http.routers.correios-sse.service=correios-backend"
       # Router Auth (rate limit mais estrito contra brute force)
-      - "traefik.http.routers.correios-auth.rule=(Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && (Path(`/api/v1/auth/login`) || Path(`/api/v1/auth/refresh`))"
+      - "traefik.http.routers.correios-auth.rule=(Host(`dev.correiosdev.com`) || Host(`correios.delivyodev.com`) || Host(`correiosdev.com`) || Host(`www.correiosdev.com`)) && (Path(`/api/v1/auth/login`) || Path(`/api/v1/auth/refresh`))"
       - "traefik.http.routers.correios-auth.entrypoints=websecure"
       - "traefik.http.routers.correios-auth.tls=true"
       - "traefik.http.routers.correios-auth.tls.certresolver=cloudflare"
@@ -104,6 +104,31 @@ services:
       - "traefik.http.routers.correios-auth.middlewares=sec-headers@file,rate-limit-auth@file"
       - "traefik.http.routers.correios-auth.service=correios-backend"
       - "traefik.http.services.correios-backend.loadbalancer.server.port=3002"
+      # ---- api.correiosdev.com — subdomain dedicado ao backend ----
+      # Rota base: todo tráfego em api.correiosdev.com vai para o backend
+      - "traefik.http.routers.correios-api-sub.rule=Host(`api.correiosdev.com`)"
+      - "traefik.http.routers.correios-api-sub.entrypoints=websecure"
+      - "traefik.http.routers.correios-api-sub.tls=true"
+      - "traefik.http.routers.correios-api-sub.tls.certresolver=cloudflare"
+      - "traefik.http.routers.correios-api-sub.priority=50"
+      - "traefik.http.routers.correios-api-sub.middlewares=sec-headers@file,compress@file,rate-limit-api@file"
+      - "traefik.http.routers.correios-api-sub.service=correios-backend"
+      # SSE em api.correiosdev.com (sem buffering)
+      - "traefik.http.routers.correios-sse-sub.rule=Host(`api.correiosdev.com`) && PathPrefix(`/events`)"
+      - "traefik.http.routers.correios-sse-sub.entrypoints=websecure"
+      - "traefik.http.routers.correios-sse-sub.tls=true"
+      - "traefik.http.routers.correios-sse-sub.tls.certresolver=cloudflare"
+      - "traefik.http.routers.correios-sse-sub.priority=110"
+      - "traefik.http.routers.correios-sse-sub.middlewares=sec-headers@file,sse-passthrough@file"
+      - "traefik.http.routers.correios-sse-sub.service=correios-backend"
+      # Auth em api.correiosdev.com (rate-limit estrito contra brute-force)
+      - "traefik.http.routers.correios-auth-sub.rule=Host(`api.correiosdev.com`) && (Path(`/api/v1/auth/login`) || Path(`/api/v1/auth/refresh`))"
+      - "traefik.http.routers.correios-auth-sub.entrypoints=websecure"
+      - "traefik.http.routers.correios-auth-sub.tls=true"
+      - "traefik.http.routers.correios-auth-sub.tls.certresolver=cloudflare"
+      - "traefik.http.routers.correios-auth-sub.priority=200"
+      - "traefik.http.routers.correios-auth-sub.middlewares=sec-headers@file,rate-limit-auth@file"
+      - "traefik.http.routers.correios-auth-sub.service=correios-backend"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3002/health >/dev/null || exit 1"]
       interval: 15s
@@ -152,7 +177,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=delivyo_network"
-      - "traefik.http.routers.correios-web.rule=Host(`correios.delivyodev.com`)"
+      - "traefik.http.routers.correios-web.rule=Host(`dev.correiosdev.com`) || Host(`correios.delivyodev.com`)"
       - "traefik.http.routers.correios-web.entrypoints=websecure"
       - "traefik.http.routers.correios-web.tls=true"
       - "traefik.http.routers.correios-web.tls.certresolver=cloudflare"
