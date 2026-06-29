@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import KpiCard from '../../shared/components/KpiCard'
-import Badge from '../../shared/components/Badge'
+import KpiCard from '../../../shared/components/KpiCard'
+import Badge from '../../../shared/components/Badge'
 
 // ── Dados mock ────────────────────────────────────────────────────────────────
 const INSTANCE_STATUS = 'ACTIVE' // 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'

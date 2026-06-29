@@ -18,7 +18,7 @@ import ProxySessions from './pages/comunicacao/ProxySessions'
 import Templates from './pages/comunicacao/Templates'
 import Analytics from './pages/comunicacao/Analytics'
 
-import '../../shared/globals.css'
+import '../shared/globals.css'
 
 const PAGE_CONFIG = {
   dashboard:     { title: 'Dashboard',             subtitle: 'Visão geral da operação do dia', component: Dashboard },
