@@ -1,5 +1,5 @@
 // api/prisma/schema.prisma
-// PostgreSQL 18 + TimescaleDB
+// PostgreSQL 18
 
 generator client {
   provider      = "prisma-client-js"

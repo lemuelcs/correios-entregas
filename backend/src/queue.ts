@@ -1,8 +1,12 @@
 import { Queue } from 'bullmq';
 
+const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
+
 const connection = {
-  host: new URL(process.env.REDIS_URL || 'redis://localhost:6379').hostname,
-  port: parseInt(new URL(process.env.REDIS_URL || 'redis://localhost:6379').port || '6379'),
+  host: redisUrl.hostname,
+  port: parseInt(redisUrl.port || '6379'),
+  // Decode URL-encoded password (e.g. %40 → @)
+  password: redisUrl.password ? decodeURIComponent(redisUrl.password) : undefined,
   maxRetriesPerRequest: null,
 };
 

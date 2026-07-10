@@ -7,7 +7,7 @@ Sistema de gestao logistica para operacoes de entrega dos Correios brasileiros. 
 ## Arquitetura
 
 - **Monorepo Turbo**: 2 workspaces (backend, frontend)
-- **Backend**: Express 4 + TypeScript + Prisma 6 + PostgreSQL 18 (TimescaleDB)
+- **Backend**: Express 4 + TypeScript + Prisma 6 + PostgreSQL 18
 - **Frontend**: React 19 + Vite 6 + Tailwind CSS 4 + Zustand 5
 - **WhatsApp**: consome o hub centralizado em `delivyo-services/microservices/ms-whatsapp` via `/api/v1/comunicacao/*` (proxy HTTP). Nao ha mais fork local.
 - **Auth**: JWT + refresh tokens
@@ -145,10 +145,11 @@ cd frontend && npm run lint            # eslint src/
 
 ## Database
 
-- **PostgreSQL 18** com extensao **TimescaleDB** (dados time-series)
+- **PostgreSQL 18** compartilhado (`infra_postgres`, banco `correiosentregas_db`)
 - **ORM**: Prisma v6.7.0
 - **Schema**: `backend/prisma/schema.prisma` com 30+ modelos
-- **Modelos principais**: Usuario, Unidade, Carteiro, Objeto, Unitizador, Rota, Parada, ObjetoEvento, Conversa, Mensagem
+- **Modelos principais**: Usuario, Unidade, Carteiro, Objeto, Unitizador, Rota, Parada, ObjetoEvento
+- **Credenciais**: `correios_user` / `Correios@135`
 - **Migrations**: Prisma migrate (sem SQL manual)
 - **Seed**: `backend/prisma/seed.ts`
 
@@ -159,9 +160,9 @@ cd frontend && npm run lint            # eslint src/
 - `backend` — Express API (porta 3002)
 - `frontend` — Vite dev server (porta 5181)
 
-**Servicos consumidos do hub `delivyo-services` (rede `delivyo-services_delivyo_network`):**
-- `postgres` — TimescaleDB PostgreSQL 18
-- `redis` — Redis 7 (cache + fila de jobs)
+**Servicos consumidos do hub `delivyo-services` (rede `delivyo_network`):**
+- `infra_postgres` — PostgreSQL 18 (banco `correiosentregas_db`, user `correios_user`)
+- `infra_redis` — Redis 7 com senha `Temelio@135` (cache + fila de jobs BullMQ)
 - `ms-whatsapp` — WhatsApp/Evolution centralizado (via `http://host.docker.internal/services/whatsapp`)
 
 **Perfis Docker:**
