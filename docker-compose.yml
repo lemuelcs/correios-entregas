@@ -71,11 +71,10 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./backend:/app/backend
-    ports:
-      - "3002:3002"
     networks:
       - default
       - delivyo_network
+      - dev-internal
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=delivyo_network"
@@ -164,8 +163,6 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    ports:
-      - "5181:5180"
     logging:
       driver: json-file
       options:
@@ -210,3 +207,6 @@ networks:
   delivyo_network:
     external: true
     name: delivyo_network
+  dev-internal:
+    external: true
+    name: dev-internal
