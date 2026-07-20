@@ -1,0 +1,76 @@
+# CI do correios-entregas — verificação apenas (sem deploy).
+#
+# Este sistema existe SÓ em ambiente de desenvolvimento (decisão do dono,
+# 2026-07-19): o dev roda no VPS com bind mounts + hot reload
+# (docker-compose.yml), então não há job de deploy — o push em develop já "é"
+# o deploy de dev. Espelho reduzido do modelo dokimo/prosio (ci.yml valida em
+# runner do GitHub; runner self-hosted é reservado a deploy de produção, que
+# aqui não existe).
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify codebase
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: correios_user
+          POSTGRES_PASSWORD: correios_ci
+          POSTGRES_DB: correiosentregas_db
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U correios_user -d correiosentregas_db"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://correios_user:correios_ci@localhost:5432/correiosentregas_db?schema=public
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # --ignore-scripts: mitigação de supply chain (postinstall de dependência
+      # não executa código no runner), mesmo padrão ADR-0026 do dokimo.
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Prisma generate
+        run: cd backend && npx prisma generate
+
+      - name: Prisma migrate deploy
+        run: cd backend && npx prisma migrate deploy
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

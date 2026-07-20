@@ -50,6 +50,15 @@ services:
     container_name: correiosentrega-backend
     restart: unless-stopped
     mem_limit: 256m
+    # Guardrail dev/prod no mesmo host (2026-07-19): teto de CPU + cpu_shares
+    # baixo — dev nunca degrada os stacks prod (cpu_shares 2048).
+    cpus: "0.75"
+    cpu_shares: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file:
       - backend/.env
     environment:
@@ -142,6 +151,7 @@ services:
     container_name: correiosentrega-frontend
     restart: unless-stopped
     cpus: "0.75"
+    cpu_shares: 256
     mem_limit: 384m
     mem_reservation: 128m
     environment:
