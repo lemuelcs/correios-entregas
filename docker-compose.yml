@@ -1,9 +1,49 @@
 services:
-  # NOTE: redis e evolution-api foram removidos deste compose (Sprint 3 / ADR-002).
-  # O backend agora consome o hub centralizado em `delivyo-services`:
-  #   - Redis: container `delivyo-redis` na rede `delivyo-services_delivyo_network`
-  #   - Evolution / WhatsApp: via gateway Traefik em http://host.docker.internal/services/whatsapp
-  # Para subir esses servicos, use: cd /root/dev/delivyo-services && docker compose up -d
+  # NOTE: Evolution/WhatsApp segue via gateway Traefik em
+  # http://host.docker.internal/services/whatsapp (hub centralizado).
+  #
+  # Redis (2026-07-19): passou a ser dedicado a este projeto, não mais
+  # compartilhado com dev_redis (dokimo/prosio). Motivo: dev_redis deriva a
+  # senha de duas formas incompatíveis entre consumidores — um cliente
+  # decodifica REDIS_URL como URL (correios, dokimo), outro usa a string
+  # crua (prosio) — então só um dos dois conseguia autenticar por vez.
+  # Isolar aqui evita depender de como os outros produtos tratam a senha.
+  redis:
+    image: redis:8-alpine
+    container_name: correiosentrega-redis
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: "0.25"
+    cpu_shares: 256
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    init: true
+    command:
+      [
+        "redis-server",
+        "--requirepass", "${CORREIOS_REDIS_PASSWORD}",
+        "--appendonly", "yes",
+        "--maxmemory", "96mb",
+        "--maxmemory-policy", "noeviction",
+      ]
+    volumes:
+      - correios_redis_data:/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${CORREIOS_REDIS_PASSWORD} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   osrm:
     build:
       context: .
@@ -80,6 +120,9 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./backend:/app/backend
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - default
       - delivyo_network
@@ -209,6 +252,7 @@ services:
 
 volumes:
   osrm-data:
+  correios_redis_data:
 
 networks:
   default:

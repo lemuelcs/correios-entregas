@@ -159,11 +159,20 @@ cd frontend && npm run lint            # eslint src/
 - `vroom` — VROOM VRP solver (perfil legacy)
 - `backend` — Express API (porta 3002)
 - `frontend` — Vite dev server (porta 5181)
+- `redis` (container `correiosentrega-redis`) — Redis 8 dedicado a este
+  projeto (cache + fila de jobs BullMQ). Isolado em 2026-07-19: antes
+  compartilhava `dev_redis` com dokimo/prosio, mas cada consumidor tratava a
+  senha de `REDIS_URL` de forma diferente (um decodifica como URL, outro usa
+  a string crua), então só um dos dois autenticava por vez. Senha em
+  `CORREIOS_REDIS_PASSWORD` (.env, gitignored).
 
-**Servicos consumidos do hub `delivyo-services` (rede `delivyo_network`):**
-- `infra_postgres` — PostgreSQL 18 (banco `correiosentregas_db`, user `correios_user`)
-- `infra_redis` — Redis 7 com senha `Temelio@135` (cache + fila de jobs BullMQ)
+**Servicos consumidos do hub compartilhado (rede `dev-internal`, ver `/root/infra/dev/`):**
+- `dev_postgres` — PostgreSQL 18 (banco `correiosentregas_db`, user `correios_user`)
 - `ms-whatsapp` — WhatsApp/Evolution centralizado (via `http://host.docker.internal/services/whatsapp`)
+
+(`delivyo-services`/`infra_redis`/rede `delivyo_network` abaixo estao desatualizados nesta
+doc — a infra compartilhada de dev/prod foi consolidada em `/root/infra` em 2026-07-19;
+Postgres segue compartilhado, Redis não é mais.)
 
 **Perfis Docker:**
 - Sem perfil = sempre ativo (backend, frontend)
@@ -219,7 +228,8 @@ FRONTEND_URL              # CORS origin
 ## Regras Importantes
 
 - Nao criar arquivos .md de documentacao a menos que solicitado
-- O projeto consome servicos compartilhados do `delivyo-services` — NAO duplicar infra aqui
+- Postgres continua compartilhado (`dev_postgres`, ver `/root/infra/dev/`) — NAO duplicar.
+  Redis é a exceção (dedicado a este projeto desde 2026-07-19, ver "Infraestrutura Docker" acima).
 - Perfil `legacy` no docker-compose e para servicos que estao migrando para `delivyo-services`
 - Zustand para state management, NAO Redux
 - Validacao com Zod, NAO Joi/Yup
