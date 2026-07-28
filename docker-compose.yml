@@ -84,9 +84,14 @@ services:
       start_period: 20s
 
   backend:
+    # Build de PRODUÇÃO desde 2026-07-28. Antes usava `backend/Dockerfile.dev`
+    # (`tsx watch src/server.ts`) para servir correiosdev.com, um domínio
+    # PÚBLICO — um servidor de desenvolvimento com watcher de arquivos rodando
+    # em produção. O Dockerfile de produção compila com `tsc` e roda
+    # `node dist/server.js` a partir de uma imagem com `npm ci --omit=dev`.
     build:
       context: .
-      dockerfile: backend/Dockerfile.dev
+      dockerfile: backend/Dockerfile
     container_name: correiosentrega-backend
     restart: unless-stopped
     mem_limit: 256m
@@ -102,6 +107,18 @@ services:
     env_file:
       - backend/.env
     environment:
+      # `backend/.env` (linha 20) traz NODE_ENV=development, e `env_file` tem
+      # precedência sobre o `ENV NODE_ENV=production` do Dockerfile — então o
+      # container subia em modo de desenvolvimento mesmo com a imagem de
+      # produção. Consequência concreta: `shared/utils/prisma.ts` usa
+      # `log: ['query','error','warn']` em development, ou seja, TODA query SQL
+      # ia para o log — alocação e I/O contínuos, além de expor parâmetros de
+      # consulta no journal. Declarar aqui vence o env_file e mantém o `.env`
+      # intacto para quem usa o mesmo arquivo no desenvolvimento local.
+      # Verificado: NODE_ENV só é lido em 3 pontos do backend (server.ts,
+      # logger.ts, prisma.ts), todos de logging — nada de CORS, cookie ou auth
+      # depende dele.
+      NODE_ENV: production
       DATABASE_URL: ${CORREIOS_DATABASE_URL}
       REDIS_URL: ${CORREIOS_REDIS_URL}
       OSRM_URL: http://host.docker.internal:5001
@@ -118,8 +135,12 @@ services:
       FRONTEND_URL: http://localhost:5181
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    volumes:
-      - ./backend:/app/backend
+    # SEM bind mount do código (removido em 2026-07-28 junto com a troca para o
+    # Dockerfile de produção): `./backend:/app/backend` montava a árvore do host
+    # por cima de `/app/backend` da imagem, o que apagaria o `dist/` compilado
+    # no build e faria o container servir o que estivesse no disco do host.
+    # Para desenvolvimento com hot reload, use o Dockerfile.dev, que continua
+    # no repositório.
     depends_on:
       redis:
         condition: service_healthy
@@ -188,31 +209,37 @@ services:
       start_period: 20s
 
   frontend:
+    # Build ESTÁTICO de produção desde 2026-07-28. Antes rodava `vite --host`
+    # (servidor de desenvolvimento) para servir correiosdev.com em público, com
+    # `usePolling` a cada 3s sobre a árvore montada do host — custava ~78 MB de
+    # anon + 76 MB de swap e CPU contínua de watcher, para entregar assets que
+    # não mudam entre deploys. O Dockerfile de produção faz `vite build` num
+    # estágio Node e serve o `dist/` com nginx:1.27-alpine.
+    #
+    # O proxy declarado em `vite.config.ts` (server.proxy) NÃO era usado pelos
+    # domínios públicos: os routers Traefik `correios-api` (priority 100),
+    # `correios-sse` (110) e `correios-auth` (200) já capturam /api, /health e
+    # /events antes deste serviço, que tem priority 50. O `server.proxy` só vale
+    # ao acessar o Vite direto em localhost:5180, no desenvolvimento local.
     build:
       context: .
-      dockerfile: frontend/Dockerfile.dev
+      dockerfile: frontend/Dockerfile
     container_name: correiosentrega-frontend
     restart: unless-stopped
     cpus: "0.75"
     cpu_shares: 256
-    mem_limit: 384m
-    mem_reservation: 128m
-    environment:
-      VITE_API_TARGET: http://backend:3002
-      VITE_WHATSAPP_API_TARGET: http://host.docker.internal
-      VITE_WHATSAPP_API_GATEWAY_PREFIX: /services/whatsapp
-      CHOKIDAR_USEPOLLING: "true"
-      CHOKIDAR_INTERVAL: "3000"
-      WATCHPACK_POLLING: "true"
-      NODE_OPTIONS: --max-old-space-size=512
-    volumes:
-      - ./frontend/src:/app/frontend/src
-      - ./frontend/public:/app/frontend/public
-      - ./frontend/index.html:/app/frontend/index.html
-      - ./frontend/vite.config.ts:/app/frontend/vite.config.ts
-      - ./frontend/tailwind.config.ts:/app/frontend/tailwind.config.ts:ro
-      - ./frontend/tsconfig.json:/app/frontend/tsconfig.json:ro
-      - ./frontend/tsconfig.app.json:/app/frontend/tsconfig.app.json:ro
+    # nginx servindo arquivos estáticos opera na casa das dezenas de MB; o teto
+    # de 384m dimensionava o Vite dev + esbuild.
+    mem_limit: 96m
+    mem_reservation: 32m
+    # SEM environment de build: VITE_* são lidas por `vite.config.ts` em tempo
+    # de BUILD (e só na seção `server`, que não existe em produção); as de
+    # polling (CHOKIDAR_*/WATCHPACK_*) e NODE_OPTIONS não têm efeito no nginx.
+    #
+    # SEM bind mounts da árvore do frontend: o conteúdo servido agora vem do
+    # `dist/` gerado no build da imagem, em /usr/share/nginx/html. Montar
+    # ./frontend/src por cima não teria efeito e mascararia a origem do que é
+    # servido.
     depends_on:
       backend:
         condition: service_healthy
@@ -242,9 +269,13 @@ services:
       - "traefik.http.routers.correios-web-public.priority=50"
       - "traefik.http.routers.correios-web-public.middlewares=sec-headers@file,compress@file"
       - "traefik.http.routers.correios-web-public.service=correios-web"
-      - "traefik.http.services.correios-web.loadbalancer.server.port=5180"
+      # 80, não 5180: quem escuta agora é o nginx da imagem de produção, não o
+      # dev server do Vite.
+      - "traefik.http.services.correios-web.loadbalancer.server.port=80"
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:5180/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      # A imagem runtime é nginx:alpine — não tem `node`. wget faz parte do
+      # busybox do Alpine.
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
