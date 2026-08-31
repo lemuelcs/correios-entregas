@@ -1,6 +1,6 @@
 services:
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: atendai/evolution-api:latest # Stack standalone/piloto; o hub local usa evolution-api-local:latest
     container_name: evolution_api_piloto
     restart: unless-stopped
     ports:
