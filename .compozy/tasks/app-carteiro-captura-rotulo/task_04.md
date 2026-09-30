@@ -37,7 +37,7 @@ Roda em paralelo com a task_02 contra o contrato da TechSpec.
 - MUST copiar para `frontend/src/features/captura/lib/` os módulos puros `s10.ts` e `telefone.ts` (do monitoramento) e `sigep-datamatrix.ts` (task_01 desta feature) sem alterar o comportamento.
 - MUST configurar vite-plugin-pwa (manifest com `start_url=/carteiro/captura`, `scope=/carteiro/`, ícones reais; precache do shell e do WASM).
 - MUST implementar o diálogo de saída com fila pendente.
-- MUST gerar fixtures de rótulo sintéticas (bwip-js) compartilhadas por backend e frontend em um único diretório, conforme a Strategy de `_tests.md`.
+- MUST consumir as fixtures de rótulo geradas pela task_01 em `backend/src/__tests__/fixtures/rotulos/` (não gerar outras).
 </requirements>
 
 ## Subtasks
@@ -47,7 +47,7 @@ Roda em paralelo com a task_02 contra o contrato da TechSpec.
 - [ ] 4.4 Fila offline persistente.
 - [ ] 4.5 Sincronizador com política de retry.
 - [ ] 4.6 Leitura dos códigos com zxing-wasm e as cópias dos módulos puros.
-- [ ] 4.7 Fixtures de rótulo sintéticas.
+- [ ] 4.7 Testes de decodificação sobre as fixtures da task_01.
 - [ ] 4.8 PWA instalável (manifest, service worker, ícones).
 - [ ] 4.9 Todos os testes atribuídos passando.
 
