@@ -16,6 +16,7 @@ import { monitoramentoRoutes } from './modules/monitoramento/monitoramento.route
 import { reconciliacaoRoutes } from './modules/reconciliacao/reconciliacao.routes';
 import { gestaoRoutes } from './modules/gestao/gestao.routes';
 import { entregasRoutes, montarParsersEntregas } from './modules/entregas/entregas.routes';
+import { capturaRoutes } from './modules/captura/captura.routes';
 import { comunicacaoRoutes, chatwootRoutes } from './modules/communication/communication.module';
 import { sseManager } from './modules/monitoramento/sse.manager';
 import { authenticate } from './shared/middleware/auth.middleware';
@@ -66,6 +67,7 @@ app.use('/api/v1/monitoramento', monitoramentoRoutes);
 app.use('/api/v1/reconciliacao', reconciliacaoRoutes);
 app.use('/api/v1/gestao', gestaoRoutes);
 app.use('/api/v1/entregas', entregasRoutes);
+app.use('/api/v1/captura', capturaRoutes);
 // Chatwoot SSO precisa vir ANTES do proxy catch-all do hub.
 app.use('/api/v1/comunicacao/chatwoot', chatwootRoutes);
 app.use('/api/v1/comunicacao', comunicacaoRoutes);
