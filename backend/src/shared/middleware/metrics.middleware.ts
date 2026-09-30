@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import client from 'prom-client';
 
-const register = new client.Registry();
+export const register = new client.Registry();
 
 client.collectDefaultMetrics({
   prefix: 'correios_entrega_',
