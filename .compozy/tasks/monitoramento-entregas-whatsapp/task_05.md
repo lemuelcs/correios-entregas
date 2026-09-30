@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Orientações, entrada do Prosio e rastreio
 type: backend
 complexity: critical
@@ -61,15 +61,15 @@ Entrega o núcleo reativo do fluxo:
 </requirements>
 
 ## Subtasks
-- [ ] 5.1 Implementar o `OrientacaoService` (estados, substituição, guarda, envio ao carteiro, respostas do carteiro, calendário de dias de entrega).
-- [ ] 5.2 Montar o roteador de entrada do Prosio com corpo cru e verificação de assinatura, antes do JSON global.
-- [ ] 5.3 Aplicar os callbacks de status de mensagem e de descadastro aos pacotes.
-- [ ] 5.4 Mapear `mediation.outcome` e `mediation.escalated` para orientações e sinais.
-- [ ] 5.5 Implementar a autenticação por token de entrada e as ações `CE_OP`, `CE_PT`, `CE_SN` e `CE_CT`.
-- [ ] 5.6 Implementar a regra de resposta tardia com consulta ao rastreio e alternativa pelo carteiro.
-- [ ] 5.7 Implementar a orientação manual do supervisor.
-- [ ] 5.8 Implementar o `RastreioWorker` adaptativo e o cancelamento do caso em `ENTREGUE`.
-- [ ] 5.9 Adicionar logs estruturados (telefone mascarado) e as métricas de "Monitoring and Observability".
+- [x] 5.1 Implementar o `OrientacaoService` (estados, substituição, guarda, envio ao carteiro, respostas do carteiro, calendário de dias de entrega).
+- [x] 5.2 Montar o roteador de entrada do Prosio com corpo cru e verificação de assinatura, antes do JSON global.
+- [x] 5.3 Aplicar os callbacks de status de mensagem e de descadastro aos pacotes.
+- [x] 5.4 Mapear `mediation.outcome` e `mediation.escalated` para orientações e sinais.
+- [x] 5.5 Implementar a autenticação por token de entrada e as ações `CE_OP`, `CE_PT`, `CE_SN` e `CE_CT`.
+- [x] 5.6 Implementar a regra de resposta tardia com consulta ao rastreio e alternativa pelo carteiro.
+- [x] 5.7 Implementar a orientação manual do supervisor.
+- [x] 5.8 Implementar o `RastreioWorker` adaptativo e o cancelamento do caso em `ENTREGUE`.
+- [x] 5.9 Adicionar logs estruturados (telefone mascarado) e as métricas de "Monitoring and Observability".
 
 ## Implementation Details
 Novos arquivos em `backend/src/modules/entregas/`:
@@ -108,21 +108,21 @@ O worker fica em `backend/src/workers/entregas-rastreio.worker.ts`, e a fila é 
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-049, UT-050, UT-051, UT-052, UT-053, UT-054, UT-055, UT-056, UT-057, UT-058, UT-059, UT-060 — OrientacaoService
-- [ ] UT-091, UT-092, UT-093, UT-094, UT-095, UT-096 — orientação: pontos, guarda, remoção de dados, locker, truncamento
-- [ ] UT-061, UT-062 — calendário de dias de entrega
-- [ ] UT-063, UT-064, UT-065, UT-066, UT-067, UT-068, UT-069, UT-070 — decisões das ações de botão e resposta tardia
-- [ ] UT-071, UT-072, UT-073, UT-074 — mapeamento do desfecho da mediação
-- [ ] UT-099 — seleção adaptativa do rastreio
-- [ ] IT-033, IT-034 — webhook de status e descadastro
-- [ ] IT-035, IT-036, IT-037, IT-038, IT-039, IT-040, IT-041, IT-042 — ações de botão
-- [ ] IT-043, IT-044, IT-065, IT-066 — desfecho e escalonamento da mediação
-- [ ] IT-045 (withdrawn; nada a implementar)
-- [ ] IT-046 — orientação manual
-- [ ] IT-047 — `RastreioWorker`
-- [ ] IT-051 — ordem dos middlewares (corpo cru e JSON)
-- [ ] IT-056 — rastreio "entregue" cancela o caso
-- [ ] IT-064, IT-067, IT-068, IT-069 — limite de tentativas, ponto único, sub-lista antiga, ordem das orientações
+- [x] UT-049, UT-050, UT-051, UT-052, UT-053, UT-054, UT-055, UT-056, UT-057, UT-058, UT-059, UT-060 — OrientacaoService
+- [x] UT-091, UT-092, UT-093, UT-094, UT-095, UT-096 — orientação: pontos, guarda, remoção de dados, locker, truncamento
+- [x] UT-061, UT-062 — calendário de dias de entrega
+- [x] UT-063, UT-064, UT-065, UT-066, UT-067, UT-068, UT-069, UT-070 — decisões das ações de botão e resposta tardia
+- [x] UT-071, UT-072, UT-073, UT-074 — mapeamento do desfecho da mediação
+- [x] UT-099 — seleção adaptativa do rastreio
+- [x] IT-033, IT-034 — webhook de status e descadastro
+- [x] IT-035, IT-036, IT-037, IT-038, IT-039, IT-040, IT-041, IT-042 — ações de botão
+- [x] IT-043, IT-044, IT-065, IT-066 — desfecho e escalonamento da mediação
+- [x] IT-045 (withdrawn; nada a implementar)
+- [x] IT-046 — orientação manual
+- [x] IT-047 — `RastreioWorker`
+- [x] IT-051 — ordem dos middlewares (corpo cru e JSON)
+- [x] IT-056 — rastreio "entregue" cancela o caso
+- [x] IT-064, IT-067, IT-068, IT-069 — limite de tentativas, ponto único, sub-lista antiga, ordem das orientações
 
 ## Success Criteria
 - Every assigned test case implemented and passing
