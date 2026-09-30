@@ -284,9 +284,11 @@ export async function listarPacotes(carga: CargaAlvo, filtros: FiltrosPacotes = 
       take: PACOTES_POR_PAGINA,
       include: {
         orientacoes: {
-          where: { estado: { not: 'SUBSTITUIDA' } },
+          // A pendente (aguardando o "sim" do destinatário) ainda não vale.
+          where: { estado: { notIn: ['SUBSTITUIDA', 'AGUARDANDO_CONFIRMACAO'] } },
           orderBy: { criadaEm: 'desc' },
           take: 1,
+          include: { pontoRetirada: { select: { ativo: true } } },
         },
       },
     }),
@@ -337,6 +339,7 @@ export async function listarPacotes(carga: CargaAlvo, filtros: FiltrosPacotes = 
         rotulo: rotuloStatusPacote(p.status, liberada),
         naoEnviadoMotivo: p.naoEnviadoMotivo,
         escalonado: p.escalonado,
+        sinais: p.sinais,
         descadastrado: p.whatsappE164 ? descadastrados.has(p.whatsappE164) : false,
         rastreio: p.rastreioDescricao ? { descricao: p.rastreioDescricao, em: p.rastreioEm } : null,
         orientacaoVigente: o && {
@@ -348,6 +351,9 @@ export async function listarPacotes(carga: CargaAlvo, filtros: FiltrosPacotes = 
           vizinhoNome: o.vizinhoNome,
           vizinhoCasa: o.vizinhoCasa,
           pontoRetiradaId: o.pontoRetiradaId,
+          pontoDesativado: !!o.pontoRetirada && !o.pontoRetirada.ativo,
+          sinais: o.sinais,
+          valeAPartirDe: o.valeAPartirDe ? formatarData(o.valeAPartirDe) : null,
           criadaEm: o.criadaEm,
         },
         respostaCarteiro: o?.respostaCarteiro ? { resposta: o.respostaCarteiro, em: o.respondidoEm } : null,

@@ -58,3 +58,30 @@ export async function notificarTrocaCarteiro(distritoId: string, data: Date, car
     logger.error({ erro: err instanceof Error ? err.message : String(err), distritoId }, 'entregas: falha no gancho de troca de carteiro');
   }
 }
+
+// ——— Reenvio por limite do canal (task_05 → task_06) ————————————————————
+
+/**
+ * `aoFalharPorLimiteDoCanal(pacoteId)` é chamado pelo webhook de status
+ * (task_05) quando o Prosio recusa o aviso por limite do canal
+ * (`failureReason` de aquecimento/cota; `avancarStatusPacote` → `reenfileirar`).
+ * A task_06 registra o reenfileiramento (30 min depois, até as 20h) no
+ * AvisoWorker. A implementação padrão não faz nada.
+ */
+export type GanchoLimiteCanal = (pacoteId: string) => Promise<void>;
+
+const limiteSemEfeito: GanchoLimiteCanal = async () => {};
+let implementacaoLimite: GanchoLimiteCanal = limiteSemEfeito;
+
+export function registrarGanchoLimiteCanal(fn: GanchoLimiteCanal | null): void {
+  implementacaoLimite = fn ?? limiteSemEfeito;
+}
+
+/** Nunca lança: o status já foi gravado; uma falha aqui só é registrada. */
+export async function aoFalharPorLimiteDoCanal(pacoteId: string): Promise<void> {
+  try {
+    await implementacaoLimite(pacoteId);
+  } catch (err) {
+    logger.error({ erro: err instanceof Error ? err.message : String(err), pacoteId }, 'entregas: falha no gancho de limite do canal');
+  }
+}
