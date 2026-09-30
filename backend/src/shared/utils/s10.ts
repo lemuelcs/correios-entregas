@@ -1,10 +1,11 @@
 /**
- * UPU S10 barcode validation for Brazilian postal objects.
- * Format: [SS][NNNNNNNN][D][BR] = 13 characters
+ * UPU S10 barcode validation for postal objects.
+ * Format: [SS][NNNNNNNN][D][CC] = 13 characters
  * SS = service indicator (2 letters)
  * NNNNNNNN = 8 sequential digits
- * D = check digit (modulo 11 with weights [8,6,4,2,3,5,9,7])
- * BR = country code
+ * D = check digit (modulo 11 with weights [8,6,4,2,3,5,9,7];
+ *     remainder 0 -> 5, remainder 1 -> 0, otherwise 11 - remainder)
+ * CC = country code (BR by default; any 2 letters with { qualquerPais: true })
  */
 
 const S10_WEIGHTS = [8, 6, 4, 2, 3, 5, 9, 7];
@@ -32,14 +33,26 @@ export function calculateS10CheckDigit(serial: string): number {
   const digits = serial.split('').map(Number);
   const sum = digits.reduce((acc, d, i) => acc + d * S10_WEIGHTS[i], 0);
   const remainder = sum % 11;
-  if (remainder === 0) return 0;
-  if (remainder === 1) return 5;
+  if (remainder === 0) return 5;
+  if (remainder === 1) return 0;
   return 11 - remainder;
 }
 
-export function validateS10(code: string): S10Result {
-  const clean = code.toUpperCase().replace(/[\s-]/g, '');
-  const match = clean.match(/^([A-Z]{2})(\d{8})(\d)(BR)$/);
+export interface S10Options {
+  /** Aceita qualquer sufixo de país (2 letras). Padrão: só BR. */
+  qualquerPais?: boolean;
+}
+
+export function normalizeS10(code: string): string {
+  return code.toUpperCase().replace(/[\s-]/g, '');
+}
+
+export function validateS10(code: string, options: S10Options = {}): S10Result {
+  const clean = normalizeS10(code);
+  const pattern = options.qualquerPais
+    ? /^([A-Z]{2})(\d{8})(\d)([A-Z]{2})$/
+    : /^([A-Z]{2})(\d{8})(\d)(BR)$/;
+  const match = clean.match(pattern);
   if (!match) return { valid: false };
 
   const [, servico, serial, dvStr] = match;
