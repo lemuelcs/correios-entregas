@@ -8,7 +8,7 @@ complexity: critical
 # Task 1: Base: migrations, utilitários e harness de testes
 
 ## Overview
-Deixa o repositório pronto para as outras tarefas trabalharem em paralelo: schema versionado com os modelos novos da feature, utilitários de domínio corrigidos ou novos (S10, telefone, cifra) e um harness de testes que roda contra um banco isolado. Hoje o schema foi aplicado por `db push`, o `migrate deploy` do CI não cria nada e o único teste depende de um servidor no ar. Sem essa base, nenhuma outra tarefa consegue testar de verdade.
+Esta tarefa também é a fundação do plano da captura de rótulo, que estende este núcleo (ADR-014 de `../app-carteiro-captura-rotulo/`). Deixa o repositório pronto para as outras tarefas trabalharem em paralelo: schema versionado com os modelos novos da feature, utilitários de domínio corrigidos ou novos (S10, telefone, cifra) e um harness de testes que roda contra um banco isolado. Hoje o schema foi aplicado por `db push`, o `migrate deploy` do CI não cria nada e o único teste depende de um servidor no ar. Sem essa base, nenhuma outra tarefa consegue testar de verdade.
 
 <critical>
 - ALWAYS READ the PRD, the TechSpec, and their catalogs (`_user_stories.md`, `_tests.md`) before starting
@@ -21,7 +21,7 @@ Deixa o repositório pronto para as outras tarefas trabalharem em paralelo: sche
 <requirements>
 - MUST criar `backend/prisma/migrations/0000_baseline` a partir do schema ATUAL (antes das mudanças desta feature), gerado com `prisma migrate diff --from-empty --to-schema-datamodel`.
 - MUST criar uma migration seguinte com os modelos e enums da seção Data Models do TechSpec (`CanalProsio`, `Distrito`, `EscalaDistrito`, `CargaDistrito`, `PacoteDia`, `PontoRetirada`, `Orientacao`, `EventoPacote`, `DescadastroWhatsapp`, `WebhookRecebido`) e as alterações em `Unidade` (`canalProsioId`, `prosioUnidadeRef`, `mediacaoAtiva`, `atualizadoEm` para o controle de concorrência) e `Carteiro` (`usuarioId` opcional, `nome`, `whatsappE164` único, `ativo`).
-- MUST documentar em `backend/prisma/MIGRATIONS.md` o passo `prisma migrate resolve --applied 0000_baseline` para bancos existentes (dev e prod criados por `db push`). NÃO executar esse passo em nenhum banco compartilhado.
+- MUST registrar o passo `prisma migrate resolve --applied 0000_baseline` para bancos existentes (dev e prod, criados por `db push`) no relatório final da tarefa, que vira a descrição do PR. O CLAUDE.md do repositório proíbe criar `.md` de documentação sem pedido. MUST conferir com `prisma migrate diff` que não há drift entre o schema e o banco de dev, e registrar o drift encontrado em vez de aplicá-lo. NÃO executar `resolve` nem `deploy` em nenhum banco compartilhado.
 - MUST corrigir `calculateS10CheckDigit` para a regra da UPU (resto 0 → 5, resto 1 → 0) e adicionar a opção `validateS10(code, { qualquerPais: true })`, mantendo o comportamento só-BR por padrão.
 - MUST criar `shared/utils/telefone.ts` (`normalizarTelefone` → E.164 BR, `TelefoneInvalido` com os códigos `sem_ddd` e `formato`) e `shared/utils/cripto.ts` (AES-256-GCM com `ENTREGAS_CRYPTO_KEY`; `cifrar`, `decifrar`, `carregarChave`).
 - MUST criar o harness de testes: projetos Jest `unit` e `integration` e um `globalSetup` que usa `TEST_DATABASE_URL`, RECUSA rodar se o nome do banco não terminar em `_test`, e roda `prisma migrate reset --force --skip-seed`. MUST fornecer as fábricas de dados em `__tests__/fixtures/entregas.ts` (unidade, supervisor, distrito, carteiro, carga, pacote, canal) e um helper de login JWT.
@@ -34,7 +34,7 @@ Deixa o repositório pronto para as outras tarefas trabalharem em paralelo: sche
 ## Subtasks
 - [ ] 1.1 Gerar a migration de linha de base a partir do schema atual e validar do zero num banco `_test`.
 - [ ] 1.2 Modelar os enums e modelos novos e as alterações em `Unidade`/`Carteiro`, e gerar a migration da feature.
-- [ ] 1.3 Documentar o roteiro de migração para bancos existentes.
+- [ ] 1.3 Registrar no relatório o roteiro de migração para bancos existentes e a checagem de drift.
 - [ ] 1.4 Corrigir o dígito verificador S10 e aceitar qualquer sufixo de país como opção.
 - [ ] 1.5 Criar os utilitários de telefone E.164 e de cifra dos segredos.
 - [ ] 1.6 Montar o harness Jest (unit/integration), o `globalSetup` com trava `_test`, as fábricas e o helper de login.
@@ -68,7 +68,7 @@ Ver TechSpec: "Data Models", "Testing Approach", "Impact Analysis" e "Developmen
 
 ## Deliverables
 - `backend/prisma/migrations/0000_baseline/` e a migration da feature, aplicáveis do zero.
-- `backend/prisma/MIGRATIONS.md` com o roteiro para bancos existentes.
+- Roteiro de migração para bancos existentes no relatório da tarefa (descrição do PR).
 - `s10.ts` corrigido; `telefone.ts` e `cripto.ts` novos.
 - Harness de testes (projetos, `globalSetup` com trava, fábricas, helper de login).
 - CI significativo (cria as tabelas e roda os testes).
