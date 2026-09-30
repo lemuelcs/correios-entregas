@@ -10,7 +10,7 @@ import express, { Router, type Express } from 'express';
 import { authenticate } from '../../shared/middleware/auth.middleware';
 import { registrarRotasCarga } from './carga.routes';
 
-// task_03 (cadastro): import { registrarRotasCadastro } from './cadastro.routes';
+import { registrarRotasAtendimento, registrarRotasCadastro } from './cadastro.routes';
 
 // task_05: import { registrarRotas… } from './….routes';
 
@@ -28,7 +28,8 @@ rotasAutenticadas.use(authenticate);
 
 registrarRotasCarga(rotasAutenticadas);
 
-// task_03: registrarRotasCadastro(rotasAutenticadas);
+registrarRotasCadastro(rotasAutenticadas);
+registrarRotasAtendimento(rotasAutenticadas);
 
 // task_05: registrarRotas…(rotasAutenticadas);
 
