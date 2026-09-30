@@ -39,6 +39,7 @@ Esta tarefa prepara o backend da captura sobre o núcleo do monitoramento (ADR-0
 - MUST criar `modules/captura/distrito-do-dia.service.ts`: a escala de hoje, depois o distrito padrão (sem escala de hoje para outro carteiro); vários distritos → lista; dia civil em America/Sao_Paulo com relógio injetável; `garantirCarga(distritoId, data)`.
 - MUST fazer o `POST /auth/refresh` devolver `{ accessToken, refreshToken }` com rotação; TTL do refresh de 30 dias para CARTEIRO e 7 dias para os demais.
 - MUST implementar `POST /auth/trocar-senha`, o claim `senhaTemporaria`, o bloqueio de 15 min após 5 falhas (423 `acesso_bloqueado`), a mensagem única para matrícula inexistente ou senha errada, e o middleware `requireSenhaDefinitiva` (403 `troca_de_senha_obrigatoria`).
+- MUST gerar as fixtures de rótulo sintéticas da Strategy de `_tests.md` em `backend/src/__tests__/fixtures/rotulos/` (script versionado com `bwip-js`, já dependência do backend: Code 128 do objeto, código do CEP e DataMatrix SIGEP montado por um `montarSigepDataMatrix` inverso do parser), commitando os JPEGs e o script; dados fictícios, DV válido.
 - MUST estender as fábricas `__tests__/fixtures/entregas.ts` com `escala`, `captura` e `pacoteCapturado`, sem mudar as existentes.
 </requirements>
 
@@ -49,7 +50,7 @@ Esta tarefa prepara o backend da captura sobre o núcleo do monitoramento (ADR-0
 - [ ] 1.4 Classificação e igualdade de telefone.
 - [ ] 1.5 Distrito do dia do carteiro e garantia da carga.
 - [ ] 1.6 Auth: rotação, TTL por papel, troca de senha, bloqueio e middleware de senha definitiva.
-- [ ] 1.7 Fábricas de teste estendidas.
+- [ ] 1.7 Fábricas de teste estendidas e fixtures de rótulo geradas.
 - [ ] 1.8 Todos os testes atribuídos passando, e a suíte do monitoramento continua verde.
 
 ## Implementation Details
