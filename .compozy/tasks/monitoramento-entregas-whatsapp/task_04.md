@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: "Carga do dia: planilha, prévia, confirmação e quadro"
 type: backend
 complexity: high
@@ -41,15 +41,15 @@ Entrega a API da etapa Monitoramento › Carregar Dados:
 </requirements>
 
 ## Subtasks
-- [ ] 4.0 Criar o módulo `entregas` (roteador montado em `app.ts`) e o helper de escopo por unidade.
-- [ ] 4.1 Adicionar as dependências de leitura (`exceljs`, `papaparse`) e o middleware de upload restrito à rota de prévia.
-- [ ] 4.2 Implementar o parser de planilha e de texto com limites e cabeçalhos equivalentes.
-- [ ] 4.3 Implementar a validação e classificação das linhas (S10, telefone, duplicidade, outro distrito, descadastro, orientação guardada).
-- [ ] 4.4 Implementar a prévia sem estado.
-- [ ] 4.5 Implementar a confirmação transacional e a vinculação de orientações guardadas.
-- [ ] 4.6 Implementar a derivação de status (carga e pacote) como funções puras.
-- [ ] 4.7 Implementar o quadro do dia e a lista de pacotes com filtros e paginação.
-- [ ] 4.8 Implementar a edição de pacote com o gancho para a task_06.
+- [x] 4.0 Criar o módulo `entregas` (roteador montado em `app.ts`) e o helper de escopo por unidade.
+- [x] 4.1 Adicionar as dependências de leitura (`exceljs`, `papaparse`) e o middleware de upload restrito à rota de prévia.
+- [x] 4.2 Implementar o parser de planilha e de texto com limites e cabeçalhos equivalentes.
+- [x] 4.3 Implementar a validação e classificação das linhas (S10, telefone, duplicidade, outro distrito, descadastro, orientação guardada).
+- [x] 4.4 Implementar a prévia sem estado.
+- [x] 4.5 Implementar a confirmação transacional e a vinculação de orientações guardadas.
+- [x] 4.6 Implementar a derivação de status (carga e pacote) como funções puras.
+- [x] 4.7 Implementar o quadro do dia e a lista de pacotes com filtros e paginação.
+- [x] 4.8 Implementar a edição de pacote com o gancho para a task_06.
 
 ## Implementation Details
 Novos arquivos em `backend/src/modules/entregas/`: `planilha.parser.ts`, `carga.validacao.ts`, `carga.service.ts`, `carga.controller.ts` e `status.ts`, além de `entregas.routes.ts` e `escopo.ts` (esta tarefa cria o módulo; as tasks 03, 05 e 06 acrescentam rotas agrupadas por área). Ver TechSpec: "API Endpoints › Carga", "Data Models" (derivação de status) e ADR-017.
@@ -82,12 +82,12 @@ Novos arquivos em `backend/src/modules/entregas/`: `planilha.parser.ts`, `carga.
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-014, UT-015, UT-016, UT-017, UT-018, UT-019, UT-020, UT-021, UT-022, UT-023, UT-024, UT-025 — parser
-- [ ] UT-026, UT-027, UT-028, UT-029, UT-030, UT-031, UT-032 — classificação das linhas
-- [ ] UT-033, UT-034, UT-035, UT-036, UT-037, UT-038, UT-039, UT-040 — derivação de status
-- [ ] IT-016, IT-017, IT-018 — prévia (multipart, texto, nada gravado)
-- [ ] IT-019, IT-020, IT-021, IT-022, IT-023 — confirmação (contagens, concorrência, outro distrito, outra unidade, orientação guardada)
-- [ ] IT-049, IT-050 — quadro e lista de pacotes
+- [x] UT-014, UT-015, UT-016, UT-017, UT-018, UT-019, UT-020, UT-021, UT-022, UT-023, UT-024, UT-025 — parser
+- [x] UT-026, UT-027, UT-028, UT-029, UT-030, UT-031, UT-032 — classificação das linhas
+- [x] UT-033, UT-034, UT-035, UT-036, UT-037, UT-038, UT-039, UT-040 — derivação de status
+- [x] IT-016, IT-017, IT-018 — prévia (multipart, texto, nada gravado)
+- [x] IT-019, IT-020, IT-021, IT-022, IT-023 — confirmação (contagens, concorrência, outro distrito, outra unidade, orientação guardada)
+- [x] IT-049, IT-050 — quadro e lista de pacotes
 
 ## Success Criteria
 - Every assigned test case implemented and passing

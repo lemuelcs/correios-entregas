@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Clientes Prosio e Seu Rastreio
 type: backend
 complexity: medium
@@ -30,11 +30,11 @@ Cria as duas bordas externas da feature: o `ProsioClient` (API de mensagens, med
 </requirements>
 
 ## Subtasks
-- [ ] 2.1 Resolver o canal (decifrar credenciais) e montar o cliente HTTP do Prosio com tempo limite e mapeamento de erros.
-- [ ] 2.2 Implementar os métodos de mensagem, mediação e sessão de atendimento.
-- [ ] 2.3 Implementar a verificação de assinatura HMAC dos callbacks.
-- [ ] 2.4 Implementar o cliente do Seu Rastreio e a classificação dos eventos.
-- [ ] 2.5 Criar os servidores falsos do Prosio e do Seu Rastreio para os testes de integração.
+- [x] 2.1 Resolver o canal (decifrar credenciais) e montar o cliente HTTP do Prosio com tempo limite e mapeamento de erros.
+- [x] 2.2 Implementar os métodos de mensagem, mediação e sessão de atendimento.
+- [x] 2.3 Implementar a verificação de assinatura HMAC dos callbacks.
+- [x] 2.4 Implementar o cliente do Seu Rastreio e a classificação dos eventos.
+- [x] 2.5 Criar os servidores falsos do Prosio e do Seu Rastreio para os testes de integração.
 
 ## Implementation Details
 Arquivos novos em `backend/src/integrations/prosio/` (`prosio.client.ts`, `prosio.types.ts`, `assinatura.ts`) e `backend/src/integrations/seu-rastreio/` (`rastreio.client.ts`, `classificacao.ts`). Ver TechSpec: "Core Interfaces", "Integration Points" (as quatro subseções do Prosio e a do Seu Rastreio).
@@ -65,9 +65,9 @@ Arquivos novos em `backend/src/integrations/prosio/` (`prosio.client.ts`, `prosi
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-075, UT-076, UT-077 — verificação de HMAC
-- [ ] UT-078, UT-079, UT-080 — classificação dos eventos do rastreio
-- [ ] UT-086, UT-087, UT-088, UT-098 — ProsioClient: cabeçalhos, erros, abertura de caso, sessão indisponível
+- [x] UT-075, UT-076, UT-077 — verificação de HMAC
+- [x] UT-078, UT-079, UT-080 — classificação dos eventos do rastreio
+- [x] UT-086, UT-087, UT-088, UT-098 — ProsioClient: cabeçalhos, erros, abertura de caso, sessão indisponível
 
 ## Success Criteria
 - Every assigned test case implemented and passing
