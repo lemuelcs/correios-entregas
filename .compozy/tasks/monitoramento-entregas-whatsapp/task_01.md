@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: "Base: migrations, utilitários e harness de testes"
 type: infra
 complexity: critical
@@ -32,14 +32,14 @@ Esta tarefa também é a fundação do plano da captura de rótulo, que estende 
 </requirements>
 
 ## Subtasks
-- [ ] 1.1 Gerar a migration de linha de base a partir do schema atual e validar do zero num banco `_test`.
-- [ ] 1.2 Modelar os enums e modelos novos e as alterações em `Unidade`/`Carteiro`, e gerar a migration da feature.
-- [ ] 1.3 Registrar no relatório o roteiro de migração para bancos existentes e a checagem de drift.
-- [ ] 1.4 Corrigir o dígito verificador S10 e aceitar qualquer sufixo de país como opção.
-- [ ] 1.5 Criar os utilitários de telefone E.164 e de cifra dos segredos.
-- [ ] 1.6 Montar o harness Jest (unit/integration), o `globalSetup` com trava `_test`, as fábricas e o helper de login.
-- [ ] 1.7 Migrar o teste de health para supertest e ajustar o CI.
-- [ ] 1.8 Proteger as consultas legadas de carteiro contra `usuarioId` nulo.
+- [x] 1.1 Gerar a migration de linha de base a partir do schema atual e validar do zero num banco `_test`.
+- [x] 1.2 Modelar os enums e modelos novos e as alterações em `Unidade`/`Carteiro`, e gerar a migration da feature.
+- [x] 1.3 Registrar no relatório o roteiro de migração para bancos existentes e a checagem de drift.
+- [x] 1.4 Corrigir o dígito verificador S10 e aceitar qualquer sufixo de país como opção.
+- [x] 1.5 Criar os utilitários de telefone E.164 e de cifra dos segredos.
+- [x] 1.6 Montar o harness Jest (unit/integration), o `globalSetup` com trava `_test`, as fábricas e o helper de login.
+- [x] 1.7 Migrar o teste de health para supertest e ajustar o CI.
+- [x] 1.8 Proteger as consultas legadas de carteiro contra `usuarioId` nulo.
 
 ## Implementation Details
 Ver TechSpec: "Data Models", "Testing Approach", "Impact Analysis" e "Development Sequencing" (passos 1–3).
@@ -78,11 +78,11 @@ Ver TechSpec: "Data Models", "Testing Approach", "Impact Analysis" e "Developmen
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-001, UT-002, UT-003, UT-004, UT-005 — validação S10 (regra da UPU, qualquer país, normalização)
-- [ ] UT-006, UT-007, UT-008, UT-009, UT-010 — normalização de telefone E.164 BR
-- [ ] UT-011, UT-012, UT-013 — cifra AES-256-GCM dos segredos
-- [ ] IT-052 — `migrate deploy` do zero cria todas as tabelas
-- [ ] IT-053 — health via supertest
+- [x] UT-001, UT-002, UT-003, UT-004, UT-005 — validação S10 (regra da UPU, qualquer país, normalização)
+- [x] UT-006, UT-007, UT-008, UT-009, UT-010 — normalização de telefone E.164 BR
+- [x] UT-011, UT-012, UT-013 — cifra AES-256-GCM dos segredos
+- [x] IT-052 — `migrate deploy` do zero cria todas as tabelas
+- [x] IT-053 — health via supertest
 
 ## Success Criteria
 - Every assigned test case implemented and passing
