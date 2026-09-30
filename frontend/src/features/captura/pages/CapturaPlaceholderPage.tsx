@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAuthStore } from '@/stores/auth.store';
+import { precarregarLeitor } from '../barcode';
 import { obterCaptureSync, type Contadores } from '../captureSync';
 import { AvisoEspaco } from '../components/AvisoEspaco';
 import { BotaoSair } from '../components/BotaoSair';
@@ -19,6 +20,10 @@ export function CapturaPlaceholderPage() {
   useEffect(() => {
     if (senhaTemporaria) navigate('/carteiro/criar-senha', { replace: true });
   }, [senhaTemporaria, navigate]);
+
+  useEffect(() => {
+    void precarregarLeitor();
+  }, []);
 
   useEffect(() => {
     const sync = obterCaptureSync();

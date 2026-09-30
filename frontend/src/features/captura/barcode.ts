@@ -59,6 +59,17 @@ function carregarLeitor(): Promise<Leitor> {
   return leitor;
 }
 
+/**
+ * Carrega o WASM antes da primeira foto (ao abrir a captura), para o disparo não
+ * esperar o download. Falhas são silenciosas: a leitura tenta de novo.
+ */
+export function precarregarLeitor(): Promise<void> {
+  return carregarLeitor().then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
 function unicos(valores: string[]): string[] {
   return [...new Set(valores)];
 }

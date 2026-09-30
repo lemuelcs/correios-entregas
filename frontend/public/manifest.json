@@ -1,10 +1,18 @@
 {
-  "name": "Correios Entregas",
-  "short_name": "Entregas",
-  "description": "Sistema de Gestão de Distribuição dos Correios",
-  "start_url": "/",
+  "id": "/carteiro/captura",
+  "name": "Correios Entregas — Carteiro",
+  "short_name": "Carteiro",
+  "description": "Captura dos rótulos de envio do distrito do dia",
+  "lang": "pt-BR",
+  "start_url": "/carteiro/captura",
+  "scope": "/carteiro/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#003399",
   "theme_color": "#003399",
-  "icons": []
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }
