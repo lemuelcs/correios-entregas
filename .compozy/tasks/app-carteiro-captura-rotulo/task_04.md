@@ -28,13 +28,13 @@ Roda em paralelo com a task_02 contra o contrato da TechSpec.
 </critical>
 
 <requirements>
-- MUST configurar Vitest + Testing Library + jsdom + `fake-indexeddb` no frontend, com o script `test` integrado ao `npm test` da raiz (turbo).
-- MUST adicionar `postForm` ao `services/api.ts` sem fixar o Content-Type JSON, e gravar o `refreshToken` rotacionado; dois 401 simultâneos MUST gerar um único refresh; uma falha de refresh MUST NOT tocar o IndexedDB da fila.
-- MUST implementar o fluxo de senha temporária no login (a tela "Crie sua senha" chamando `POST /auth/trocar-senha`, depois `/carteiro/captura`), com a validação de campos vazios e a mensagem de primeiro acesso offline.
+- MUST configurar Vitest + Testing Library + jsdom + `fake-indexeddb` no frontend, com o script `test` integrado ao `npm test` da raiz (turbo), reaproveitando a configuração se o monitoramento já tiver criado uma.
+- MUST garantir o envio de `FormData` no `services/api.ts` sem fixar o Content-Type JSON (reutilizar o do monitoramento, task_07 de lá, se já existir; senão, adicionar) e gravar o `refreshToken` rotacionado; dois 401 simultâneos MUST gerar um único refresh; uma falha de refresh MUST NOT tocar o IndexedDB da fila.
+- MUST implementar o fluxo de senha temporária no login (a tela "Crie sua senha" chamando `POST /auth/trocar-senha`, depois `/carteiro/captura`), com a validação de campos vazios e a mensagem de primeiro acesso offline; MUST fazer o papel CARTEIRO ir para `/carteiro/captura`, coordenando com o redirecionamento por papel que a task_07 do monitoramento põe no `LoginPage` (os demais papéis ficam como lá).
 - MUST implementar `captureQueue` (IndexedDB via `idb`: stores `fila` e `recentes`, os estados da TechSpec, `QuotaExceededError` → evento `espaco_insuficiente`, e `navigator.storage.persist()` pedido).
 - MUST implementar `captureSync` com envio em série por ordem de `capturadoEm`, os gatilhos `online`/`visibilitychange`/30 s, a política de retry da ADR-012 (409/408/429/rede → aguardando; 4xx definitivos → `falhou_definitivo`; 401 → pausa), e as operações enfileiradas de "desfazer".
 - MUST implementar `barcode.decode(jpeg)` com zxing-wasm carregado sob demanda (Code 128 e DataMatrix), detectando múltiplos S10 distintos como `MultiplosRotulos`.
-- MUST copiar para `frontend/src/features/captura/lib/` os módulos puros `s10.ts`, `sigep-datamatrix.ts` e `telefone.ts` da task_01 sem alterar o comportamento (mesmos vetores de teste da task_01, rodados também no Vitest).
+- MUST copiar para `frontend/src/features/captura/lib/` os módulos puros `s10.ts` e `telefone.ts` (do monitoramento) e `sigep-datamatrix.ts` (task_01 desta feature) sem alterar o comportamento.
 - MUST configurar vite-plugin-pwa (manifest com `start_url=/carteiro/captura`, `scope=/carteiro/`, ícones reais; precache do shell e do WASM).
 - MUST implementar o diálogo de saída com fila pendente.
 - MUST gerar fixtures de rótulo sintéticas (bwip-js) compartilhadas por backend e frontend em um único diretório, conforme a Strategy de `_tests.md`.
@@ -63,7 +63,7 @@ Os padrões estão em TechSpec › Component Overview (Aparelho), Core Interface
 - `frontend/vite.config.ts` — os plugins e o proxy.
 - `frontend/public/manifest.json`, `frontend/index.html` — o manifest sem ícones.
 - `frontend/package.json` — sem framework de teste.
-- `backend/src/shared/utils/{s10,sigep-datamatrix,telefone}.ts` — a origem das cópias (task_01).
+- `backend/src/shared/utils/{s10,telefone}.ts` (monitoramento) e `sigep-datamatrix.ts` (task_01) — a origem das cópias.
 
 ### Dependent Files
 - `frontend/src/features/captura/pages/*` — as telas da task_05 usam fila, sync e decode.
@@ -90,6 +90,7 @@ Cases assigned from `_tests.md`, the test contract — read each ID's full defin
 - [ ] UT-071, UT-072, UT-073, UT-074, UT-075, UT-076 — `captureQueue`
 - [ ] UT-077, UT-078, UT-079, UT-080, UT-081, UT-082, UT-083, UT-084, UT-085 — `captureSync`
 - [ ] UT-086, UT-087, UT-088, UT-089, UT-090 — `barcode.decode`
+- [ ] UT-127 — cópia de `s10.ts` no aparelho
 - [ ] UT-111, UT-112, UT-113, UT-114 — `api.ts`
 - [ ] UT-115, UT-116, UT-117, UT-118, UT-119 — login, troca de senha e saída com fila
 

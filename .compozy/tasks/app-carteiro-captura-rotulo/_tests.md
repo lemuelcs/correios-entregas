@@ -14,7 +14,7 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
   - `FakeCepService` ou fetch falso (ViaCEP/CWS);
   - `DiskPhotoStore` num diretório temporário;
   - relógio injetável (`now()`) para dia civil e retenção.
-- **Banco**: Postgres `correiosentregas_test`. O `globalSetup` aborta se o `DATABASE_URL` não terminar em `_test`, roda `prisma migrate deploy` e cada suíte limpa só as linhas que criou. Redis real na CI; `ioredis-mock` local.
+- **Banco e harness**: os do monitoramento (ADR-014): `TEST_DATABASE_URL` com trava `_test`, projetos Jest `unit`/`integration`, fábricas `__tests__/fixtures/entregas.ts` estendidas com `captura`, `escala` e `pacoteCapturado`. O gancho `aoAdicionarPacotesEmCargaLiberada` é substituído por um espião nos testes de integração. Redis real na CI; `ioredis-mock` local.
 - **Fixtures**: `backend/src/__tests__/fixtures/rotulos/` com rótulos sintéticos (bwip-js), com Code 128 e DataMatrix SIGEP e dados fictícios:
   - `rotulo-completo.jpg`: código `OY716488072BR`, CEP 72115040, DataMatrix com número 17 e telefone 61993401287;
   - `rotulo-sem-datamatrix.jpg`: código `AA123456785BR`, CEP 71919360, sem DataMatrix;
@@ -38,7 +38,7 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 | US-001.EC-5 | Sessão expira com fila → fila preservada | UT-083 | — | — |
 | US-001.EC-6 | 1º login sem sinal | UT-118 | — | — |
 | US-001.EC-7 | Dois aparelhos, mesmo distrito, soma por código | — | IT-016 | — |
-| US-002 | Supervisor define/redefine senha | — | IT-046, IT-047 | — |
+| US-002 | Supervisor define/redefine senha (inclusive carteiro sem login) | — | IT-046, IT-047, IT-112 | — |
 | US-002.EC-1 | Senha fora da política | UT-068 | IT-048 | — |
 | US-002.EC-2 | Carteiro sem matrícula | — | IT-049 | — |
 | US-002.EC-3 | Redefinições concorrentes, vale a última | — | IT-050 | — |
@@ -52,15 +52,15 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 | US-003.EC-4 | Virada do dia | UT-061 | — | — |
 | US-003.EC-5 | Distrito vazio | UT-104 | — | — |
 | US-004 | Foto → códigos lidos → câmera pronta | UT-086, UT-106 | IT-007 | E2E-001 |
-| US-004.EC-1 | DV inválido | UT-002, UT-107 | IT-008 | — |
-| US-004.EC-2 | Código fora do padrão S10 | UT-004 | — | — |
+| US-004.EC-1 | DV inválido | UT-107, UT-127 | IT-008 | — |
+| US-004.EC-2 | Código fora do padrão S10 | UT-126, UT-127 | — | — |
 | US-004.EC-3 | Dois rótulos na foto | UT-087 | IT-009 | — |
 | US-004.EC-4 | Nenhum código lido → digitar | UT-088, UT-108 | — | — |
 | US-004.EC-5 | CEP ilegível no código → do texto, com dúvida | UT-020 | IT-010 | — |
 | US-004.EC-6 | Câmera negada | UT-109 | — | — |
 | US-004.EC-7 | Foto escura/cortada | UT-088 | — | — |
 | US-004.EC-8 | Cancelar na câmera | UT-110 | — | — |
-| US-004.EC-9 | Sufixo diferente de BR | UT-003 | IT-011 | — |
+| US-004.EC-9 | Sufixo diferente de BR | UT-127 | IT-011 | — |
 | US-004.AC-4 | Uma foto, um pacote | — | IT-009 | — |
 | US-005 | Salvo sem revisão + desfazer | UT-105 | IT-012, IT-013 | E2E-001 |
 | US-005.EC-1 | Avisos em sequência, desfazer só o seu | UT-105 | IT-014 | — |
@@ -82,8 +82,8 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 | US-006.EC-11 | OCR não inventa letras | UT-044 | — | — |
 | US-007 | Digitar código | UT-108 | IT-029 | — |
 | US-007.EC-1 | DV digitado inválido | UT-107 | IT-008 | — |
-| US-007.EC-2 | Normalização de minúsculas/espaços | UT-005 | — | — |
-| US-007.EC-3 | Tamanho errado | UT-006 | — | — |
+| US-007.EC-2 | Normalização de minúsculas/espaços | UT-127 | — | — |
+| US-007.EC-3 | Tamanho errado | UT-127 | — | — |
 | US-007.EC-4 | Digitado já na lista | — | IT-030 | — |
 | US-008 | CEP resolve rua, rótulo dá número | UT-021 | IT-031 | — |
 | US-008.AC-2 | CEP só cidade → rua do rótulo com dúvida | UT-022 | IT-032 | — |
@@ -130,14 +130,14 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 | US-014.EC-2 | Falha no servidor → para conferir com motivo | UT-081 | IT-017 | — |
 | US-015 | Pós-liberação → evento de aviso imediato | — | IT-065 | — |
 | US-015.AC-2 | Não liberado → sem sinal de aviso | — | IT-066 | — |
-| US-015.EC-1 | 0h–6h (agendamento é do consumidor; evento carrega createdAt) | — | IT-065 | — |
-| US-015.EC-2 | Descadastrado (checagem é do consumidor; evento emitido igual) | — | IT-065 | — |
-| US-015.EC-3 | Sem WhatsApp pós-liberação → evento sem whatsapp | — | IT-067 | — |
+| US-015.EC-1 | 0h–6h (agendamento é do gancho do monitoramento; a captura só chama) | — | IT-065 | — |
+| US-015.EC-2 | Descadastrado (checagem é do gancho do monitoramento) | — | IT-065 | — |
+| US-015.EC-3 | Sem WhatsApp pós-liberação → gancho não chamado | — | IT-067 | — |
 | US-016 | Troca de WhatsApp em pacote avisado | — | IT-052 | — |
 | US-016.AC-2/AC-3 | Número antigo e histórico no evento | — | IT-052 | — |
-| US-016.EC-1 | Orientação anterior + carteiro informado (payload traz antes/depois) | — | IT-052 | — |
-| US-016.EC-2 | Número novo descadastrado (consumidor) | — | IT-052 | — |
-| US-016.EC-3 | Janela 0h–6h (consumidor) | — | IT-052 | — |
+| US-016.EC-1 | Orientação anterior + carteiro informado (evento com antes/depois; atualização do caso de mediação é pendência do monitoramento) | — | IT-052 | — |
+| US-016.EC-2 | Número novo descadastrado (gancho do monitoramento) | — | IT-052 | — |
+| US-016.EC-3 | Janela 0h–6h (gancho do monitoramento) | — | IT-052 | — |
 | US-016.EC-4 | Mesmo número formatado diferente → sem troca | UT-017 | IT-068 | — |
 | US-017 | Editar/remover antes da liberação | UT-120 | IT-069, IT-070 | — |
 | US-017.AC-2 | Após liberação: edita, não remove | — | IT-071 | — |
@@ -165,11 +165,11 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 | US-022.EC-1 | Prazo máximo absoluto | UT-054 | IT-091 | — |
 | US-022.EC-2 | Remoção/desfazer exclui na hora | — | IT-092 | — |
 | US-022.EC-3 | Captura recusada não retém | — | IT-093 | — |
-| `s10.ts` | Validação UPU | UT-001–UT-006 | — | — |
+| `s10.ts` | Validação UPU (implementada no monitoramento; cópia do aparelho verificada aqui) | UT-127 | — | — |
 | `sigep-datamatrix.ts` | Parser | UT-007–UT-012 | — | — |
-| Telefone | Normalização E.164 | UT-013–UT-017 | — | — |
+| `classificarTelefone`/`mesmoNumero` | WhatsApp × fixo, igualdade | UT-013–UT-017 | — | — |
 | `montarCampos` | Precedência de fontes | UT-018–UT-025 | — | — |
-| `avaliarMinimo` | Mínimo e dúvida | UT-026–UT-033 | — | — |
+| `avaliarMinimo` | Mínimo e dúvida | UT-026–UT-033, UT-126 | — | — |
 | `CepService` | Consulta, fallback, cache | UT-034–UT-041 | IT-031–IT-034 | — |
 | `GeminiLabelExtractor` | Extração | UT-042–UT-047 | — | — |
 | `DiskPhotoStore` | put/get/delete | UT-048–UT-051 | — | — |
@@ -181,25 +181,25 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 | `GET /captura/conferir`, `/confirmar`, `/descartar`, `/desfazer` | Sucesso e falhas | — | IT-018–IT-027, IT-099–IT-101 | — |
 | `GET /captura/cep/:cep` | 200/404/503 | — | IT-024, IT-102, IT-103 | — |
 | `GET /captura/capturas/:id/foto` | 200/404/410 | — | IT-104, IT-105 | — |
-| `/supervisao/*` | Endpoints do supervisor | — | IT-046–IT-051, IT-077–IT-089, IT-106–IT-108 | — |
-| `PacoteEvento` outbox | Um evento por mudança, mesma transação | — | IT-109, IT-110 | — |
+| `/entregas/captura/*` e extensões de `/entregas` | Endpoints do supervisor | — | IT-046–IT-051, IT-077–IT-089, IT-112 | — |
+| `EventoPacote` + gancho de aviso | Eventos na transação; gancho só após commit; falha do gancho não desfaz | — | IT-109, IT-111 | — |
 | `captureQueue` | Fila IndexedDB | UT-071–UT-076 | — | — |
 | `captureSync` | Envio e retry | UT-077–UT-085 | — | — |
 | `barcode.ts` | Decodificação | UT-086–UT-090 | — | — |
 | `api.ts` | Multipart e rotação | UT-111–UT-114 | — | — |
 | Worker `foto-retencao` | Job diário | — | IT-090, IT-091 | — |
-| Trava `_test` | Aborta fora de banco de teste | UT-125 | — | — |
+| Trava `_test` | Harness do monitoramento (UT-125 withdrawn) | — | — | — (coberto pela task_01 do monitoramento) |
 
 ## Unit Tests
 
 ### s10.ts (TechSpec: Business Rules do PRD; Impact Analysis)
 
-- **UT-001** (happy): `validateS10('AA123456785BR')` → `{ valid: true, servico: 'AA', checkDigit: 5 }`.
-- **UT-002** (error): `validateS10('AA123456784BR')` → `valid: false`.
-- **UT-003** (happy): `validateS10('RR123456785CN')` (sufixo CN) → `valid: true`.
-- **UT-004** (error): `validateS10('A1234567895BR')`, `'AA12345678BR'`, `'AA123456785B'` → todos `valid: false`.
-- **UT-005** (happy): `validateS10(' oy 716-488-072 br ')` → `valid: true`, código normalizado `OY716488072BR`.
-- **UT-006** (boundary): `calculateS10CheckDigit` para uma série com soma mod 11 = 0 → 5, e para uma série com soma mod 11 = 1 → 0. As séries são escolhidas por busca no teste, com a asserção sobre os dois restos.
+- **UT-001** (withdrawn) — coberto pela task_01 do monitoramento (ADR-014).
+- **UT-002** (withdrawn) — coberto pela task_01 do monitoramento (ADR-014).
+- **UT-003** (withdrawn) — coberto pela task_01 do monitoramento (ADR-014).
+- **UT-004** (withdrawn) — coberto pela task_01 do monitoramento (ADR-014).
+- **UT-005** (withdrawn) — coberto pela task_01 do monitoramento (ADR-014).
+- **UT-006** (withdrawn) — coberto pela task_01 do monitoramento (ADR-014).
 
 ### sigep-datamatrix.ts (TechSpec: Core Interfaces; ADR-011)
 
@@ -212,10 +212,10 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 
 ### Normalização de telefone (TechSpec: Business Rules)
 
-- **UT-013** (happy): `normalizarWhatsapp('(61) 99340-1287')` → `{ e164: '+5561993401287', tipo: 'celular' }`.
-- **UT-014** (happy): `normalizarWhatsapp('(61) 3340-1287')` → `{ e164: null, outro: '+556133401287', tipo: 'fixo' }`.
-- **UT-015** (happy): `'11 98765-4321'` → `'+5511987654321'`.
-- **UT-016** (happy): `'61 9340-1287'` (celular sem o nono dígito) → `'+5561993401287'`.
+- **UT-013** (happy): `classificarTelefone('(61) 99340-1287')` (sobre `normalizarTelefone` do monitoramento) → `{ whatsappE164: '+5561993401287', outro: null }`.
+- **UT-014** (happy): `classificarTelefone('(61) 3340-1287')` → `{ whatsappE164: null, outro: '+556133401287' }` (fixo não é WhatsApp).
+- **UT-015** (happy): `classificarTelefone('11 98765-4321')` → `whatsappE164: '+5511987654321'`.
+- **UT-016** (happy): `classificarTelefone('61 9340-1287')` (celular sem nono dígito) → `whatsappE164: '+5561993401287'`.
 - **UT-017** (boundary): `mesmoNumero('+5561993401287', '(61) 99340-1287')` → `true`.
 
 ### montarCampos (TechSpec: Data flow step 3.5; ADR-011)
@@ -269,18 +269,18 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 
 ### Retenção (ADR-010)
 
-- **UT-052** (happy): `statusFinalEm = 2026-09-01`, `now = 2026-10-02`, 30 dias → expirada.
-- **UT-053** (boundary): `statusFinalEm = 2026-09-01`, `now = 2026-09-30T23:59 -03` → não expirada.
-- **UT-054** (happy): sem `statusFinalEm`, captura de 91 dias atrás, máximo de 90 → expirada.
+- **UT-052** (happy): foto de pacote com `PacoteDia.data = 2026-09-01`, `now = 2026-10-02T03:00-03:00`, 30 dias → expirada.
+- **UT-053** (boundary): `PacoteDia.data = 2026-09-01`, `now = 2026-09-30T23:59-03:00` → não expirada.
+- **UT-054** (happy): captura sem pacote (pendente nunca resolvida) de 91 dias atrás, máximo 90 → expirada.
 - **UT-055** (boundary): variáveis de ambiente ausentes → padrões 30 e 90.
 
 ### distrito-dia.service (TechSpec: Components)
 
-- **UT-056** (happy): `DistritoDia` de hoje com `carteiroId = eu` → esse distrito.
-- **UT-057** (happy): sem designação, `Distrito.carteiroPadraoId = eu` e sem `DistritoDia` de hoje designado a outro → esse distrito (sem criar `DistritoDia` ainda).
-- **UT-058** (state): o distrito padrão é o D-03, mas o `DistritoDia` de hoje do D-03 está designado a outro, e eu fui designado ao D-05 → D-05.
-- **UT-059** (error): nenhuma designação e nenhum distrito padrão → lista vazia.
-- **UT-060** (happy): duas designações hoje → duas opções, e `ativo` = a última escolhida (`PUT /hoje/ativo`) ou nenhuma.
+- **UT-056** (happy): `EscalaDistrito(D-03, hoje, C1)` → D-03.
+- **UT-057** (happy): sem escala, `Distrito.carteiroPadraoId = C1` e nenhuma escala de hoje do D-03 para outro carteiro → D-03 (sem criar `CargaDistrito` ainda).
+- **UT-058** (state): padrão do C1 é D-03, mas `EscalaDistrito(D-03, hoje)` é de C2 e `EscalaDistrito(D-05, hoje)` é de C1 → D-05.
+- **UT-059** (error): nenhuma escala e nenhum distrito padrão → lista vazia.
+- **UT-060** (happy): duas escalas hoje para C1 → duas opções; `ativo` = a última escolhida (`PUT /hoje/ativo`) ou nenhuma.
 - **UT-061** (boundary): `now = 2026-10-01T00:30-03:00` → a data resolvida é 2026-10-01 (não o UTC anterior).
 
 ### Auth (TechSpec: API Endpoints · Auth)
@@ -365,31 +365,33 @@ Derivado de `_user_stories.md` (comportamento) e `_techspec.md` (componentes).
 ### PacotePage e telas do supervisor (frontend)
 
 - **UT-120** (state): `PacotePage` de um pacote meu num distrito ABERTO → mostra Remover; num LIBERADO → esconde Remover e mostra "Para remover, fale com o supervisor".
-- **UT-121** (happy): `DistritoPacotesPage` mostra os chips de origem "Planilha", "Foto" e "Planilha + foto", e o selo "código digitado".
+- **UT-121** (happy): `DistritoPacotesPage` (monitoramento, estendida) mostra os chips de origem "Planilha", "Foto" e "Planilha + foto", e o selo "código digitado".
 - **UT-122** (state): foto 410 → "Foto excluída em 30/10 (prazo de retenção)".
-- **UT-123** (happy): `DistritosDiaPage` lista as transferências com código, carteiro e hora.
+- **UT-123** (happy): o quadro (`CarregarDadosPage` estendida) lista as transferências com código, carteiro e hora.
 - **UT-124** (happy): `paraConferir: 4` → "4 para conferir no app do carteiro"; `0` → nada.
 
 ### Infraestrutura de teste
 
-- **UT-125** (error): o `globalSetup` com `DATABASE_URL=.../correiosentregas_db` → lança "Recusado: testes só rodam em banco *_test" antes de qualquer conexão.
+- **UT-125** (withdrawn) — a trava `_test` é do harness do monitoramento (task_01 de lá).
+- **UT-126** (error): `avaliarMinimo` com `codigo.valor = 'A1234567895BR'` → `{ ok: false, motivos: ['codigo_invalido'] }`.
+- **UT-127** (happy): cópia `frontend/src/features/captura/lib/s10.ts` passa os vetores: `'AA123456785BR'` válido, `'AA123456784BR'` inválido, `'RR123456785CN'` válido com `qualquerPais`, `' oy 716-488-072 br '` normaliza para `OY716488072BR`, `'AA12345678BR'` inválido.
 
 ## Integration Tests
 
-Todos via supertest contra o app em processo, com banco `_test`, `FakeLabelExtractor`, CEP falso e PhotoStore em diretório temporário, salvo indicação. A semente padrão: a unidade U1 com os distritos D-01, D-03 e D-05; o carteiro C1 (padrão do D-03), o carteiro C2 (padrão do D-01) e o supervisor S1, todos da U1; a unidade U2 com o carteiro C9. Data fixa: 2026-09-30 (America/Sao_Paulo).
+Todos via supertest contra o app em processo, com banco `_test`, espião no gancho de aviso, `FakeLabelExtractor`, CEP falso e PhotoStore em diretório temporário, salvo indicação. A semente padrão (fábricas do monitoramento): a unidade U1 com os distritos D-01, D-03 e D-05; os carteiros C1 (padrão do D-03, com `Usuario`) e C2 (padrão do D-01, com `Usuario`), C4 (sem `Usuario`) e o supervisor S1, todos da U1; a unidade U2 com o carteiro C9. "Carga LIBERADO" = `CargaDistrito.status = LIBERADO`. Data fixa: 2026-09-30 (America/Sao_Paulo).
 
 ### Distrito do dia
 
-- **IT-001**: `GET /captura/hoje` como C1, com o `DistritoDia(D-03, hoje, carteiroId=C1)` → `distritos[0].codigo = 'D-03'`, `status = 'ABERTO'`.
-- **IT-002**: como C1, sem nenhum `DistritoDia` de hoje → D-03 (distrito padrão); depois do primeiro POST de captura SALVO, existe `DistritoDia(D-03, hoje)`.
-- **IT-003**: S1 faz `PUT /supervisao/distritos/D-05/dia/2026-09-30/carteiro {C1}` e `D-03` é designado a C2 → `GET /captura/hoje` como C1 retorna D-05.
-- **IT-004**: carteiro C3 sem distrito padrão nem designação → `distritos: []`; o POST de captura com qualquer `distritoDiaId` → 403.
-- **IT-005**: C1 designado ao D-03 e ao D-05 → `distritos.length = 2`; `PUT /captura/hoje/ativo {D-05}` → 204, e `ativo = D-05`.
-- **IT-006**: captura com o `distritoDiaId` do D-03, enviada depois de a designação passar ao D-05 → o pacote é gravado no D-03 (o distrito do momento da foto), porque o C1 ainda era o designado quando `capturadoEm` ocorreu. Se o C1 não for mais o designado nem o padrão do D-03, → 403 `distrito_nao_autorizado`, e o aparelho move a captura para Para conferir.
+- **IT-001** `GET /captura/hoje` como C1 com `EscalaDistrito(D-03, hoje, C1)` e sem carga → `distritos[0].codigo = 'D-03'`, `cargaStatus = null`.
+- **IT-002** como C1 sem escala hoje → D-03 (padrão); após o primeiro POST SALVO existe `CargaDistrito(D-03, hoje)` com status CARREGADO.
+- **IT-003** S1 `PUT /api/v1/entregas/cadastro/distritos/<D-05>/escala/2026-09-30 {carteiroId: C1}` (endpoint do monitoramento) e D-03 escalado a C2 → `GET /captura/hoje` como C1 retorna D-05.
+- **IT-004** carteiro C3 sem distrito padrão nem escala → `distritos: []`; POST de captura com qualquer `distritoId` → 403 `distrito_nao_autorizado`.
+- **IT-005** C1 escalado para D-03 e D-05 → `distritos.length = 2`; `PUT /captura/hoje/ativo {distritoId: D-05}` → 204 e `ativo = D-05`.
+- **IT-006** captura com `distritoId = D-03` e `data = hoje`, enviada depois de a escala passar C1 para D-05, mas com C1 ainda padrão do D-03 → gravada no D-03; se C1 não for mais escalado nem padrão do D-03 → 403 `distrito_nao_autorizado` (o aparelho a move para Para conferir).
 
 ### POST /captura/capturas e conciliação
 
-- **IT-007**: POST com `rotulo-completo.jpg`, os barcodes e o fake LLM devolvendo o nome "ALINE RODRIGUES" sem dúvida → 200 `{ tipo: 'SALVO', atualizado: false }`; o `Pacote(OY716488072BR)` com origem FOTO, whatsappE164 `+5561993401287` e cep `72115040`; a foto existe no PhotoStore; um `PacoteEvento` CRIADO.
+- **IT-007** POST com `rotulo-completo.jpg`, barcodes e fake LLM devolvendo nome "ALINE RODRIGUES" sem dúvida → 200 `{ tipo: 'SALVO', atualizado: false }`; `PacoteDia(OY716488072BR)` com `origem = FOTO`, `status = AGUARDANDO_LIBERACAO`, whatsappE164 `+5561993401287`, cep `72115040`; foto no PhotoStore; um `EventoPacote` `CAPTURA_CRIADO`.
 - **IT-008**: meta com o código `AA123456784BR` → 200 `{ tipo: 'RECUSADO', codigo: 'DV_INVALIDO' }`; nenhum pacote; a foto não é retida.
 - **IT-009**: meta com `barcodes.multiplos = true` (o aparelho detectou dois S10) → `RECUSADO/MULTIPLOS_ROTULOS`; zero pacotes.
 - **IT-010**: sem `cepLinear` nem DataMatrix, com o LLM dando o CEP "72115-040" → `PARA_CONFERIR`, com `campos.cep.duvida = true`.
@@ -397,7 +399,7 @@ Todos via supertest contra o app em processo, com banco `_test`, `FakeLabelExtra
 - **IT-012**: IT-007 seguido de `POST /capturas/<id>/desfazer` → 204; o pacote não existe; um evento DESFEITO; a foto excluída.
 - **IT-013**: o pacote veio da planilha (semente origem PLANILHA, nome "Aline R."); a captura dá nome "ALINE RODRIGUES" e é salva; o desfazer → o nome volta a "Aline R.", a origem volta a PLANILHA.
 - **IT-014**: duas capturas salvas (A e B); o desfazer de A → B permanece.
-- **IT-015**: o pacote CRIADO pela foto num DistritoDia que depois vira LIBERADO; o desfazer → 409 `remocao_nao_permitida`. Com o pacote ATUALIZADO (existia antes): o desfazer → 204 e restaura `pacoteAntes`.
+- **IT-015** pacote criado pela foto numa carga que depois vira LIBERADO; desfazer → 409 `remocao_nao_permitida`. Pacote ATUALIZADO (existia antes): desfazer → 204 e restaura `pacoteAntes`.
 - **IT-016**: duas capturas diferentes (`capturaId` distintos) do mesmo código, pelo mesmo C1, em paralelo (`Promise.all`) → exatamente um `Pacote`; uma CRIADO e uma ATUALIZADO (ou um SALVO atualizado).
 - **IT-017**: o `FakeLabelExtractor` configurado para lançar `ExtracaoIndisponivel` → `PARA_CONFERIR`, com `motivos` contendo `extracao_indisponivel` e os campos LLM vazios.
 - **IT-018**: o LLM devolve `whatsapp.duvida = true` → `PARA_CONFERIR`; `GET /captura/conferir` lista a captura com `campos.whatsapp.duvida = true`.
@@ -410,7 +412,7 @@ Todos via supertest contra o app em processo, com banco `_test`, `FakeLabelExtra
 - **IT-025**: `confirmar` com `cep: '7191936'` → 400 `cep_invalido`.
 - **IT-026**: `confirmar` trocando o código para outro que já está no D-01 → `TRANSFERENCIA_PENDENTE`; trocando para um DV inválido → 400 `dv_invalido`.
 - **IT-027**: 12 capturas PARA_CONFERIR criadas em horários diferentes → `GET /conferir` devolve as 12, em ordem crescente de `capturadoEm`.
-- **IT-028**: a captura em PARA_CONFERIR; o DistritoDia é LIBERADO; o `confirmar` → `SALVO`, e o evento CRIADO tem `payload.distritoLiberado = true`.
+- **IT-028** captura em PARA_CONFERIR; a carga é liberada; `confirmar` → `SALVO` e o espião `aoAdicionarPacotesEmCargaLiberada` recebe `[pacoteId]` uma vez, depois do commit.
 - **IT-029**: meta com `codigoDigitado: true` → o pacote salvo tem `codigoDigitado = true`.
 - **IT-030**: um código digitado que já existe no D-03 → `SALVO` com `atualizado: true`.
 
@@ -423,13 +425,13 @@ Todos via supertest contra o app em processo, com banco `_test`, `FakeLabelExtra
 
 ### Planilha × foto
 
-- **IT-035**: um rótulo sem telefone (DataMatrix zerado), pacote novo → `SALVO`, `whatsappE164 = null`.
+- **IT-035** rótulo sem telefone (DataMatrix zerado), pacote novo → `SALVO`, `whatsappE164 = null`, `status = SEM_WHATSAPP`.
 - **IT-036**: semente PLANILHA com whatsapp `+5561991112222`; captura sem telefone → `SALVO`; o whatsapp continua `+5561991112222`.
-- **IT-037**: semente PLANILHA (nome "Aline R.", número "71"); a captura lê nome "ALINE RODRIGUES" e número "17" → os dois sobrescritos; a origem vira `PLANILHA_FOTO`; o evento ATUALIZADO com `payload.campos.nome = { antes: 'Aline R.', depois: 'ALINE RODRIGUES' }`; os campos fora de `CamposLidos` (`statusFinal`, `distritoDiaId`) ficam inalterados.
+- **IT-037** semente PLANILHA (nome "Aline R.", número "71"); captura lê nome "ALINE RODRIGUES" e número "17" → ambos sobrescritos; `origem = PLANILHA_FOTO`; `EventoPacote` `CAPTURA_ATUALIZADO` com `dados.campos.nome = { antes: 'Aline R.', depois: 'ALINE RODRIGUES' }`; `status`, `cargaId`, `mediacaoCaseId` e `prosioMessageId` inalterados.
 - **IT-038**: semente de 3 pacotes PLANILHA, com a captura de 1 deles → os outros 2 ficam idênticos (comparação por snapshot).
-- **IT-039**: DistritoDia ABERTO; a captura troca o whatsapp → o evento WHATSAPP_ALTERADO com `distritoLiberado: false`.
-- **IT-052**: DistritoDia LIBERADO; semente com whatsapp `+5561991112222`; a captura lê `+5561993401287` → WHATSAPP_ALTERADO com `payload = { antes: '+5561991112222', depois: '+5561993401287', distritoLiberado: true }`.
-- **IT-068**: a captura lê `(61) 99111-2222` para um pacote com `+5561991112222` → nenhum evento WHATSAPP_ALTERADO.
+- **IT-039** carga CARREGADO; captura troca o WhatsApp → `EventoPacote` `WHATSAPP_ALTERADO`; o espião do gancho NÃO é chamado.
+- **IT-052** carga LIBERADO; semente com whatsapp `+5561991112222`; captura lê `+5561993401287` → `WHATSAPP_ALTERADO` com `dados = { antes: '+5561991112222', depois: '+5561993401287' }` e o espião do gancho recebe `[pacoteId]`.
+- **IT-068** captura lê `(61) 99111-2222` para pacote com `+5561991112222` → nenhum `WHATSAPP_ALTERADO` e nenhuma chamada ao gancho.
 
 ### Auth
 
@@ -439,20 +441,20 @@ Todos via supertest contra o app em processo, com banco `_test`, `FakeLabelExtra
 - **IT-043**: matrícula inexistente → 401 com a mensagem "Matrícula ou senha incorretas"; matrícula certa e senha errada → a mesma resposta.
 - **IT-044**: 5 senhas erradas → a 6ª tentativa, mesmo correta, dá 423 `acesso_bloqueado`.
 - **IT-045**: `ativo=false` → login 403 `acesso_desativado`; um access token já emitido → a próxima chamada dá 403.
-- **IT-046**: S1 `PUT /supervisao/carteiros/C1/senha {senha: 'Temp@2026'}` → 204; C1 entra com ela, com `senhaTemporaria = true`.
+- **IT-046** S1 `PUT /api/v1/entregas/captura/carteiros/C1/senha {senha: 'Temp@2026'}` → 204; C1 entra com ela e `senhaTemporaria = true`.
 - **IT-047**: S1 redefine a senha de C1 → os refresh tokens de C1 são revogados (o refresh anterior dá 401).
 - **IT-048**: `PUT .../senha {senha: '123'}` → 400 `senha_fraca`.
-- **IT-049**: um carteiro sem matrícula → 409 `matricula_ausente`.
+- **IT-049** carteiro sem matrícula → 409 `matricula_ausente`.
 - **IT-050**: duas redefinições paralelas com senhas A e B → exatamente uma vale, a de maior `updatedAt`, e a outra falha no login.
-- **IT-051**: um supervisor da U2 → `PUT /supervisao/carteiros/C1/senha` → 404.
+- **IT-051** supervisor da U2 → `PUT /api/v1/entregas/captura/carteiros/C1/senha` → 404.
 
 ### Transferência
 
 - **IT-053**: o código está no D-01 (C2); C1 captura no D-03 → `TRANSFERENCIA_PENDENTE` com `distritoOrigem: 'D-01'`; o pacote continua no D-01.
 - **IT-054**: `confirmar {confirmarTransferencia: true}` → o pacote no D-03, com o mesmo `pacote.id`; evento TRANSFERIDO `{ de: D-01, para: D-03 }`; campos da foto aplicados.
 - **IT-055**: `POST /capturas/<id>/descartar` para a transferência pendente → 204; o pacote continua no D-01, sem alteração; a foto é excluída.
-- **IT-056**: D-01 LIBERADO → TRANSFERIDO com `payload.origemLiberada = true` e `carteiroAnterior = C2`.
-- **IT-057**: o pacote no D-01 com `statusFinal = 'ENTREGUE'` → `RECUSADO/JA_ENTREGUE`.
+- **IT-056** carga do D-01 LIBERADO → `TRANSFERIDO` com `dados.origemLiberada = true` e `carteiroAnterior = C2`.
+- **IT-057** pacote no D-01 com `status = ENTREGUE` → `RECUSADO/JA_ENTREGUE`.
 - **IT-058**: C1 e C3 (D-05) confirmam a transferência do mesmo pacote do D-01 em paralelo → um 200 e um 409 `transferencia_concorrente`; o pacote fica num só distrito.
 - **IT-059**: o código está num distrito da U2 → `RECUSADO/OUTRA_UNIDADE`.
 - **IT-060**: uma captura com `capturadoEm` de 2 h atrás (offline), o código no D-01 → `TRANSFERENCIA_PENDENTE`, listada em `GET /conferir`.
@@ -466,41 +468,41 @@ Todos via supertest contra o app em processo, com banco `_test`, `FakeLabelExtra
 
 ### Depois da liberação
 
-- **IT-065**: DistritoDia LIBERADO; captura de um pacote novo com WhatsApp → o evento CRIADO com `distritoLiberado: true` e o whatsapp no payload.
-- **IT-066**: DistritoDia ABERTO → CRIADO com `distritoLiberado: false`.
-- **IT-067**: LIBERADO; pacote novo sem WhatsApp → CRIADO com `whatsappE164: null`.
+- **IT-065** carga LIBERADO; captura de pacote novo com WhatsApp → `CAPTURA_CRIADO` e o espião do gancho recebe `[pacoteId]`.
+- **IT-066** carga CARREGADO; pacote novo com WhatsApp → o espião do gancho NÃO é chamado; `status = AGUARDANDO_LIBERACAO`.
+- **IT-067** carga LIBERADO; pacote novo sem WhatsApp → `status = SEM_WHATSAPP` e o espião do gancho NÃO é chamado.
 
 ### Correção
 
 - **IT-069**: `PATCH /captura/pacotes/:id {complemento: 'CASA B'}` pelo C1, que capturou → 200; um evento ATUALIZADO.
 - **IT-070**: `DELETE /captura/pacotes/:id` (origem FOTO, ABERTO) → 204; o pacote é excluído; o evento REMOVIDO com snapshot; a foto excluída.
-- **IT-071**: LIBERADO: `PATCH` → 200; `DELETE` → 403 `remocao_nao_permitida`.
+- **IT-071** carga LIBERADO: `PATCH` → 200; `DELETE` → 403 `remocao_nao_permitida`.
 - **IT-072**: origem PLANILHA → `DELETE` pelo carteiro → 403 `remocao_nao_permitida`.
 - **IT-073**: origem PLANILHA_FOTO, ABERTO → `DELETE` → 204; o pacote continua com os valores do snapshot pré-foto e a origem PLANILHA.
-- **IT-074**: LIBERADO; `PATCH {whatsapp}` com outro número → WHATSAPP_ALTERADO com `distritoLiberado: true`.
-- **IT-075**: a liberação commitada entre a leitura e o DELETE (a liberação feita na mesma transação de teste antes do delete) → 403 `remocao_nao_permitida`.
+- **IT-074** carga LIBERADO; `PATCH {whatsapp}` com outro número → `WHATSAPP_ALTERADO` e o espião do gancho recebe `[pacoteId]`.
+- **IT-075** a liberação da carga comitada entre a leitura e o DELETE → 403 `remocao_nao_permitida`.
 - **IT-076**: `PATCH {codigo: 'OY716488072BR'}` → 400 `codigo_nao_editavel_use_nova_captura` (a edição de código acontece só na conferência, IT-026).
 
 ### Supervisor
 
-- **IT-077**: S1 `DELETE /supervisao/pacotes/:id` num DistritoDia LIBERADO → 204; o evento REMOVIDO com `payload.distritoLiberado = true`.
+- **IT-077** S1 `DELETE /api/v1/entregas/captura/pacotes/:id` numa carga LIBERADO → 204; `EventoPacote` `REMOVIDO` com snapshot; foto excluída.
 - **IT-078**: depois de IT-077, `GET /captura/hoje` como C1 → o pacote fora dos recentes e do contador.
-- **IT-079**: um pacote com `statusFinal = 'ENTREGUE'` → 409 `pacote_entregue`.
-- **IT-080**: `GET /supervisao/distritos-dia/:id/pacotes` → cada item com `origem` e `codigoDigitado`, e `temFoto: true` para os capturados.
-- **IT-081**: `GET /supervisao/pacotes/:id/historico` → os eventos CRIADO e ATUALIZADO em ordem, com os campos antes e depois.
-- **IT-082**: `GET /supervisao/pacotes/:id/foto` → 200 `image/jpeg`, com os bytes iguais ao upload.
+- **IT-079** pacote com `status = ENTREGUE` → 409 `pacote_entregue`.
+- **IT-080** `GET /api/v1/entregas/cargas/:cargaId/pacotes` (monitoramento, estendido) → cada item traz `origem`, `codigoDigitado` e `temFoto: true` para capturados; os campos originais da resposta do monitoramento continuam presentes.
+- **IT-081** `GET /api/v1/entregas/captura/pacotes/:id/historico` → eventos `CAPTURA_CRIADO` e `CAPTURA_ATUALIZADO` em ordem, com os campos antes e depois.
+- **IT-082** `GET /api/v1/entregas/captura/pacotes/:id/foto` → 200 `image/jpeg` com bytes iguais ao upload.
 - **IT-083**: a foto excluída pela retenção → 410 `{ details.fotoExcluidaEm }`.
 - **IT-084**: um supervisor da U2 → `GET` do pacote ou da foto da U1 → 404.
-- **IT-085**: depois de IT-054, `GET /supervisao/distritos-dia?data=2026-09-30` → o D-01 com `transferenciasSaida[0] = { codigo, para: 'D-03', carteiro: C1, hora }` e o D-03 com a entrada correspondente; `origemLiberada` refletido quando aplicável.
+- **IT-085** após IT-054, `GET /api/v1/entregas/quadro?data=2026-09-30` → D-01 com `transferencias.saida[0] = { codigo, distrito: 'D-03', carteiro: C1, hora }` e D-03 com a entrada correspondente; `origemLiberada` refletido quando aplicável.
 - **IT-086**: o pacote transferido D-01 → D-03 → D-05 → o histórico com 2 TRANSFERIDO em ordem.
-- **IT-087**: C1 com 4 capturas PARA_CONFERIR no D-03 → `paraConferir: 4` no D-03; capturas que só existem no aparelho não entram (nenhuma linha no banco).
-- **IT-088**: a liberação do D-03 com `paraConferir > 0` (via o endpoint de liberação do núcleo, ou a atualização direta de status na semente, até o monitoramento existir) → permitida.
+- **IT-087** C1 com 4 capturas PARA_CONFERIR no D-03 → `paraConferir: 4` no D-03 em `GET /entregas/quadro`; capturas só no aparelho não entram.
+- **IT-088** liberar o D-03 via `POST /api/v1/entregas/cargas/:cargaId/liberar` (monitoramento) com `paraConferir > 0` → permitida (a captura não bloqueia a liberação).
 - **IT-089**: depois de conferir as 4 → `paraConferir: 0`.
 
 ### Retenção (worker `foto-retencao`, relógio injetado)
 
-- **IT-090**: um pacote com `statusFinalEm` de 31 dias atrás e foto → o job exclui o arquivo e grava `Captura.fotoExcluidaEm`; os campos do `Pacote` ficam inalterados.
-- **IT-091**: uma captura de 91 dias atrás sem `statusFinalEm` → excluída; uma de 89 dias → mantida.
+- **IT-090** pacote com `data` de 31 dias atrás e foto → o job exclui o arquivo e grava `Captura.fotoExcluidaEm`; campos do `PacoteDia` inalterados.
+- **IT-091** captura PARA_CONFERIR sem pacote, de 91 dias atrás → foto excluída; uma de 89 dias → mantida.
 - **IT-092**: `desfazer` e `DELETE` de pacote → a foto não existe no PhotoStore logo depois da resposta.
 - **IT-093**: uma captura RECUSADO (DV inválido, outra unidade) → `fotoKey = null` e nenhum arquivo gravado.
 
@@ -518,14 +520,16 @@ Todos via supertest contra o app em processo, com banco `_test`, `FakeLabelExtra
 - **IT-103**: fake INDISPONIVEL → 503 `cep_indisponivel`.
 - **IT-104**: `GET /captura/capturas/:id/foto` de outro carteiro → 404.
 - **IT-105**: a foto já excluída → 410 `foto_excluida`.
-- **IT-106**: `POST /supervisao/distritos {codigo: 'D-03'}` duplicado na U1 → 409.
-- **IT-107**: `PUT /supervisao/distritos/:id/dia/2026-09-30/carteiro` com um carteiro da U2 → 400 `carteiro_de_outra_unidade`.
-- **IT-108**: `GET /supervisao/distritos-dia` sem `data` → 400.
+- **IT-106** (withdrawn) — o cadastro de distritos é do monitoramento (ADR-014).
+- **IT-107** (withdrawn) — a escala do dia é do monitoramento (ADR-014).
+- **IT-108** (withdrawn) — a validação de `data` do quadro é do monitoramento (ADR-014).
 
 ### Outbox
 
-- **IT-109**: uma captura que atualiza 2 campos e troca o WhatsApp → exatamente 2 eventos (ATUALIZADO e WHATSAPP_ALTERADO) no mesmo commit; ao forçar um erro depois do update do pacote (hook de teste), → nenhum evento e nenhuma mudança no pacote (rollback).
-- **IT-110**: todos os eventos novos têm `consumidoEm = null`, e o índice `(consumidoEm, createdAt)` devolve a ordem de criação.
+- **IT-109** captura que atualiza 2 campos e troca o WhatsApp → exatamente 2 `EventoPacote` (`CAPTURA_ATUALIZADO` e `WHATSAPP_ALTERADO`) no mesmo commit; forçando erro após o update do pacote (hook de teste) → nenhum evento, nenhuma mudança e o espião do gancho não é chamado (rollback).
+- **IT-110** (withdrawn) — o outbox com `consumidoEm` foi substituído pelo gancho de aviso (ADR-014).
+- **IT-111**: o espião do gancho lança erro numa carga LIBERADO → a captura ainda responde `SALVO`, o pacote persiste e `captura_gancho_aviso_falhas_total` incrementa.
+- **IT-112**: S1 `PUT /api/v1/entregas/captura/carteiros/<C4>/senha` para carteiro cadastrado sem `usuarioId` → 204; cria `Usuario` (role CARTEIRO, matrícula do carteiro, unidade U1) vinculado ao `Carteiro`; C4 entra com a senha e `senhaTemporaria = true`.
 
 ## End-to-End Tests
 

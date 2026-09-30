@@ -34,7 +34,7 @@ Fecha também as três jornadas E2E com Playwright e o job na CI. Segue o protó
 - MUST implementar `PacotePage` (editar; Remover só quando permitido; senão "Para remover, fale com o supervisor").
 - MUST ter alvos de toque ≥44 px, contraste AA e campos com `<label>`.
 - MUST suportar, só em build de teste, `?e2eImage=<fixture>` no `CameraPage` para substituir o `getUserMedia`.
-- MUST criar a suíte Playwright das três jornadas e o job na CI (backend com `CAPTURA_AI_PROVIDER=fake`, banco `_test` semeado).
+- MUST acrescentar as três jornadas da captura à suíte Playwright do monitoramento (job `e2e-ui`, task_07 de lá), com backend em `CAPTURA_AI_PROVIDER=fake` e banco `_test` semeado; se o job ainda não existir, criá-lo nos mesmos moldes.
 </requirements>
 
 ## Subtasks

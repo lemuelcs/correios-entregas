@@ -12,7 +12,7 @@ complexity: high
 Esta tarefa entrega o servidor da captura de ponta a ponta:
 - recebe a foto e os códigos lidos no aparelho;
 - consulta o CEP e extrai os campos livres com o LLM;
-- concilia com a lista do distrito do dia ("foto vence", "ausência não apaga", transferência, desfazer, remoção), gravando um evento em outbox a cada mudança;
+- concilia com o `PacoteDia` da carga do distrito do monitoramento ("foto vence", "ausência não apaga", transferência, desfazer, remoção), registrando cada mudança em `EventoPacote` e chamando o gancho de aviso do monitoramento quando a carga já foi liberada (ADR-014);
 - guarda a foto com retenção automática.
 
 É o coração da feature: todas as regras de negócio da captura vivem aqui.
@@ -30,11 +30,12 @@ Esta tarefa entrega o servidor da captura de ponta a ponta:
 - MUST implementar `LabelExtractor` com `GeminiLabelExtractor` (AI SDK `generateObject`, schema com `{valor, duvida, motivo}` por campo, timeout de 15 s, pós-validação que força dúvida) e `FakeLabelExtractor`, selecionados por `CAPTURA_AI_PROVIDER`; MUST pedir ao LLM só os campos que o DataMatrix não cobriu.
 - MUST implementar `PhotoStore` com `DiskPhotoStore` (`FOTOS_DIR`, recusa de chave com `..`) e o volume `correios_fotos` no `docker-compose.yml`.
 - MUST implementar `montarCampos` (precedência DataMatrix > linear > LLM, CEP para rua, bairro, cidade e UF) e `avaliarMinimo` como funções puras.
-- MUST implementar `ConciliacaoService.aplicar` com as regras 1–5 de TechSpec › Core Interfaces, em transação, com a escrita de `PacoteEvento` na mesma transação, a checagem otimista de transferência (409 `transferencia_concorrente`) e o snapshot `pacoteAntes`.
+- MUST implementar `ConciliacaoService.aplicar` com as regras 0–5 de TechSpec › Core Interfaces sobre `CargaDistrito`/`PacoteDia`: em transação, com a escrita de `EventoPacote` na mesma transação, a checagem otimista de transferência (409 `transferencia_concorrente`), o snapshot `pacoteAntes` e o `status` inicial (SEM_WHATSAPP/AGUARDANDO_LIBERACAO).
+- MUST chamar `aoAdicionarPacotesEmCargaLiberada(avisar)` do monitoramento SOMENTE após o commit; uma falha do gancho não desfaz a captura (log + métrica `captura_gancho_aviso_falhas_total`).
 - MUST implementar `desfazer` e `remover` (remoção pelo carteiro com as regras da US-017; `remover` também é usado pelo supervisor na task_03), com a exclusão imediata da foto.
 - MUST implementar `CapturaService.processar` idempotente por `capturaId` (reenvio devolve o mesmo resultado; 409 `captura_em_processamento`; reprocessa PROCESSANDO com mais de 2 min).
 - MUST expor todas as rotas `/api/v1/captura` de TechSpec › API Endpoints (Carteiro), com `authenticate`, `requireRole('CARTEIRO')` e `requireSenhaDefinitiva`, multer em memória (≤2 MB, magic bytes JPEG) e códigos de erro estáveis em `details.code`.
-- MUST implementar o worker `foto-retencao` (BullMQ repetível às 03:00 America/Sao_Paulo; `FOTO_RETENCAO_DIAS_APOS_FIM`=30, `FOTO_RETENCAO_MAX_DIAS`=90) registrado em `workers/index.ts`.
+- MUST implementar o worker `foto-retencao` (BullMQ repetível às 03:00 America/Sao_Paulo), registrado em `workers/index.ts`. Expiração: `PacoteDia.data + FOTO_RETENCAO_DIAS_APOS_FIM` (30); captura sem pacote: `FOTO_RETENCAO_MAX_DIAS` (90) contados da captura.
 - MUST registrar as métricas de TechSpec › Monitoring e NUNCA logar nome, telefone, endereço, bytes da foto ou texto do LLM.
 - SHOULD validar cedo a compatibilidade ESM do AI SDK com o Jest (risco em TechSpec › Known Risks).
 </requirements>
@@ -68,7 +69,8 @@ Os padrões estão em TechSpec › Component Overview (Backend), Core Interfaces
 
 ### Dependent Files
 - `backend/package.json` — adiciona `ai` e `@ai-sdk/google`.
-- `backend/src/modules/supervisao/*` — reutiliza `ConciliacaoService.remover`, `PhotoStore` e os eventos (task_03).
+- `backend/src/modules/captura/captura-supervisao.routes.ts` — reutiliza `ConciliacaoService.remover`, `PhotoStore` e os eventos (task_03).
+- `backend/src/modules/entregas/*` (monitoramento) — o gancho `aoAdicionarPacotesEmCargaLiberada` é chamado daqui; não alterar a implementação dele.
 - `frontend/src/features/captura/*` — consome as rotas (task_05).
 
 ### Related ADRs
@@ -76,7 +78,7 @@ Os padrões estão em TechSpec › Component Overview (Backend), Core Interfaces
 - [ADR-002: Códigos de barras, CEP, revisão só com dúvida](adrs/adr-002.md) — o mínimo e a dúvida.
 - [ADR-005: Pós-liberação, reaviso e correção](adrs/adr-005.md) — `distritoLiberado` e a remoção.
 - [ADR-006: Retenção da foto](adrs/adr-006.md), [ADR-010: Disco + PhotoStore](adrs/adr-010.md)
-- [ADR-007: Outbox](adrs/adr-007.md), [ADR-008: Gemini flash-lite](adrs/adr-008.md), [ADR-009: ViaCEP + CWS](adrs/adr-009.md), [ADR-012: Síncrono e idempotente](adrs/adr-012.md)
+- [ADR-014: Estender o núcleo do monitoramento e usar o gancho de aviso](adrs/adr-014.md), [ADR-008: Gemini flash-lite](adrs/adr-008.md), [ADR-009: ViaCEP + CWS](adrs/adr-009.md), [ADR-012: Síncrono e idempotente](adrs/adr-012.md)
 
 ## Deliverables
 - O módulo `backend/src/modules/captura/` completo e montado em `/api/v1/captura`.
@@ -89,7 +91,7 @@ Os padrões estão em TechSpec › Component Overview (Backend), Core Interfaces
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
 - [ ] UT-018, UT-019, UT-020, UT-021, UT-022, UT-023, UT-024, UT-025 — `montarCampos`
-- [ ] UT-026, UT-027, UT-028, UT-029, UT-030, UT-031, UT-032, UT-033 — `avaliarMinimo`
+- [ ] UT-026, UT-027, UT-028, UT-029, UT-030, UT-031, UT-032, UT-033, UT-126 — `avaliarMinimo`
 - [ ] UT-034, UT-035, UT-036, UT-037, UT-038, UT-039, UT-040, UT-041 — `CepService`
 - [ ] UT-042, UT-043, UT-044, UT-045, UT-046, UT-047 — `GeminiLabelExtractor`
 - [ ] UT-048, UT-049, UT-050, UT-051 — `DiskPhotoStore`
@@ -100,10 +102,10 @@ Cases assigned from `_tests.md`, the test contract — read each ID's full defin
 - [ ] IT-052, IT-053, IT-054, IT-055, IT-056, IT-057, IT-058, IT-059, IT-060, IT-061, IT-062, IT-063, IT-064, IT-065, IT-066, IT-067, IT-068, IT-069, IT-070, IT-071, IT-072, IT-073, IT-074, IT-075, IT-076 — troca de WhatsApp, transferência, idempotência, pós-liberação e correção pelo carteiro
 - [ ] IT-090, IT-091, IT-092, IT-093 — retenção e exclusão imediata
 - [ ] IT-094, IT-095, IT-096, IT-097, IT-098, IT-099, IT-100, IT-101, IT-102, IT-103, IT-104, IT-105 — falhas documentadas dos endpoints `/captura`
-- [ ] IT-109, IT-110 — outbox transacional
+- [ ] IT-109, IT-111 — eventos na transação, gancho só após o commit, e falha do gancho
 
 ## Success Criteria
 - Every assigned test case implemented and passing
-- `POST /api/v1/captura/capturas` com o fixture `rotulo-completo.jpg` e o extrator fake responde `SALVO` e grava exatamente um `PacoteEvento` CRIADO
+- `POST /api/v1/captura/capturas` com o fixture `rotulo-completo.jpg` e o extrator fake responde `SALVO` e grava exatamente um `EventoPacote` `CAPTURA_CRIADO`
 - Nenhuma linha de log contém nome, telefone ou endereço do destinatário (verificado por teste que captura a saída do logger)
 - `npm run lint` e `npm run build` passam no backend

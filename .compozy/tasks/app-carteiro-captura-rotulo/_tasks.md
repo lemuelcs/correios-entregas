@@ -44,3 +44,5 @@ graph:
 | [task_06](task_06.md) | Telas do supervisor | frontend | medium | task_03, task_04 | 4 UT |
 
 Ondas: 01 → (02 ∥ 04) → (03 ∥ 05) → 06.
+
+**Pré-requisitos fora do grafo (ADR-014):** as tasks 01, 03 e 04 de `monitoramento-entregas-whatsapp` antes da task_01 daqui, e a task_07 de lá antes da task_06 daqui.
