@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: "Extensões de dados, auth do carteiro e utilitários do rótulo"
 type: backend
 complexity: critical
@@ -44,14 +44,14 @@ Esta tarefa prepara o backend da captura sobre o núcleo do monitoramento (ADR-0
 </requirements>
 
 ## Subtasks
-- [ ] 1.1 Verificação dos pré-requisitos do monitoramento.
-- [ ] 1.2 Migration da captura (`PacoteDia`, `Usuario`, `Captura`, enums) e a preservação dos eventos na remoção.
-- [ ] 1.3 Parser do DataMatrix SIGEP.
-- [ ] 1.4 Classificação e igualdade de telefone.
-- [ ] 1.5 Distrito do dia do carteiro e garantia da carga.
-- [ ] 1.6 Auth: rotação, TTL por papel, troca de senha, bloqueio e middleware de senha definitiva.
-- [ ] 1.7 Fábricas de teste estendidas e fixtures de rótulo geradas.
-- [ ] 1.8 Todos os testes atribuídos passando, e a suíte do monitoramento continua verde.
+- [x] 1.1 Verificação dos pré-requisitos do monitoramento.
+- [x] 1.2 Migration da captura (`PacoteDia`, `Usuario`, `Captura`, enums) e a preservação dos eventos na remoção.
+- [x] 1.3 Parser do DataMatrix SIGEP.
+- [x] 1.4 Classificação e igualdade de telefone.
+- [x] 1.5 Distrito do dia do carteiro e garantia da carga.
+- [x] 1.6 Auth: rotação, TTL por papel, troca de senha, bloqueio e middleware de senha definitiva.
+- [x] 1.7 Fábricas de teste estendidas e fixtures de rótulo geradas.
+- [x] 1.8 Todos os testes atribuídos passando, e a suíte do monitoramento continua verde.
 
 ## Implementation Details
 
@@ -89,11 +89,11 @@ Os padrões estão em TechSpec › Data Models, API Endpoints (Auth) e Testing A
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-007, UT-008, UT-009, UT-010, UT-011, UT-012 — parser DataMatrix SIGEP
-- [ ] UT-013, UT-014, UT-015, UT-016, UT-017 — `classificarTelefone` e `mesmoNumero`
-- [ ] UT-056, UT-057, UT-058, UT-059, UT-060, UT-061 — distrito do dia
-- [ ] UT-062, UT-063, UT-064, UT-065, UT-066, UT-067, UT-068, UT-069, UT-070 — auth
-- [ ] IT-042, IT-043, IT-044, IT-045 — refresh rotativo, credenciais, bloqueio e inativo via HTTP
+- [x] UT-007, UT-008, UT-009, UT-010, UT-011, UT-012 — parser DataMatrix SIGEP
+- [x] UT-013, UT-014, UT-015, UT-016, UT-017 — `classificarTelefone` e `mesmoNumero`
+- [x] UT-056, UT-057, UT-058, UT-059, UT-060, UT-061 — distrito do dia
+- [x] UT-062, UT-063, UT-064, UT-065, UT-066, UT-067, UT-068, UT-069, UT-070 — auth
+- [x] IT-042, IT-043, IT-044, IT-045 — refresh rotativo, credenciais, bloqueio e inativo via HTTP (a metade "token já emitido" do IT-045 fica em `it.todo` até a task_03 do monitoramento)
 
 ## Success Criteria
 - Every assigned test case implemented and passing
