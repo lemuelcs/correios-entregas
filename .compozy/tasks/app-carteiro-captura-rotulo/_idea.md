@@ -1,6 +1,6 @@
 # Ideia: App do carteiro — Módulo A, captura do rótulo de envio
 
-**Status**: enfileirado em 2026-09-30, aguardando ideação e PRD (cy-create-prd)
+**Status**: PRD escrito em 2026-09-30 (`_prd.md`, `_user_stories.md`, ADR-001–006); próximo passo cy-create-techspec
 **Relacionado**: `../monitoramento-entregas-whatsapp/_prd.md` (ADR-010)
 
 ## O que o dono do produto pediu
