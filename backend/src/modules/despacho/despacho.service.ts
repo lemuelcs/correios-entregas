@@ -6,7 +6,8 @@ export class DespachoService {
     const dataRef = data ? new Date(data + 'T00:00:00.000Z') : this.todayUTC();
 
     const carteiros = await prisma.carteiro.findMany({
-      where: { unidadeId, ativo: true },
+      // Carteiros sem usuário (entregas mediadas, ADR-013) não aparecem no SGPD v2.
+      where: { unidadeId, ativo: true, usuarioId: { not: null } },
       include: {
         usuario: { select: { id: true, nome: true, email: true } },
         pontos: {
@@ -32,7 +33,9 @@ export class DespachoService {
     horaEntrada?: string,
     observacao?: string,
   ) {
-    const carteiro = await prisma.carteiro.findUnique({ where: { id: carteiroId } });
+    const carteiro = await prisma.carteiro.findFirst({
+      where: { id: carteiroId, usuarioId: { not: null } },
+    });
     if (!carteiro) {
       throw new AppError(404, 'Carteiro não encontrado');
     }
@@ -62,7 +65,8 @@ export class DespachoService {
 
   async listCarteiros(unidadeId: string) {
     const carteiros = await prisma.carteiro.findMany({
-      where: { unidadeId },
+      // Carteiros sem usuário (entregas mediadas, ADR-013) não aparecem no SGPD v2.
+      where: { unidadeId, usuarioId: { not: null } },
       include: {
         usuario: { select: { id: true, nome: true, email: true } },
         _count: {
