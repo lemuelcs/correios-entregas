@@ -204,7 +204,7 @@ export class CapturaService {
         codigoDigitado: meta.codigoDigitado,
       }));
 
-      if (resultado.tipo === 'RECUSADO') await this.descartarFoto(meta.capturaId, fotoKey, 'recusada', false);
+      if (resultado.tipo === 'RECUSADO') await this.descartarFotoRecusada(meta.capturaId, fotoKey);
 
       const fontes: Record<string, string> = {};
       for (const n of NOMES_CAMPOS) fontes[n] = campos[n].fonte;
@@ -251,15 +251,11 @@ export class CapturaService {
     }, 'captura: processada');
   }
 
-  /** Exclui a foto e marca a captura (recusada, descartada). */
-  private async descartarFoto(capturaId: string, fotoKey: string | null, motivo: string, manterChave: boolean): Promise<void> {
+  /** Captura recusada não retém foto: apaga o arquivo e zera `fotoKey` (ADR-010). */
+  private async descartarFotoRecusada(capturaId: string, fotoKey: string | null): Promise<void> {
     if (!fotoKey) return;
-    const { now } = dependenciasCaptura();
-    await prisma.captura.update({
-      where: { id: capturaId },
-      data: manterChave ? { fotoExcluidaEm: now() } : { fotoKey: null },
-    });
-    await excluirFotos([fotoKey], motivo);
+    await prisma.captura.update({ where: { id: capturaId }, data: { fotoKey: null } });
+    await excluirFotos([fotoKey], 'recusada');
   }
 
   /** O corpo de resposta de uma captura já processada (reenvio idempotente). */
@@ -393,7 +389,7 @@ export class CapturaService {
       confirmarTransferencia: input.confirmarTransferencia ?? false,
       cargaOrigemEsperadaId: cap.cargaOrigemId,
     });
-    if (resultado.tipo === 'RECUSADO') await this.descartarFoto(cap.id, cap.fotoKey, 'recusada', false);
+    if (resultado.tipo === 'RECUSADO') await this.descartarFotoRecusada(cap.id, cap.fotoKey);
     capturaProcessadas.inc({ resultado: resultado.tipo });
     logger.info({ capturaId: cap.id, carteiroId: carteiro.carteiroId, distritoId: cap.distritoId, resultado: resultado.tipo, etapa: 'confirmar' }, 'captura: conferida');
     await avisarAposCommit(avisar);
