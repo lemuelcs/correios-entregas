@@ -160,13 +160,10 @@ export class DistritoDoDiaService {
       cargaStatus: d.cargas[0]?.status ?? null,
     }));
 
-    let ativo: string | null = null;
-    if (lista.length === 1) {
-      ativo = lista[0].distritoId;
-    } else {
-      const escolhido = await this.ativoStore.get(carteiroId, data);
-      ativo = lista.some((d) => d.distritoId === escolhido) ? escolhido : null;
-    }
+    if (lista.length === 1) return { data, distritos: lista, ativo: lista[0].distritoId };
+
+    const escolhido = await this.ativoStore.get(carteiroId, data);
+    const ativo = lista.some((d) => d.distritoId === escolhido) ? escolhido : null;
     return { data, distritos: lista, ativo };
   }
 

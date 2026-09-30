@@ -5,14 +5,16 @@
  * `env-integracao` aponta para TEST_DATABASE_URL) e aceita sobrescritas.
  * Use `limparBanco()` no `beforeAll`/`beforeEach` de cada arquivo.
  */
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import {
   Prisma,
   type CanalProsio,
+  type Captura,
   type CargaDistrito,
   type Carteiro,
   type Distrito,
+  type EscalaDistrito,
   type PacoteDia,
   type Unidade,
   type Usuario,
@@ -244,4 +246,65 @@ export async function criarCenarioDistrito(opcoes: { pacotes?: number; data?: Da
     pacotes.push(await criarPacote({ cargaId: carga.id, data: carga.data }));
   }
   return { canal, unidade, supervisor, carteiro, distrito, carga, pacotes };
+}
+
+// ——— Captura do rótulo (app do carteiro) ——————————————————————————
+
+/** Matrícula de 8 caracteres (o login por matrícula exige exatamente 8). */
+export function matriculaUnica(): string {
+  return `9${lote}${String(proximo()).padStart(3, '0').slice(-3)}`;
+}
+
+/** Escala do dia: `carteiroId` é o carteiro do `distritoId` em `data` (padrão: hoje UTC). */
+export async function escala(
+  over: Partial<Prisma.EscalaDistritoUncheckedCreateInput> & { distritoId: string; carteiroId: string },
+): Promise<EscalaDistrito> {
+  return prisma.escalaDistrito.create({ data: { data: dia(), ...over } });
+}
+
+/**
+ * Carteiro com login: `Usuario` CARTEIRO + `Carteiro` vinculados, com a mesma
+ * matrícula de 8 caracteres. `senhaTemporaria` e `ativo` vão para o `Usuario`.
+ */
+export async function criarCarteiroComLogin(
+  over: { unidadeId: string; senha?: string; senhaTemporaria?: boolean; ativo?: boolean; matricula?: string },
+): Promise<{ usuario: Usuario; carteiro: Carteiro }> {
+  const n = proximo();
+  const matricula = over.matricula ?? matriculaUnica();
+  const usuario = await prisma.usuario.create({
+    data: {
+      nome: `Carteiro ${n}`,
+      matricula,
+      role: 'CARTEIRO',
+      unidadeId: over.unidadeId,
+      senha: await hashDe(over.senha ?? SENHA_PADRAO),
+      senhaTemporaria: over.senhaTemporaria ?? false,
+      ativo: over.ativo ?? true,
+    },
+  });
+  const carteiro = await criarCarteiro({ unidadeId: over.unidadeId, usuarioId: usuario.id, matricula, nome: usuario.nome });
+  return { usuario, carteiro };
+}
+
+/** Pacote que entrou pela foto (origem FOTO), com o carteiro que capturou. */
+export async function pacoteCapturado(
+  over: Partial<Prisma.PacoteDiaUncheckedCreateInput> & { cargaId: string; capturadoPorId: string },
+): Promise<PacoteDia> {
+  return criarPacote({ origem: 'FOTO', ...over });
+}
+
+/** Registro de uma captura (padrão: SALVO, hoje, `capturadoEm` agora). */
+export async function captura(
+  over: Partial<Prisma.CapturaUncheckedCreateInput> & { carteiroId: string; distritoId: string },
+): Promise<Captura> {
+  return prisma.captura.create({
+    data: {
+      id: randomUUID(),
+      data: dia(),
+      resultado: 'SALVO',
+      capturadoEm: new Date(),
+      processadoEm: new Date(),
+      ...over,
+    },
+  });
 }
