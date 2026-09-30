@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import {
   LAYOUT_SIGEP,
   montarSigepDataMatrix,
@@ -15,6 +17,11 @@ const ROTULO_COMPLETO = {
   telefone: '61993401287',
 };
 
+const ROTULOS = path.resolve(__dirname, '../../../__tests__/fixtures/rotulos');
+interface FixtureRotulo { arquivo: string; esperado: { dataMatrixRaw: string | null } }
+const manifesto: FixtureRotulo[] = JSON.parse(fs.readFileSync(path.join(ROTULOS, 'rotulos.json'), 'utf8'));
+const dataMatrixDe = (arquivo: string) => manifesto.find((f) => f.arquivo === arquivo)!.esperado.dataMatrixRaw!;
+
 function comCampo(raw: string, campo: keyof typeof LAYOUT_SIGEP, valor: string): string {
   const [ini, fim] = LAYOUT_SIGEP[campo];
   return raw.slice(0, ini) + valor.padEnd(fim - ini, ' ').slice(0, fim - ini) + raw.slice(fim);
@@ -22,7 +29,9 @@ function comCampo(raw: string, campo: keyof typeof LAYOUT_SIGEP, valor: string):
 
 describe('sigep-datamatrix', () => {
   it('UT-007 extrai CEP, código, número, complemento e telefone do DataMatrix do rotulo-completo', () => {
-    const raw = montarSigepDataMatrix(ROTULO_COMPLETO);
+    const raw = dataMatrixDe('rotulo-completo.jpg');
+    expect(fs.existsSync(path.join(ROTULOS, 'rotulo-completo.jpg'))).toBe(true);
+    expect(raw).toBe(montarSigepDataMatrix(ROTULO_COMPLETO));
     expect(parseSigepDataMatrix(raw)).toEqual({
       cepDestino: '72115040',
       codigo: 'OY716488072BR',
@@ -33,7 +42,7 @@ describe('sigep-datamatrix', () => {
   });
 
   it('UT-008 telefone 000000000000 vira null', () => {
-    const raw = montarSigepDataMatrix({ ...ROTULO_COMPLETO, telefone: '000000000000' });
+    const raw = dataMatrixDe('rotulo-dm-sem-telefone.jpg');
     expect(raw.slice(...LAYOUT_SIGEP.telefone)).toBe('000000000000');
     expect(parseSigepDataMatrix(raw)?.telefone).toBeNull();
   });
