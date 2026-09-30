@@ -3,7 +3,7 @@
  *
  * Cada área registra suas rotas por uma função própria (`registrarRotasX(router)`),
  * em arquivo próprio, para que as tasks 03, 05 e 06 só acrescentem linhas aqui.
- * - `rotasPublicas`: sem JWT (entrada do Prosio, ADR-014 — task_06).
+ * - `rotasPublicas`: sem JWT (entrada do Prosio, ADR-014 — task_05).
  * - `rotasAutenticadas`: JWT obrigatório; o escopo por unidade fica em `escopo.ts`.
  */
 import express, { Router, type Express } from 'express';
@@ -12,7 +12,9 @@ import { registrarRotasCarga } from './carga.routes';
 
 // task_03 (cadastro): import { registrarRotasCadastro } from './cadastro.routes';
 
-// task_05: import { registrarRotas… } from './….routes';
+// task_05 (orientações e entrada do Prosio):
+import { registrarRotasOrientacao } from './orientacao.routes';
+import { parserWebhookProsio, registrarRotasProsio, ROTA_WEBHOOK_PROSIO } from './prosio-entrada.routes';
 
 // task_06 (liberação/orientação/Prosio): import { registrarRotas… } from './….routes';
 
@@ -22,7 +24,7 @@ rotasAutenticadas.use(authenticate);
 
 // ——— Rotas sem JWT ———
 
-// task_06: registrarRotasProsio(rotasPublicas);
+registrarRotasProsio(rotasPublicas); // task_05: webhook e ações de botão (ADR-014)
 
 // ——— Rotas com JWT ———
 
@@ -30,7 +32,7 @@ registrarRotasCarga(rotasAutenticadas);
 
 // task_03: registrarRotasCadastro(rotasAutenticadas);
 
-// task_05: registrarRotas…(rotasAutenticadas);
+registrarRotasOrientacao(rotasAutenticadas); // task_05: orientação manual (US-026)
 
 // task_06: registrarRotas…(rotasAutenticadas);
 
@@ -44,8 +46,10 @@ const ROTA_JSON_GRANDE = /^\/api\/v1\/entregas\/cargas\/[^/]+\/confirmar\/?$/;
 /**
  * Parsers de corpo específicos do módulo. Chamar em `app.ts` ANTES do
  * `express.json()` global: o body-parser marca o corpo como lido e o global
- * não o relê. A task_06 acrescenta aqui o corpo cru do webhook (HMAC).
+ * não o relê. O webhook do Prosio recebe o corpo CRU (Buffer, até 256 kb) para
+ * o HMAC ser verificado sobre os bytes exatos (task_05, ADR-014).
  */
 export function montarParsersEntregas(app: Express): void {
   app.use(ROTA_JSON_GRANDE, express.json({ limit: '1mb' }));
+  app.use(ROTA_WEBHOOK_PROSIO, parserWebhookProsio);
 }
