@@ -18,7 +18,7 @@ Esta tarefa prepara o backend da captura sobre o núcleo do monitoramento (ADR-0
 
 É crítica porque mexe em auth, o que afeta todos os logins.
 
-**Pré-requisito entre workflows** (o Compozy não expressa esta aresta): as tasks **01, 03 e 04 de `monitoramento-entregas-whatsapp`** concluídas. Ou seja, a baseline, a migration do núcleo, o `s10.ts` corrigido, o `telefone.ts`, o harness de testes, o cadastro e escala, o `authenticate` que recusa inativo, o módulo `entregas` e o gancho de aviso. Verifique isso no início e pare, com uma mensagem clara, se faltar algo.
+**Pré-requisito entre workflows** (o Compozy não expressa esta aresta): a task **01 de `monitoramento-entregas-whatsapp`** concluída (baseline, migration do núcleo, `s10.ts` corrigido, `telefone.ts`, harness de testes). O módulo `entregas` e o gancho de aviso (task_04 de lá) são exigidos só a partir da task_02 daqui. Verifique no início e pare, com uma mensagem clara, se faltar algo.
 
 <critical>
 - ALWAYS READ the PRD, the TechSpec, and their catalogs (`_user_stories.md`, `_tests.md`) before starting
@@ -29,7 +29,8 @@ Esta tarefa prepara o backend da captura sobre o núcleo do monitoramento (ADR-0
 </critical>
 
 <requirements>
-- MUST verificar, antes de qualquer edição, que existem `backend/prisma/migrations/0000_baseline`, os modelos `CargaDistrito`, `EscalaDistrito`, `PacoteDia` e `EventoPacote`, `validateS10(..., { qualquerPais })`, `normalizarTelefone`, o `globalSetup` com a trava `_test` e o módulo `entregas` com `escopo.ts`. Se algum faltar, MUST parar e reportar quais tasks do monitoramento faltam.
+- MUST verificar, antes de qualquer edição, que existem `backend/prisma/migrations/0000_baseline`, os modelos `CargaDistrito`, `EscalaDistrito`, `PacoteDia` e `EventoPacote`, `validateS10(..., { qualquerPais })`, `normalizarTelefone` e o `globalSetup` com a trava `_test`. Se algum faltar, MUST parar e reportar.
+- MUST implementar a recusa de usuário inativo no LOGIN (403 `acesso_desativado`). A recusa de token já emitido no `authenticate` é da task_03 do monitoramento: se ela ainda não estiver mergeada, a segunda metade do IT-045 fica como `it.todo` com o motivo, e é habilitada quando ela chegar.
 - MUST criar uma migration nova, depois das do monitoramento, com os enums `OrigemPacote` e `ResultadoCapturaTipo`; os campos de `PacoteDia` (`origem` com default PLANILHA, `codigoDigitado`, `capturadoPorId`, `telefoneOutro`); o modelo `Captura`; e os campos de `Usuario` (`senhaTemporaria`, `tentativasFalhas`, `bloqueadoAte`), conforme TechSpec › Data Models.
 - MUST conferir se `EventoPacote.pacoteId` tem FK; se tiver, garantir que a remoção física de `PacoteDia` preserve os eventos (`onDelete: SetNull` ou equivalente), sem quebrar os testes do monitoramento.
 - MUST NOT recriar baseline, S10, `telefone.ts` nem harness; MUST reutilizar os do monitoramento.

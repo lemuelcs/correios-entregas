@@ -16,6 +16,8 @@ Esta tarefa dá ao supervisor a auditoria e a operação da captura dentro do m�
 
 O cadastro de distritos e a escala continuam com o monitoramento.
 
+**Pré-requisito entre workflows**: as tasks **03 e 04 de `monitoramento-entregas-whatsapp`** mergeadas (quadro, lista de pacotes, escala, `escopo.ts`). Verifique no início e pare se faltar.
+
 <critical>
 - ALWAYS READ the PRD, the TechSpec, and their catalogs (`_user_stories.md`, `_tests.md`) before starting
 - REFERENCE TECHSPEC for implementation details — do not duplicate here

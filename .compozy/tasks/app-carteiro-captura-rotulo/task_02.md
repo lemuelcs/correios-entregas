@@ -17,6 +17,8 @@ Esta tarefa entrega o servidor da captura de ponta a ponta:
 
 É o coração da feature: todas as regras de negócio da captura vivem aqui.
 
+**Pré-requisito entre workflows**: a task **04 de `monitoramento-entregas-whatsapp`** mergeada (módulo `entregas`, `escopo.ts` e a interface `aoAdicionarPacotesEmCargaLiberada`). Verifique no início e pare se faltar.
+
 <critical>
 - ALWAYS READ the PRD, the TechSpec, and their catalogs (`_user_stories.md`, `_tests.md`) before starting
 - REFERENCE TECHSPEC for implementation details — do not duplicate here
