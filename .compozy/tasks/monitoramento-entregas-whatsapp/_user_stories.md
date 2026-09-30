@@ -436,7 +436,7 @@ Edge cases:
 Acceptance criteria:
 
 - AC-1: Given uma orientação, when o carteiro toca "Vi", "Feito" ou "Não foi possível", then o status aparece no painel com a hora.
-- AC-2: Given "Não foi possível", then o bot pergunta o motivo em texto curto e o supervisor é alertado no painel.
+- AC-2: Given "Não foi possível", then o carteiro escolhe o motivo numa lista curta (ninguém atendeu, endereço não encontrado, vizinho recusou, local fechado, outro) e o supervisor é alertado no painel. (Ajustado no TechSpec, ADR-011: texto livre do carteiro cairia na desambiguação da mediação.)
 
 Edge cases:
 
