@@ -36,12 +36,12 @@ graph:
 
 | Task | Title | Type | Complexity | Depends on | Tests |
 |------|-------|------|------------|------------|-------|
-| [task_01](task_01.md) | Fundação: migrations, núcleo de dados, auth e infra de teste | backend | critical | — | 33 UT · 4 IT |
-| [task_02](task_02.md) | Módulo de captura no backend | backend | high | task_01 | 38 UT · 83 IT |
-| [task_03](task_03.md) | API do supervisor | backend | medium | task_02 | 23 IT |
-| [task_04](task_04.md) | Fundação do app no aparelho | frontend | high | task_01 | 29 UT |
+| [task_01](task_01.md) | Extensões de dados, auth do carteiro e utilitários do rótulo | backend | critical | monitoramento 01, 03, 04 (fora do grafo) | 26 UT · 4 IT |
+| [task_02](task_02.md) | Módulo de captura no backend | backend | high | task_01 | 39 UT · 83 IT |
+| [task_03](task_03.md) | Extensões do supervisor no módulo entregas | backend | medium | task_02 | 21 IT |
+| [task_04](task_04.md) | Fundação do app no aparelho | frontend | high | task_01 | 30 UT |
 | [task_05](task_05.md) | Telas da captura e E2E | frontend | high | task_02, task_04 | 21 UT · 3 E2E |
-| [task_06](task_06.md) | Telas do supervisor | frontend | medium | task_03, task_04 | 4 UT |
+| [task_06](task_06.md) | Extensões do supervisor nas telas de entregas | frontend | medium | task_03, task_04, monitoramento 07 (fora do grafo) | 4 UT |
 
 Ondas: 01 → (02 ∥ 04) → (03 ∥ 05) → 06.
 
