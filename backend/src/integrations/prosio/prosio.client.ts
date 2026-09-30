@@ -132,13 +132,18 @@ function codigoDoErro(status: number, corpo: unknown): { code: string; detalhe?:
 
 export class ProsioHttpClient implements ProsioClient {
   private readonly timeoutMs: number;
-  private readonly extensoesMediacao: boolean;
+  private readonly extensoesFixas?: boolean;
   private readonly fetchFn: typeof fetch;
 
   constructor(opcoes: OpcoesProsioClient = {}) {
     this.timeoutMs = opcoes.timeoutMs ?? 10_000;
-    this.extensoesMediacao = opcoes.extensoesMediacao ?? process.env.PROSIO_MEDIACAO_EXTENSOES === 'true';
+    this.extensoesFixas = opcoes.extensoesMediacao;
     this.fetchFn = opcoes.fetch ?? ((...args) => fetch(...args));
+  }
+
+  /** Opção do construtor; sem ela, a env `PROSIO_MEDIACAO_EXTENSOES` lida a cada chamada (liga sem reiniciar). */
+  private get extensoesMediacao(): boolean {
+    return this.extensoesFixas ?? process.env.PROSIO_MEDIACAO_EXTENSOES === 'true';
   }
 
   async enviarMensagem(canal: CanalResolvido, msg: NovaMensagem): Promise<{ messageId: string }> {
