@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>WhatsApp do carteiro</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+button:focus-visible{outline:2px solid #1E4FA3;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; background: #ECE8E1; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1B2230;">
+  <header style="display: flex; align-items: center; gap: 10px; padding: 14px; background: #14213A; color: #FFFFFF;">
+    <div style="width: 38px; height: 38px; border-radius: 50%; background: #F2B705; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14213A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"></path><path d="M3 7v10l9 4 9-4V7"></path><path d="M12 11v10"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; min-width: 0;">
+      <strong style="font-size: 16px;">Correios Entregas</strong>
+      <span style="font-size: 12px; color: #BFD0E8;">Carteiro · D-01 Taguatinga Norte</span>
+    </div>
+    <button type="button" onClick="{{restart}}" style="margin-left: auto; min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid #3A4E72; background: transparent; color: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer;">Recomeçar</button>
+  </header>
+
+  <div style="flex-grow: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px;">
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="3">
+      <div style="{{m.style}}">
+        <span style="white-space: pre-line;">{{m.text}}</span>
+        <span style="align-self: flex-end; font-size: 11px; color: #6B7280;">{{m.time}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{hasActions}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 10px 12px 16px; display: flex; flex-direction: column; gap: 8px; background: #F6F3EE; border-top: 1px solid #DDD6CB;">
+      <sc-for list="{{actions}}" as="a" hint-placeholder-count="3">
+        <button type="button" onClick="{{a.go}}" style="{{a.style}}">{{a.label}}</button>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { path: ['start'] }; }
+  renderVals() {
+    const b = (text, time) => ({ who: 'bot', text, time });
+    const c = (text, time) => ({ who: 'me', text, time });
+    const N = {
+      start: { msgs: [
+        b('Distrito D-01 liberado às 08h55 · 42 pacotes.\n\nOrientações já conhecidas:\n• QB908301669BR · João Pedro Martins — deixar com Dona Célia, casa 47 (pedido ontem)', '08h55'),
+        b('Nova orientação\nOY526018152BR · Maria Aparecida Souza\nQNA 12 Casa 45 · Taguatinga Norte\n\n→ Deixar com a vizinha Dona Célia, casa 47', '10h12'),
+      ], actions: [{ label: 'Vi', to: 'vi' }, { label: 'Feito', to: 'feito' }, { label: 'Não foi possível', to: 'nao1', warn: true }] },
+      vi: { msgs: [c('Vi', '10h12'), b('Anotado. Toque “Feito” quando cumprir.', '10h12')], actions: [{ label: 'Feito', to: 'feito' }, { label: 'Não foi possível', to: 'nao1', warn: true }] },
+      feito: { msgs: [c('Feito', '10h19'), b('Registrado às 10h19. Obrigado!', '10h19')], actions: [{ label: 'Simular: escrever “Estou na QND 3, ninguém atende”', to: 'porta1', ghost: true }] },
+      nao1: { msgs: [c('Não foi possível', '10h19'), b('Qual foi o motivo? Escreva em poucas palavras.', '10h19')], actions: [{ label: 'Responder: “A vizinha não estava”', to: 'nao2', ghost: true }] },
+      nao2: { msgs: [c('A vizinha não estava', '10h20'), b('Registrado. O supervisor foi avisado.', '10h20')], actions: [{ label: 'Simular: escrever “Estou na QND 3, ninguém atende”', to: 'porta1', ghost: true }] },
+      porta1: { msgs: [c('Estou na QND 3 lote 9, ninguém atende', '10h33'), b('Encontrei 2 encomendas suas nesse endereço hoje. De qual você está falando?', '10h33')], actions: [{ label: 'OY432319485BR · Paulo', to: 'porta2' }, { label: 'QB757491181BR · Cristiane', to: 'porta2' }] },
+      porta2: { msgs: [c('OY432319485BR · Paulo', '10h33'), b('Chamei o destinatário. Aviso você assim que ele responder.', '10h33')], actions: [{ label: 'Simular resposta do destinatário', to: 'porta3', ghost: true }] },
+      porta3: { msgs: [b('O destinatário respondeu: desce em 5 minutos para receber.', '10h35')], actions: [{ label: 'Feito', to: 'fim' }] },
+      fim: { msgs: [c('Feito', '10h41'), b('Registrado às 10h41. Obrigado!', '10h41')], actions: [] },
+    };
+    const bubble = (who) => 'max-width: 84%; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 6px; border-radius: 10px; font-size: 15px; line-height: 1.4; box-shadow: 0 1px 0 rgba(0,0,0,.06); ' +
+      (who === 'bot' ? 'align-self: flex-start; background: #FFFFFF;' : 'align-self: flex-end; background: #FCEFCB;');
+    const msgs = [];
+    this.state.path.forEach((id) => N[id].msgs.forEach((m) => msgs.push({ ...m, style: bubble(m.who) })));
+    const last = N[this.state.path[this.state.path.length - 1]];
+    const actions = last.actions.map((a) => ({ label: a.label,
+      go: () => this.setState({ path: this.state.path.concat([a.to]) }),
+      style: 'min-height: 44px; border-radius: 22px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; ' +
+        (a.ghost ? 'border: 1px dashed #9AA6B8; background: transparent; color: #3C4555; font-weight: 600;' : a.warn ? 'border: 1px solid #F0C2BC; background: #FFFFFF; color: #A42A1F;' : 'border: 1px solid #C9D5E6; background: #FFFFFF; color: #1E4FA3;') }));
+    return { msgs, actions, hasActions: actions.length > 0, restart: () => this.setState({ path: ['start'] }) };
+  }
+}
+</script>
+</body>
+</html>

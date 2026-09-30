@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Carregar pacotes do distrito</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#1E4FA3}a:hover{color:#163C7D}
+button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid #1E4FA3;outline-offset:2px}
+</style>
+</helmet>
+<div style="display: flex; min-height: 100vh; background: #F4F6F9; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1B2230;">
+  <dc-import name="Sidebar" active="carregar" hint-size="248px,900px"></dc-import>
+
+  <main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; padding: 28px 32px 48px; box-sizing: border-box;">
+    <a href="Main.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none;">← Voltar ao quadro de distritos</a>
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 15px; padding: 2px 8px; border-radius: 6px; background: #E9EDF3;">D-03</span>
+          <h1 style="margin: 0; font-size: 28px; font-weight: 700;">Águas Claras Sul</h1>
+        </div>
+        <span style="font-size: 15px; color: #5B6474;">Carregar pacotes de hoje · Carteiro: <strong style="color: #1B2230;">Renato Alves Costa</strong> · <a href="Cadastro.dc.html">trocar só hoje</a></span>
+      </div>
+    </header>
+
+    <section style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+      <div role="tablist" aria-label="Forma de carregar" style="display: flex; gap: 4px; border-bottom: 1px solid #E1E4EA;">
+        <button type="button" role="tab" aria-selected="{{tabFile.sel}}" onClick="{{tabFile.pick}}" style="{{tabFile.style}}">Enviar planilha</button>
+        <button type="button" role="tab" aria-selected="{{tabPaste.sel}}" onClick="{{tabPaste.pick}}" style="{{tabPaste.style}}">Colar linhas</button>
+      </div>
+
+      <sc-if value="{{isFile}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <label for="arquivo" style="border: 2px dashed #B9C3D3; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: #F8FAFC; cursor: pointer; text-align: center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1E4FA3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M4 20h16"></path></svg>
+            <span style="font-size: 16px; font-weight: 600;">Arraste a planilha ou clique para escolher</span>
+            <span style="font-size: 14px; color: #5B6474;">CSV ou XLSX · até 500 pacotes · colunas: código, nome, WhatsApp, endereço (logradouro, número, complemento, bairro, cidade, UF, CEP)</span>
+            <input id="arquivo" type="file" accept=".csv,.xlsx" style="position: absolute; width: 1px; height: 1px; opacity: 0;">
+          </label>
+          <span style="font-size: 14px; color: #3C4555;">Arquivo carregado: <strong>aguas-claras-sul-30-09.xlsx</strong> · 40 linhas</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isPaste}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="colar" style="font-size: 14px; font-weight: 600;">Cole as linhas (separadas por tabulação, ponto e vírgula ou vírgula)</label>
+          <textarea id="colar" rows="6" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 12px; border: 1px solid #D5DAE2; border-radius: 8px; resize: vertical;">OY526018152BR;Maria Aparecida Souza;61 99812-4412;QS 7 Rua 12 Casa 45, Taguatinga Sul, Brasília-DF, 72025-120
+QB908301669BR;João Pedro Martins;(61) 98455-0031;Rua 25 Norte Lote 3 Apto 1204, Águas Claras, Brasília-DF, 71919-360</textarea>
+        </div>
+      </sc-if>
+    </section>
+
+    <section aria-label="Prévia" style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; display: flex; flex-direction: column;">
+      <div style="padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; border-bottom: 1px solid #E1E4EA;">
+        <h2 style="margin: 0; font-size: 18px;">Prévia</h2>
+        <span style="font-size: 14px; padding: 4px 10px; border-radius: 99px; background: #E2F2E8; color: #1F6F43; font-weight: 600;">36 válidos</span>
+        <span style="font-size: 14px; padding: 4px 10px; border-radius: 99px; background: #FDF1D6; color: #7A4E00; font-weight: 600;">9 deles sem WhatsApp (entram, não são avisados)</span>
+        <span style="font-size: 14px; padding: 4px 10px; border-radius: 99px; background: #FDEBDD; color: #8A3A00; font-weight: 600;">1 para corrigir</span>
+        <span style="font-size: 14px; padding: 4px 10px; border-radius: 99px; background: #FBE5E2; color: #A42A1F; font-weight: 600;">3 inválidos</span>
+      </div>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; min-width: 980px; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="text-align: left; color: #5B6474; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;">
+              <th style="padding: 10px 20px; font-weight: 600;">Situação</th>
+              <th style="padding: 10px 12px; font-weight: 600;">Código</th>
+              <th style="padding: 10px 12px; font-weight: 600;">Destinatário</th>
+              <th style="padding: 10px 12px; font-weight: 600;">WhatsApp</th>
+              <th style="padding: 10px 12px; font-weight: 600;">Endereço</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <tr style="border-top: 1px solid #EEF1F5; vertical-align: top;">
+                <td style="padding: 12px 20px;"><span style="{{r.chip}}">{{r.status}}</span><sc-if value="{{r.hasNote}}" hint-placeholder-val="{{false}}"><div style="font-size: 13px; color: #5B6474; margin-top: 4px; max-width: 260px;">{{r.note}}</div></sc-if></td>
+                <td style="padding: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; white-space: nowrap;">{{r.code}}</td>
+                <td style="padding: 12px;">{{r.name}}</td>
+                <td style="padding: 12px; white-space: nowrap; font-variant-numeric: tabular-nums;">{{r.phone}}</td>
+                <td style="padding: 12px; color: #3C4555;">{{r.address}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border-top: 1px solid #E1E4EA;">
+        <span style="font-size: 14px; color: #5B6474;">Inválidos são descartados. O pacote para corrigir entra como “sem WhatsApp” se você não corrigir.</span>
+        <div style="display: flex; gap: 10px;">
+          <a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid #D5DAE2; color: #1B2230; text-decoration: none; font-weight: 600;">Cancelar</a>
+          <a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 8px; background: #1E4FA3; color: #FFFFFF; text-decoration: none; font-weight: 600;">Confirmar 37 pacotes</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'file' }; }
+  renderVals() {
+    const tab = (k) => {
+      const on = this.state.tab === k;
+      return { sel: on ? 'true' : 'false', pick: () => this.setState({ tab: k }),
+        style: 'min-height: 44px; padding: 0 16px; border: 0; background: none; font: inherit; font-size: 15px; cursor: pointer; font-weight: ' + (on ? '700' : '500') + '; color: ' + (on ? '#1E4FA3' : '#5B6474') + '; border-bottom: 3px solid ' + (on ? '#1E4FA3' : 'transparent') + '; margin-bottom: -1px;' };
+    };
+    const C = {
+      ok:   'color: #1F6F43; background: #E2F2E8;',
+      nowa: 'color: #7A4E00; background: #FDF1D6;',
+      fix:  'color: #8A3A00; background: #FDEBDD;',
+      bad:  'color: #A42A1F; background: #FBE5E2;',
+      mem:  'color: #1E4FA3; background: #E6EEFA;',
+    };
+    const chip = (k) => 'display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; ' + C[k];
+    const rows = [
+      { k: 'ok', status: 'Válido', code: 'OY526018152BR', name: 'Maria Aparecida Souza', phone: '(61) 99812-4412', address: 'QS 7 Rua 12 Casa 45 · Taguatinga Sul · Brasília-DF · 72025-120' },
+      { k: 'mem', status: 'Orientação guardada', note: 'De ontem: “Deixar com Dona Célia, casa 47”', code: 'QB908301669BR', name: 'João Pedro Martins', phone: '(61) 98455-0031', address: 'Rua 25 Norte Lote 3 Apto 1204 · Águas Claras · Brasília-DF · 71919-360' },
+      { k: 'ok', status: 'Válido', code: 'NL131860912BR', name: 'Luciana Ferreira Gomes', phone: '(61) 99107-2280', address: 'Av. Araucárias 1325 Bloco B Apto 302 · Águas Claras · 71936-250' },
+      { k: 'nowa', status: 'Sem WhatsApp', note: 'Aceito; não receberá aviso', code: 'LB390996032BR', name: 'Antônio Carlos Ribeiro', phone: '—', address: 'Rua 7 Sul Lote 12 · Águas Claras · 71931-720' },
+      { k: 'fix', status: 'WhatsApp para corrigir', note: 'Número sem DDD: 98876-1102', code: 'OY082462815BR', name: 'Beatriz Lima Castro', phone: '98876-1102', address: 'Rua 36 Sul Lote 5 Apto 804 · Águas Claras · 71931-540' },
+      { k: 'bad', status: 'Dígito verificador não confere', note: 'Confira o código no pacote', code: 'AB123456789BR', name: 'Rafael Moreira', phone: '(61) 99231-0045', address: 'Av. Castanheiras 900 · Águas Claras · 71909-000' },
+      { k: 'bad', status: 'Duplicado na planilha', note: 'Mesmo código da linha 3', code: 'NL131860912BR', name: 'Luciana F. Gomes', phone: '(61) 99107-2280', address: 'Av. Araucárias 1325 · Águas Claras' },
+      { k: 'bad', status: 'Já está no D-01 hoje', note: 'Remova daqui ou do D-01', code: 'QB948219934BR', name: 'Sérgio Almeida', phone: '(61) 98120-7736', address: 'QNA 12 Casa 8 · Taguatinga Norte · 72110-120' },
+    ].map((r) => ({ ...r, chip: chip(r.k), hasNote: !!r.note }));
+    return { tabFile: tab('file'), tabPaste: tab('paste'), isFile: this.state.tab === 'file', isPaste: this.state.tab === 'paste', rows };
+  }
+}
+</script>
+</body>
+</html>
