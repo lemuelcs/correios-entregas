@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Fundação do app no aparelho
 type: frontend
 complexity: high
@@ -41,15 +41,15 @@ Roda em paralelo com a task_02 contra o contrato da TechSpec.
 </requirements>
 
 ## Subtasks
-- [ ] 4.1 Infra de testes do frontend.
-- [ ] 4.2 Cliente de API com multipart e refresh rotativo.
-- [ ] 4.3 Login com troca de senha obrigatória e mensagens de erro.
-- [ ] 4.4 Fila offline persistente.
-- [ ] 4.5 Sincronizador com política de retry.
-- [ ] 4.6 Leitura dos códigos com zxing-wasm e as cópias dos módulos puros.
-- [ ] 4.7 Testes de decodificação sobre as fixtures da task_01.
-- [ ] 4.8 PWA instalável (manifest, service worker, ícones).
-- [ ] 4.9 Todos os testes atribuídos passando.
+- [x] 4.1 Infra de testes do frontend.
+- [x] 4.2 Cliente de API com multipart e refresh rotativo.
+- [x] 4.3 Login com troca de senha obrigatória e mensagens de erro.
+- [x] 4.4 Fila offline persistente.
+- [x] 4.5 Sincronizador com política de retry.
+- [x] 4.6 Leitura dos códigos com zxing-wasm e as cópias dos módulos puros.
+- [x] 4.7 Testes de decodificação sobre as fixtures da task_01.
+- [x] 4.8 PWA instalável (manifest, service worker, ícones).
+- [x] 4.9 Todos os testes atribuídos passando.
 
 ## Implementation Details
 
@@ -87,12 +87,12 @@ Os padrões estão em TechSpec › Component Overview (Aparelho), Core Interface
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-071, UT-072, UT-073, UT-074, UT-075, UT-076 — `captureQueue`
-- [ ] UT-077, UT-078, UT-079, UT-080, UT-081, UT-082, UT-083, UT-084, UT-085 — `captureSync`
-- [ ] UT-086, UT-087, UT-088, UT-089, UT-090 — `barcode.decode`
-- [ ] UT-127 — cópia de `s10.ts` no aparelho
-- [ ] UT-111, UT-112, UT-113, UT-114 — `api.ts`
-- [ ] UT-115, UT-116, UT-117, UT-118, UT-119 — login, troca de senha e saída com fila
+- [x] UT-071, UT-072, UT-073, UT-074, UT-075, UT-076 — `captureQueue`
+- [x] UT-077, UT-078, UT-079, UT-080, UT-081, UT-082, UT-083, UT-084, UT-085 — `captureSync`
+- [x] UT-086, UT-087, UT-088, UT-089, UT-090 — `barcode.decode`
+- [x] UT-127 — cópia de `s10.ts` no aparelho
+- [x] UT-111, UT-112, UT-113, UT-114 — `api.ts`
+- [x] UT-115, UT-116, UT-117, UT-118, UT-119 — login, troca de senha e saída com fila
 
 ## Success Criteria
 - Every assigned test case implemented and passing
