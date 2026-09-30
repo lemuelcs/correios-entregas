@@ -18,6 +18,12 @@ const refreshSchema = z.object({
   refreshToken: z.string().uuid(),
 });
 
+// A política da senha nova (tamanho) é do service: 400 `senha_fraca`.
+const trocarSenhaSchema = z.object({
+  senhaAtual: z.string().min(1),
+  novaSenha: z.string(),
+});
+
 export class AuthController {
   async login(req: Request, res: Response, next: NextFunction) {
     try {
@@ -49,6 +55,16 @@ export class AuthController {
       const { refreshToken } = refreshSchema.parse(req.body);
       await authService.logout(refreshToken);
       res.json({ message: 'Logout realizado com sucesso' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async trocarSenha(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { senhaAtual, novaSenha } = trocarSenhaSchema.parse(req.body);
+      await authService.trocarSenha(req.user!.sub, senhaAtual, novaSenha);
+      res.status(204).end();
     } catch (err) {
       next(err);
     }
