@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Cadastro, Gestão estendida e Atendimento
 type: backend
 complexity: medium
@@ -48,14 +48,14 @@ Entrega a API do módulo Cadastro e a do módulo Atendimento.
 </requirements>
 
 ## Subtasks
-- [ ] 3.1 Registrar as rotas de cadastro e atendimento no roteador `entregas` (criado pela task_04), usando o helper de escopo.
-- [ ] 3.2 CRUD de canais Prosio na Gestão, com cifra e token de entrada.
-- [ ] 3.3 Estender o cadastro de unidades (canal, referência, mediação, concorrência otimista, sinal de sem supervisor) e validar supervisores.
-- [ ] 3.4 Fazer o `authenticate` recusar usuário desativado.
-- [ ] 3.5 CRUD de distritos, com paginação e busca.
-- [ ] 3.6 CRUD de carteiros e o carteiro do dia (escala).
-- [ ] 3.7 CRUD de pontos de retirada com os limites.
-- [ ] 3.8 Sessão de atendimento via `ProsioClient.criarSessaoAtendimento`.
+- [x] 3.1 Registrar as rotas de cadastro e atendimento no roteador `entregas` (criado pela task_04), usando o helper de escopo.
+- [x] 3.2 CRUD de canais Prosio na Gestão, com cifra e token de entrada.
+- [x] 3.3 Estender o cadastro de unidades (canal, referência, mediação, concorrência otimista, sinal de sem supervisor) e validar supervisores.
+- [x] 3.4 Fazer o `authenticate` recusar usuário desativado.
+- [x] 3.5 CRUD de distritos, com paginação e busca.
+- [x] 3.6 CRUD de carteiros e o carteiro do dia (escala).
+- [x] 3.7 CRUD de pontos de retirada com os limites.
+- [x] 3.8 Sessão de atendimento via `ProsioClient.criarSessaoAtendimento`.
 
 ## Implementation Details
 Novos arquivos em `backend/src/modules/entregas/` (`cadastro.controller.ts`, `cadastro.service.ts`, `atendimento.controller.ts`, `atendimento.service.ts`, `cadastro.schemas.ts`); estende `entregas.routes.ts` (criado pela task_04). Extensões em `backend/src/modules/gestao/`. Ver TechSpec: "API Endpoints" (Cadastro e Atendimento), "Core Interfaces" (convenções de erro), "Integration Points › Chatwoot".
@@ -86,14 +86,14 @@ Novos arquivos em `backend/src/modules/entregas/` (`cadastro.controller.ts`, `ca
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-081, UT-082, UT-084, UT-085, UT-090 — validações de cadastro
-- [ ] UT-089 — papel e `unidadeRef` da sessão de atendimento
-- [ ] IT-001, IT-002, IT-003, IT-004, IT-005, IT-006 — canais, unidades, permissões, concorrência, unidade inativa, usuário desativado
-- [ ] IT-007, IT-008, IT-009, IT-010 — distritos
-- [ ] IT-011, IT-012, IT-013 — carteiros e escala
-- [ ] IT-015 — pontos de retirada
-- [ ] IT-048 — sessão de atendimento
-- [ ] IT-061, IT-062, IT-063 — supervisores, unidade sem supervisor, supervisor movido
+- [x] UT-081, UT-082, UT-084, UT-085, UT-090 — validações de cadastro
+- [x] UT-089 — papel e `unidadeRef` da sessão de atendimento
+- [x] IT-001, IT-002, IT-003, IT-004, IT-005, IT-006 — canais, unidades, permissões, concorrência, unidade inativa, usuário desativado
+- [x] IT-007, IT-008, IT-009, IT-010 — distritos
+- [x] IT-011, IT-012, IT-013 — carteiros e escala
+- [x] IT-015 — pontos de retirada
+- [x] IT-048 — sessão de atendimento
+- [x] IT-061, IT-062, IT-063 — supervisores, unidade sem supervisor, supervisor movido
 
 ## Success Criteria
 - Every assigned test case implemented and passing

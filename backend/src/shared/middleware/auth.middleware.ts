@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Role } from '@prisma/client';
+import { prisma } from '../utils/prisma';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production-32chars';
 
@@ -8,6 +9,48 @@ interface JwtPayload {
   sub: string;
   role: Role;
   unidadeId?: string;
+}
+
+// ——— Estado do usuário (US-002.EC-3 e EC-5) ——————————————————————————————
+//
+// O token continua válido até expirar, mas a cada requisição o `authenticate`
+// confere no banco se o usuário segue ativo e qual é o papel e a unidade dele
+// hoje. A consulta fica em cache por 60 s por usuário; a Gestão invalida a
+// entrada na hora quando edita o usuário (`invalidarCacheUsuario`).
+
+const TTL_CACHE_MS = 60_000;
+
+interface EstadoUsuario {
+  ativo: boolean;
+  role: Role;
+  unidadeId: string | null;
+  expiraEm: number;
+}
+
+const cacheUsuarios = new Map<string, EstadoUsuario>();
+
+/** Esquece o estado em cache de um usuário (ou de todos, sem argumento). */
+export function invalidarCacheUsuario(usuarioId?: string): void {
+  if (usuarioId) cacheUsuarios.delete(usuarioId);
+  else cacheUsuarios.clear();
+}
+
+async function estadoUsuario(usuarioId: string): Promise<EstadoUsuario | null> {
+  const agora = Date.now();
+  const emCache = cacheUsuarios.get(usuarioId);
+  if (emCache && emCache.expiraEm > agora) return emCache;
+
+  const u = await prisma.usuario.findUnique({
+    where: { id: usuarioId },
+    select: { ativo: true, role: true, unidadeId: true },
+  });
+  if (!u) {
+    cacheUsuarios.delete(usuarioId);
+    return null;
+  }
+  const estado: EstadoUsuario = { ativo: u.ativo, role: u.role, unidadeId: u.unidadeId, expiraEm: agora + TTL_CACHE_MS };
+  cacheUsuarios.set(usuarioId, estado);
+  return estado;
 }
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
@@ -18,13 +61,26 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   }
 
   const token = authHeader.slice(7);
+  let payload: JwtPayload;
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    req.user = payload;
-    next();
+    payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
   } catch {
     res.status(401).json({ error: 'Token inválido ou expirado' });
+    return;
   }
+
+  estadoUsuario(payload.sub).then(
+    (estado) => {
+      if (!estado || !estado.ativo) {
+        res.status(401).json({ error: 'Usuário inativo ou inexistente' });
+        return;
+      }
+      // Papel e unidade vêm do banco: um supervisor movido passa a ver só a unidade nova.
+      req.user = { sub: payload.sub, role: estado.role, unidadeId: estado.unidadeId ?? undefined };
+      next();
+    },
+    (err: unknown) => next(err),
+  );
 }
 
 export function requireRole(...roles: Role[]) {

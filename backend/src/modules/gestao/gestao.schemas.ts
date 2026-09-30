@@ -38,12 +38,53 @@ export const createUnidadeSchema = z.object({
 
 export const updateUnidadeSchema = createUnidadeSchema.partial();
 
+// Entregas mediadas (ADR-012): canal Prosio, referência no canal compartilhado,
+// mediação e a versão lida (`atualizadoEm`) para a concorrência otimista.
+const camposCanalUnidade = {
+  canalProsioId: z.string().uuid().nullable().optional(),
+  /** Tipo escolhido na tela (número atual = WAHA, oficial = WABA); só validado. */
+  canal: z.enum(['WAHA', 'WABA']).nullable().optional(),
+  prosioUnidadeRef: z.string().trim().min(1).max(64).nullable().optional(),
+  mediacaoAtiva: z.boolean().optional(),
+};
+
+export const createUnidadeEntregasSchema = createUnidadeSchema.extend(camposCanalUnidade);
+
+export const updateUnidadeEntregasSchema = updateUnidadeSchema.extend({
+  ...camposCanalUnidade,
+  ativa: z.boolean().optional(),
+  atualizadoEm: z.string().datetime({ offset: true }).optional(),
+});
+
+// ── Canal Prosio ──────────────────────────────────────────────────────────────
+
+export const createCanalProsioSchema = z.object({
+  nome: z.string().trim().min(2).max(80),
+  baseUrl: z.string().url().max(200),
+  apiKey: z.string().min(8).max(500),
+  callbackSecret: z.string().min(16).max(500),
+  tipo: z.enum(['WAHA', 'WABA']).optional(),
+  compartilhado: z.boolean().optional(),
+  ativo: z.boolean().optional(),
+}).strict();
+
+export const updateCanalProsioSchema = createCanalProsioSchema.partial().extend({
+  regenerarTokenEntrada: z.boolean().optional(),
+  atualizadoEm: z.string().datetime({ offset: true }).optional(),
+}).strict();
+
 // ── Usuario ───────────────────────────────────────────────────────────────────
+
+/** Matrícula com ou sem máscara (`8.301.552-0` → `83015520`). */
+const matriculaSchema = z.preprocess(
+  (v) => (typeof v === 'string' ? v.replace(/[\s.\-/]/g, '').toUpperCase() : v),
+  z.string().length(8),
+);
 
 export const createUsuarioSchema = z.object({
   cpf: z.string().length(11).optional(),
   email: z.string().email().optional(),
-  matricula: z.string().length(8).optional(),
+  matricula: matriculaSchema.optional(),
   senha: z.string().min(6),
   nome: z.string().min(3),
   role: z.enum(['GESTAO', 'UNIDADE', 'CARTEIRO', 'DESTINATARIO']),
@@ -66,7 +107,7 @@ export const createUsuarioSchema = z.object({
 export const updateUsuarioSchema = z.object({
   cpf: z.string().length(11).optional(),
   email: z.string().email().optional(),
-  matricula: z.string().length(8).optional(),
+  matricula: matriculaSchema.optional(),
   senha: z.string().min(6).optional(),
   nome: z.string().min(3).optional(),
   role: z.enum(['GESTAO', 'UNIDADE', 'CARTEIRO', 'DESTINATARIO']).optional(),
