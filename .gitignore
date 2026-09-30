@@ -7,6 +7,5 @@ dist/
 coverage/
 uploads/
 .DS_Store
-backend/prisma/migrations/
 *.tsbuildinfo
 infra/osrm-data/
