@@ -25,5 +25,7 @@ export const dneSyncQueue = new Queue('dne-sync', { connection });
 export const npsNotifyQueue = new Queue('nps-notify', { connection });
 /** Entregas mediadas (task_05): rastreio adaptativo, ADR-016. */
 export const entregasRastreioQueue = new Queue('entregas-rastreio', { connection });
+/** Entregas mediadas (task_06): avisos "saiu para entrega" e resumo ao carteiro. */
+export const entregasAvisoQueue = new Queue('entregas-aviso', { connection });
 
 export { connection as redisConnection };

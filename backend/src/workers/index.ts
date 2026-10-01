@@ -5,6 +5,7 @@ import { startDneSyncWorker, stopDneSyncWorker } from './dne-sync.worker';
 import { startNpsNotifyWorker, stopNpsNotifyWorker } from './nps-notify.worker';
 import { startFotoRetencaoWorker, stopFotoRetencaoWorker } from './foto-retencao.worker';
 import { startEntregasRastreioWorker, stopEntregasRastreioWorker } from './entregas-rastreio.worker';
+import { startEntregasAvisoWorker, stopEntregasAvisoWorker } from './entregas-aviso.worker';
 
 export function startWorkers(): void {
   startGeocoderWorker();
@@ -14,6 +15,7 @@ export function startWorkers(): void {
   startNpsNotifyWorker();
   startFotoRetencaoWorker();
   startEntregasRastreioWorker();
+  startEntregasAvisoWorker();
 }
 
 export async function stopWorkers(): Promise<void> {
@@ -25,5 +27,6 @@ export async function stopWorkers(): Promise<void> {
     stopNpsNotifyWorker(),
     stopFotoRetencaoWorker(),
     stopEntregasRastreioWorker(),
+    stopEntregasAvisoWorker(),
   ]);
 }

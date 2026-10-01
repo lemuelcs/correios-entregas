@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Liberação do distrito e avisos
 type: backend
 complexity: high
@@ -51,13 +51,13 @@ Também entrega as quatro jornadas ponta a ponta de API, que só são possíveis
 </requirements>
 
 ## Subtasks
-- [ ] 6.1 Implementar a rota de liberação com bloqueios, snapshot e idempotência.
-- [ ] 6.2 Implementar o `AvisoWorker` (agendamento noturno, limitador, retries, reenfileiramento por limite do canal).
-- [ ] 6.3 Montar o texto e os botões do aviso.
-- [ ] 6.4 Enviar o resumo das orientações ao carteiro na liberação.
-- [ ] 6.5 Abrir os casos de mediação na liberação e tratar retenção e recusa.
-- [ ] 6.6 Implementar os ganchos de troca de carteiro e de pacote novo em carga liberada.
-- [ ] 6.7 Escrever as quatro jornadas E2E de API.
+- [x] 6.1 Implementar a rota de liberação com bloqueios, snapshot e idempotência.
+- [x] 6.2 Implementar o `AvisoWorker` (agendamento noturno, limitador, retries, reenfileiramento por limite do canal).
+- [x] 6.3 Montar o texto e os botões do aviso.
+- [x] 6.4 Enviar o resumo das orientações ao carteiro na liberação.
+- [x] 6.5 Abrir os casos de mediação na liberação e tratar retenção e recusa.
+- [x] 6.6 Implementar os ganchos de troca de carteiro e de pacote novo em carga liberada.
+- [x] 6.7 Escrever as quatro jornadas E2E de API.
 
 ## Implementation Details
 Novos arquivos em `backend/src/modules/entregas/`: `liberacao.service.ts`, `liberacao.controller.ts` e `aviso.builder.ts`. Worker em `backend/src/workers/entregas-aviso.worker.ts`, fila em `backend/src/queue.ts`. As jornadas ficam em `backend/src/__tests__/e2e/`. Ver TechSpec: "Component Overview" (fluxo principal), "API Endpoints › Carga (liberar)", "Integration Points › API de mensagens e mediação" e "Development Sequencing" (passos 8 e 15).
@@ -88,17 +88,17 @@ Novos arquivos em `backend/src/modules/entregas/`: `liberacao.service.ts`, `libe
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-041, UT-042, UT-043, UT-044, UT-045 — texto e botões do aviso, ausência de link e pagamento
-- [ ] UT-046, UT-047, UT-048 — agendamento noturno e ids idempotentes
-- [ ] UT-083 — resumo ao carteiro em blocos de 20
-- [ ] UT-097 — `externalRef` do caso por código e dia
-- [ ] IT-014 — troca de carteiro depois da liberação
-- [ ] IT-024, IT-025, IT-026, IT-027, IT-028, IT-029, IT-030 — liberação e envio (idempotência, bloqueios, noite, limite, falha, descadastro)
-- [ ] IT-031, IT-032 — pacote novo e WhatsApp adicionado em carga liberada
-- [ ] IT-054, IT-055 — resumo ao carteiro e carteiro sem WhatsApp
-- [ ] IT-057, IT-070, IT-071, IT-072 — casos de mediação (abertura, descadastrado, retenção, recusa)
-- [ ] IT-073 — liberação sem nenhum WhatsApp
-- [ ] E2E-001, E2E-002, E2E-003, E2E-004 — jornadas de API
+- [x] UT-041, UT-042, UT-043, UT-044, UT-045 — texto e botões do aviso, ausência de link e pagamento
+- [x] UT-046, UT-047, UT-048 — agendamento noturno e ids idempotentes
+- [x] UT-083 — resumo ao carteiro em blocos de 20
+- [x] UT-097 — `externalRef` do caso por código e dia
+- [x] IT-014 — troca de carteiro depois da liberação
+- [x] IT-024, IT-025, IT-026, IT-027, IT-028, IT-029, IT-030 — liberação e envio (idempotência, bloqueios, noite, limite, falha, descadastro)
+- [x] IT-031, IT-032 — pacote novo e WhatsApp adicionado em carga liberada
+- [x] IT-054, IT-055 — resumo ao carteiro e carteiro sem WhatsApp
+- [x] IT-057, IT-070, IT-071, IT-072 — casos de mediação (abertura, descadastrado, retenção, recusa)
+- [x] IT-073 — liberação sem nenhum WhatsApp
+- [x] E2E-001, E2E-002, E2E-003, E2E-004 — jornadas de API
 
 ## Success Criteria
 - Every assigned test case implemented and passing

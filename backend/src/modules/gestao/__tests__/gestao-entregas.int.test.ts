@@ -13,14 +13,17 @@ import { authHeader } from '../../../__tests__/helpers/login';
 import { ProsioFake } from '../../../__tests__/fakes/prosio.fake';
 import {
   criarCanal,
+  criarCarga,
   criarCarteiro,
   criarDistrito,
   criarGestor,
+  criarPacote,
   criarSupervisor,
   criarUnidade,
   limparBanco,
 } from '../../../__tests__/fixtures/entregas';
 import { garantirUnidadeAtiva } from '../../entregas/cadastro.service';
+import { hojeBrasilia } from '../../entregas/datas';
 
 type Auth = Record<string, string>;
 const req = {
@@ -152,9 +155,21 @@ describe('Unidades', () => {
   it('IT-005 unidade ativa=false → a liberação recusa com 409 unidade_inativa', async () => {
     const unidade = await criarUnidade();
     await expect(garantirUnidadeAtiva(unidade.id)).resolves.toBeUndefined();
+    const supervisor = authHeader(await criarSupervisor({ unidadeId: unidade.id }));
+    const carteiro = await criarCarteiro({ unidadeId: unidade.id });
+    const distrito = await criarDistrito({ unidadeId: unidade.id, carteiroPadraoId: carteiro.id });
+    const carga = await criarCarga({ distritoId: distrito.id, data: hojeBrasilia() });
+    await criarPacote({ cargaId: carga.id });
+
     const desativar = await req.put(`/api/v1/gestao/unidades/${unidade.id}`, gestao, { ativa: false });
     expect(desativar.status).toBe(200);
     await expect(garantirUnidadeAtiva(unidade.id)).rejects.toMatchObject({ statusCode: 409, message: 'unidade_inativa' });
+
+    // Pela API: o supervisor da unidade desativada não libera o distrito.
+    const liberar = await req.post(`/api/v1/entregas/cargas/${carga.id}/liberar`, supervisor, {});
+    expect(liberar.status).toBe(409);
+    expect(liberar.body.error).toBe('unidade_inativa');
+    expect((await prisma.cargaDistrito.findUniqueOrThrow({ where: { id: carga.id } })).status).toBe('CARREGADO');
   });
 });
 

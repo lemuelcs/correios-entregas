@@ -11,6 +11,7 @@ function contador<L extends string>(name: string, help: string, labelNames: read
   return new client.Counter({ name, help, labelNames, registers: [metricsRegistry] });
 }
 
+export const avisosTotal = contador('entregas_avisos_total', 'Avisos e resumos enviados ao Prosio', ['resultado'] as const);
 export const acoesTotal = contador('entregas_acoes_total', 'Ações de botão recebidas do Prosio', ['prefixo', 'valor'] as const);
 export const webhookTotal = contador('entregas_webhook_total', 'Callbacks recebidos do Prosio', ['tipo', 'resultado'] as const);
 export const orientacoesTotal = contador('entregas_orientacoes_total', 'Orientações registradas', ['tipo', 'origem'] as const);

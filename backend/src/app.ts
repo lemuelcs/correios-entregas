@@ -17,10 +17,15 @@ import { reconciliacaoRoutes } from './modules/reconciliacao/reconciliacao.route
 import { gestaoRoutes } from './modules/gestao/gestao.routes';
 import { entregasRoutes, montarParsersEntregas } from './modules/entregas/entregas.routes';
 import { capturaRoutes } from './modules/captura/captura.routes';
+import { registrarGanchosLiberacao } from './modules/entregas/liberacao.service';
 import { comunicacaoRoutes, chatwootRoutes } from './modules/communication/communication.module';
 import { sseManager } from './modules/monitoramento/sse.manager';
 import { authenticate } from './shared/middleware/auth.middleware';
 import { sgodExporter } from './integrations/sgod/sgod.exporter';
+
+// Ganchos das entregas (task_06): avisos imediatos, troca de carteiro e reenvio por limite do canal.
+// Registrados aqui, uma vez: a API e os workers rodam no mesmo processo (server.ts).
+registrarGanchosLiberacao();
 
 const app = express();
 
