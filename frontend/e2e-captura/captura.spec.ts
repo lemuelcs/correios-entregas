@@ -69,6 +69,13 @@ test.describe('Captura do rótulo', () => {
   });
 
   test('E2E-003 sem sinal para online', async ({ page, context }) => {
+    // Precache lento de propósito: o service worker ativa depois que a página da captura
+    // já abriu. Sem o clientsClaim ela ficava sem controlador e não reabria offline
+    // (era a causa da intermitência: dependia de o precache terminar durante o login).
+    await context.route('**/e2e-fixtures/rotulo-escuro.jpg', async (route) => {
+      if (route.request().serviceWorker()) await new Promise((r) => setTimeout(r, 3_000));
+      await route.continue();
+    });
     await semear({ senhaTemporaria: false });
     await entrarNoApp(page);
     await usarFixtures(page, 'rotulo-completo.jpg', 'rotulo-sem-datamatrix.jpg', 'rotulo-cep-unico.jpg');

@@ -52,6 +52,9 @@ export default defineConfig({
         navigateFallbackAllowlist: [/^\/carteiro\//],
         navigateFallbackDenylist: [/^\/api\//, /^\/events/],
         cleanupOutdatedCaches: true,
+        // O service worker novo assume a aba aberta já na 1ª visita: sem isso, quem entra
+        // e perde o sinal na mesma sessão não reabre o app offline (ADR-003).
+        clientsClaim: true,
       },
       devOptions: { enabled: false },
     }),
