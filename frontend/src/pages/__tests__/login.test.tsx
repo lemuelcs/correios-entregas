@@ -25,6 +25,9 @@ function renderizar(inicial: string | { pathname: string; state?: unknown }, ext
         <Route path="/carteiro/criar-senha" element={<CriarSenhaPage />} />
         <Route path="/carteiro/captura" element={<p>tela da captura</p>} />
         <Route path="/unidade" element={<p>tela da unidade</p>} />
+        <Route path="/entregas/carregar" element={<p>tela carregar dados</p>} />
+        <Route path="/entregas/cadastro" element={<p>tela cadastro</p>} />
+        <Route path="/entregas/distritos/:cargaId" element={<p>tela pacotes do distrito</p>} />
         <Route path="/sair" element={extra} />
       </Routes>
     </MemoryRouter>,
@@ -73,6 +76,42 @@ describe('LoginPage e troca de senha', () => {
 
     await entrarComMatricula('12345678', 'minhasenha1');
 
+    expect(await screen.findByText('tela da captura')).toBeInTheDocument();
+  });
+
+  it('(merge captura × entregas) UNIDADE → /entregas/carregar e GESTAO → /entregas/cadastro', async () => {
+    fetchMock.mockResolvedValueOnce(
+      json(200, { accessToken: 'a1', refreshToken: 'r1', user: { ...CARTEIRO, role: 'UNIDADE' } }),
+    );
+    const { unmount } = renderizar('/login');
+    await entrarComMatricula('12345678', 'minhasenha1');
+    expect(await screen.findByText('tela carregar dados')).toBeInTheDocument();
+    unmount();
+
+    useAuthStore.setState({ user: null, accessToken: null, unidadeId: null, unidadeNome: null });
+    fetchMock.mockResolvedValueOnce(
+      json(200, { accessToken: 'a2', refreshToken: 'r2', user: { ...CARTEIRO, role: 'GESTAO', unidadeId: null } }),
+    );
+    renderizar('/login');
+    await entrarComMatricula('12345678', 'minhasenha1');
+    expect(await screen.findByText('tela cadastro')).toBeInTheDocument();
+  });
+
+  it('(merge captura × entregas) ?voltar= da área do papel é respeitado; o de outra área, não', async () => {
+    fetchMock.mockResolvedValueOnce(
+      json(200, { accessToken: 'a1', refreshToken: 'r1', user: { ...CARTEIRO, role: 'UNIDADE' } }),
+    );
+    const { unmount } = renderizar(`/login?voltar=${encodeURIComponent('/entregas/distritos/c1')}`);
+    await entrarComMatricula('12345678', 'minhasenha1');
+    expect(await screen.findByText('tela pacotes do distrito')).toBeInTheDocument();
+    unmount();
+
+    useAuthStore.setState({ user: null, accessToken: null, unidadeId: null, unidadeNome: null });
+    fetchMock.mockResolvedValueOnce(
+      json(200, { accessToken: 'a2', refreshToken: 'r2', user: { ...CARTEIRO, senhaTemporaria: false } }),
+    );
+    renderizar(`/login?voltar=${encodeURIComponent('/entregas/carregar')}`);
+    await entrarComMatricula('12345678', 'minhasenha1');
     expect(await screen.findByText('tela da captura')).toBeInTheDocument();
   });
 

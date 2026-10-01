@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { filaIsolada, novaCaptura } from '@/features/captura/__tests__/fabricas';
-import { ApiError, api } from '../api';
+import { ApiError, SESSAO_EXPIRADA, api } from '../api';
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -114,5 +114,33 @@ describe('api.ts', () => {
     expect(erro).toMatchObject({ status: 401, code: 'credenciais_invalidas', message: 'Matrícula ou senha incorretas' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(redirecionar).not.toHaveBeenCalled();
+  });
+
+  it('(merge captura × entregas) ApiError expõe code/details da captura e codigo/detalhes da área Entregas', async () => {
+    fetchMock.mockResolvedValueOnce(json(409, { error: 'sem_carteiro', details: { mensagem: 'Distrito sem carteiro no dia' } }));
+
+    const erro = (await api.post('/entregas/cargas/c1/liberar', {}).catch((e: unknown) => e)) as ApiError;
+
+    expect(erro).toBeInstanceOf(ApiError);
+    expect(erro).toMatchObject({ status: 409, message: 'sem_carteiro', code: null });
+    expect(erro.codigo).toBe('sem_carteiro');
+    expect(erro.detalhes).toEqual({ mensagem: 'Distrito sem carteiro no dia' });
+  });
+
+  it('(merge captura × entregas) sessão perdida numa tela → erro sessao_expirada e /login?voltar= da tela', async () => {
+    window.history.pushState({}, '', '/entregas/carregar?data=2026-09-30');
+    try {
+      fetchMock
+        .mockResolvedValueOnce(json(401, { error: 'Token expirado' }))
+        .mockResolvedValueOnce(json(401, { error: 'Refresh inválido', details: { code: 'refresh_invalido' } }));
+
+      const erro = (await api.get('/entregas/quadro').catch((e: unknown) => e)) as ApiError;
+
+      expect(erro).toMatchObject({ status: 401, codigo: SESSAO_EXPIRADA });
+      expect(redirecionar).toHaveBeenCalledWith(`/login?voltar=${encodeURIComponent('/entregas/carregar?data=2026-09-30')}`);
+      expect(localStorage.getItem('accessToken')).toBeNull();
+    } finally {
+      window.history.pushState({}, '', '/');
+    }
   });
 });

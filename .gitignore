@@ -9,6 +9,9 @@ uploads/
 .DS_Store
 *.tsbuildinfo
 infra/osrm-data/
+
+# Playwright: frontend/e2e (área Entregas) e frontend/e2e-captura (relatórios com sufixo -captura)
 dist-e2e/
 test-results*/
 playwright-report*/
+blob-report/

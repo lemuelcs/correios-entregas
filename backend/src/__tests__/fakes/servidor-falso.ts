@@ -1,7 +1,7 @@
 /**
  * Base dos servidores HTTP falsos dos testes (Prosio, Seu Rastreio).
  *
- * - Sobe em `127.0.0.1` numa porta aleatória (`url` é a origin).
+ * - Sobe em `127.0.0.1` numa porta aleatória, ou na informada (`url` é a origin).
  * - Grava toda requisição (`requisicoes`), com corpo cru e já interpretado.
  * - Responde pelo roteiro do teste (`roteirizar`) ou, sem roteiro que case,
  *   pelo comportamento padrão da subclasse.
@@ -58,7 +58,8 @@ export abstract class ServidorFalso {
     return `http://127.0.0.1:${this.porta}`;
   }
 
-  async iniciar(): Promise<this> {
+  /** `porta` 0 (padrão) = porta livre aleatória; o harness da UI (e2e) usa uma fixa. */
+  async iniciar(porta = 0): Promise<this> {
     const servidor = http.createServer((req, res) => {
       void this.atender(req, res);
     });
@@ -68,7 +69,7 @@ export abstract class ServidorFalso {
     });
     await new Promise<void>((ok, falha) => {
       servidor.once('error', falha);
-      servidor.listen(0, '127.0.0.1', () => ok());
+      servidor.listen(porta, '127.0.0.1', () => ok());
     });
     this.servidor = servidor;
     this.porta = (servidor.address() as AddressInfo).port;

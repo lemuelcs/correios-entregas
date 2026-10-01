@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -17,6 +18,54 @@
   --color-correios-danger: #dc2626;
   --color-correios-info: #2563eb;
   --font-family-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  /* Entregas mediadas (shell /entregas, protótipo validado — ADR-015) */
+  --font-entregas: 'Source Sans 3', system-ui, sans-serif;
+  --font-codigo: 'IBM Plex Mono', ui-monospace, monospace;
+  --color-ce-menu: #14213a;
+  --color-ce-menu-ativo: #22365a;
+  --color-ce-menu-borda: #2a3a57;
+  --color-ce-menu-texto: #c7d2e3;
+  --color-ce-menu-sub: #9fb0c8;
+  --color-ce-menu-secao: #8193ae;
+  --color-ce-menu-selo: #bfd0e8;
+  --color-ce-amarelo: #f2b705;
+  --color-ce-fundo: #f4f6f9;
+  --color-ce-tinta: #1b2230;
+  --color-ce-tinta-2: #3c4555;
+  --color-ce-suave: #5b6474;
+  --color-ce-linha: #e1e4ea;
+  --color-ce-linha-forte: #d5dae2;
+  --color-ce-linha-fraca: #eef1f5;
+  --color-ce-codigo: #e9edf3;
+  --color-ce-azul: #1e4fa3;
+  --color-ce-azul-escuro: #163c7d;
+  /* pílulas de status (texto / fundo) */
+  --color-ce-pendente: #4b5563;
+  --color-ce-pendente-bg: #eef0f3;
+  --color-ce-carregado: #7a4e00;
+  --color-ce-carregado-bg: #fdf1d6;
+  --color-ce-liberado: #1e4fa3;
+  --color-ce-liberado-bg: #e6eefa;
+  --color-ce-lido-bg: #dce8f8;
+  --color-ce-entrega: #0f5f5f;
+  --color-ce-entrega-bg: #ddf2ef;
+  --color-ce-concluido: #1f6f43;
+  --color-ce-concluido-bg: #e2f2e8;
+  --color-ce-corrigir: #8a3a00;
+  --color-ce-corrigir-bg: #fdebdd;
+  --color-ce-erro: #a42a1f;
+  --color-ce-erro-bg: #fbe5e2;
+  --color-ce-interagindo: #5e3a91;
+  --color-ce-interagindo-bg: #f0e8fa;
+  /* segmentos do quadro */
+  --color-ce-seg-entregue: #2e8b57;
+  --color-ce-seg-insucesso: #c0392b;
+  --color-ce-seg-interagindo: #7a4fb5;
+  --color-ce-seg-lido: #3f7cc8;
+  --color-ce-seg-enviado: #9db8dd;
+  --color-ce-seg-semwa: #c9ced6;
+  --color-ce-seg-whats: #d99a00;
 }
 
 :root {

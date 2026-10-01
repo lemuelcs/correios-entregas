@@ -145,3 +145,61 @@ jobs:
             frontend/playwright-report-captura
             frontend/test-results-captura
           retention-days: 7
+
+  # Interface da área Entregas (task_07, _tests.md E2E-005..E2E-015): Playwright
+  # (Chromium) contra o frontend no Vite e o backend em modo de teste, com o
+  # Prosio falso em processo (backend/src/__tests__/e2e-ui/servidor-e2e.ts).
+  e2e-ui:
+    name: E2E UI (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: correios_user
+          POSTGRES_PASSWORD: correios_ci
+          # O backend de teste só aceita bancos terminados em _test (recria o schema).
+          POSTGRES_DB: correiosentregas_e2e_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U correios_user -d correiosentregas_e2e_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://correios_user:correios_ci@localhost:5432/correiosentregas_e2e_test?schema=public
+      TEST_REDIS_URL: redis://localhost:6379/2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Prisma generate
+        run: cd backend && npx prisma generate
+
+      - name: Install Playwright Chromium
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      - name: Playwright
+        run: npm run test:e2e -w frontend
+
+      - name: Relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7

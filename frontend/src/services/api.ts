@@ -1,6 +1,12 @@
 const BASE_URL = '/api/v1';
 
-/** Erro HTTP da API, com o status e o `details.code` estável do backend. */
+/**
+ * Erro HTTP da API. O backend responde `{ error, details }`:
+ * - `message` (= `codigo`) é o `error` — na área Entregas é o próprio código
+ *   (ex.: `sem_carteiro`); na captura é o texto legível;
+ * - `details` (= `detalhes`) é o `details` cru;
+ * - `code` é o `details.code` estável da captura (ex.: `captura_ja_resolvida`), ou `null`.
+ */
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string | null;
@@ -16,6 +22,29 @@ export class ApiError extends Error {
         ? details.code
         : null;
   }
+
+  /** O `error` do backend (mesmo valor de `message`); usado pela área Entregas. */
+  get codigo(): string {
+    return this.message;
+  }
+
+  /** O `details` do backend (mesmo valor de `details`); usado pela área Entregas. */
+  get detalhes(): unknown {
+    return this.details;
+  }
+}
+
+/** Código do erro lançado quando a sessão expirou e a tela já foi levada ao login. */
+export const SESSAO_EXPIRADA = 'sessao_expirada';
+
+/** Caminho atual, para voltar a ele depois do login (US-036.EC-2). */
+export function caminhoParaVoltar(): string {
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+export function urlDeLogin(voltar = caminhoParaVoltar()): string {
+  if (!voltar || voltar === '/' || voltar.startsWith('/login')) return '/login';
+  return `/login?voltar=${encodeURIComponent(voltar)}`;
 }
 
 // Rotas em que um 401 é a resposta final (credencial errada, refresh inválido), não um token vencido.
@@ -85,14 +114,14 @@ class ApiClient {
   }
 
   /**
-   * Sessão perdida: limpa só os tokens e manda para o login.
+   * Sessão perdida: limpa só os tokens e manda para o login, com `?voltar=` para a tela atual.
    * A fila offline da captura (IndexedDB) fica intacta e é enviada depois do novo login.
    */
   private encerrarSessao() {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     if (window.location.pathname !== '/login') {
-      this.redirecionar('/login');
+      this.redirecionar(urlDeLogin());
     }
   }
 
@@ -119,6 +148,8 @@ class ApiClient {
       }
       if (res.status === 401) {
         this.encerrarSessao();
+        // A tela já foi levada ao login: os chamadores reconhecem o código e não avisam de novo.
+        throw new ApiError(401, SESSAO_EXPIRADA);
       }
     }
 

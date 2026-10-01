@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { ApiError } from '@/services/api';
+import { destinoAposLogin } from '@/hooks/useAuthGuard';
 
 export const MENSAGEM_PRIMEIRO_ACESSO_OFFLINE = 'Sem conexão. O primeiro acesso precisa de internet.';
 
@@ -25,6 +26,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   function handleIdentifierChange(value: string) {
     if (identifierType === 'cpf' || identifierType === 'matricula') {
@@ -56,14 +58,14 @@ export function LoginPage() {
       const credentials: { cpf?: string; matricula?: string; email?: string; senha: string } = { senha };
       credentials[identifierType] = identifier;
       const user = await login(credentials);
-      if (user.role === 'GESTAO') navigate('/gestao');
-      else if (user.role === 'UNIDADE') navigate('/unidade');
-      else if (user.role === 'CARTEIRO') {
+      if (user.role === 'CARTEIRO' && user.senhaTemporaria) {
         // App de captura; a senha inicial do supervisor é trocada antes (US-001 AC-1).
-        if (user.senhaTemporaria) navigate('/carteiro/criar-senha', { state: { senhaAtual: senha } });
-        else navigate('/carteiro/captura');
+        navigate('/carteiro/criar-senha', { replace: true, state: { senhaAtual: senha } });
+      } else {
+        // Supervisor → Monitoramento › Carregar Dados; Gestão → Cadastro; carteiro → captura.
+        // Com `?voltar=` (sessão expirada), volta à tela pedida se ela for do papel.
+        navigate(destinoAposLogin(user.role, searchParams.get('voltar')), { replace: true });
       }
-      else navigate('/destinatario');
     } catch (err) {
       if (!(err instanceof ApiError) && err instanceof TypeError) setError(MENSAGEM_PRIMEIRO_ACESSO_OFFLINE);
       else setError(err instanceof Error ? err.message : 'Erro ao fazer login');

@@ -9,9 +9,10 @@ import type { Plugin } from 'vite';
 const apiTarget = process.env.VITE_API_TARGET || 'http://localhost:3001';
 const whatsappApiTarget = process.env.VITE_WHATSAPP_API_TARGET || 'http://localhost';
 const whatsappGatewayPrefix = process.env.VITE_WHATSAPP_API_GATEWAY_PREFIX || '/services/whatsapp';
-
-// Build de teste (E2E, ADR-013): `VITE_E2E=1` liga o `?e2eImage=` da câmera e publica
-// as fixtures de rótulo em /e2e-fixtures/ (precacheadas, para fotografar sem sinal).
+// Testes E2E (Playwright), `VITE_E2E=1`:
+// - build da captura (ADR-013): liga o `?e2eImage=` da câmera e publica as fixtures de
+//   rótulo em /e2e-fixtures/ (precacheadas, para fotografar sem sinal);
+// - dev server da área Entregas (task_07): sem HMR pelo domínio público de dev.
 const modoE2E = process.env.VITE_E2E === '1';
 const DIR_FIXTURES_ROTULOS = path.resolve(__dirname, '../backend/src/__tests__/fixtures/rotulos');
 
@@ -69,7 +70,7 @@ export default defineConfig({
     port: 5180,
     strictPort: true,
     allowedHosts: ['.delivyodev.com', 'correios.delivyodev.com', '.correiosdev.com'],
-    hmr: {
+    hmr: modoE2E ? false : {
       protocol: 'wss',
       host: 'correios.delivyodev.com',
       clientPort: 443,

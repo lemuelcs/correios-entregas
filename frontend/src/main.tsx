@@ -8,6 +8,7 @@ import { UnidadeShell } from './features/unidade/layout/UnidadeShell';
 import { CarteiroShell } from './features/carteiro/layout/CarteiroShell';
 import { DestinatarioShell } from './features/destinatario/layout/DestinatarioShell';
 import { GestaoShell } from './features/gestao/layout/GestaoShell';
+import { EntregasShell } from './features/entregas/layout/EntregasShell';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
@@ -46,12 +47,31 @@ import { GestaoAjustesPage } from './features/gestao/pages/GestaoAjustesPage';
 import { GestaoTerminologiaPage } from './features/gestao/pages/GestaoTerminologiaPage';
 import { gestaoWhatsAppSections, unidadeWhatsAppSections } from './pages/whatsapp/whatsappConsole.config';
 import { WhatsAppConsoleHostPage, WhatsAppFlowEditorHostPage } from './pages/whatsapp/WhatsAppConsoleHostPage';
+// Entregas mediadas (Cadastro, Atendimento e Monitoramento — ADR-009/010/015)
+import { CarregarDadosPage } from './features/entregas/pages/CarregarDadosPage';
+import { CargaDistritoPage } from './features/entregas/pages/CargaDistritoPage';
+import { DistritoPacotesPage } from './features/entregas/pages/DistritoPacotesPage';
+import { CadastroPage } from './features/entregas/pages/CadastroPage';
+import { AtendimentoPage } from './features/entregas/pages/AtendimentoPage';
+import { RotasEmBrevePage } from './features/entregas/pages/RotasEmBrevePage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Entregas mediadas: supervisor (UNIDADE) e Gestão. As telas antigas ficam em "SGPD v2". */}
+        <Route path="/entregas" element={<EntregasShell />}>
+          <Route index element={<Navigate to="/entregas/carregar" replace />} />
+          <Route path="carregar" element={<CarregarDadosPage />} />
+          <Route path="carregar/:distritoId" element={<CargaDistritoPage />} />
+          <Route path="distritos/:cargaId" element={<DistritoPacotesPage />} />
+          <Route path="cadastro" element={<CadastroPage />} />
+          <Route path="atendimento" element={<AtendimentoPage />} />
+          <Route path="rotas" element={<RotasEmBrevePage />} />
+          <Route path="*" element={<Navigate to="/entregas/carregar" replace />} />
+        </Route>
 
         {/* Gestao (Sede / Corporativo) */}
         <Route path="/gestao" element={<GestaoShell />}>

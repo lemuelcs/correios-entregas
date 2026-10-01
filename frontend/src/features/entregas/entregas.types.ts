@@ -1,0 +1,252 @@
+/** Contratos de `/api/v1/entregas` e de `/api/v1/gestao` usados pela área nova (TechSpec › API Endpoints). */
+
+export type StatusQuadro = 'PENDENTE_UPLOAD' | 'DADOS_CARREGADOS' | 'LIBERADO' | 'EM_ENTREGA' | 'CONCLUIDO';
+
+export type StatusPacote =
+  | 'SEM_WHATSAPP'
+  | 'AGUARDANDO_LIBERACAO'
+  | 'AGENDADO'
+  | 'NAO_ENVIADO'
+  | 'ENVIADO'
+  | 'LIDO'
+  | 'INTERAGINDO'
+  | 'INSUCESSO'
+  | 'ENTREGUE';
+
+export type ContagemPorStatus = Partial<Record<StatusPacote, number>>;
+
+export interface CartaoDistrito {
+  distritoId: string;
+  codigo: string;
+  nome: string;
+  ativo: boolean;
+  cargaId: string | null;
+  carteiro: { id: string; nome: string | null } | null;
+  semCarteiro: boolean;
+  status: StatusQuadro;
+  total: number;
+  comWhatsapp: number;
+  porStatus: ContagemPorStatus;
+  escalonamentos: number;
+  liberadoEm: string | null;
+}
+
+export interface Quadro {
+  data: string;
+  somenteLeitura: boolean;
+  semDistritos: boolean;
+  distritos: CartaoDistrito[];
+}
+
+export interface RespostaLiberacao {
+  avisosAgendados: number;
+  semWhatsapp: number;
+  descadastrados: number;
+  agendadoPara?: string;
+  jaLiberada?: boolean;
+}
+
+// ——— Carga ———
+
+export type Situacao = 'valida' | 'sem_whatsapp' | 'corrigir' | 'invalida';
+
+export type Motivo =
+  | 'faltam_campos'
+  | 'codigo_invalido'
+  | 'digito_invalido'
+  | 'duplicado_planilha'
+  | 'ja_no_distrito'
+  | 'sem_ddd'
+  | 'whatsapp_invalido';
+
+export interface CamposEndereco {
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  enderecoTexto: string | null;
+  referencia: string | null;
+}
+
+export interface LinhaPrevia extends CamposEndereco {
+  n: number;
+  codigo: string;
+  nome: string;
+  whatsapp: string | null;
+  situacao: Situacao;
+  motivo?: Motivo;
+  detalhe?: string | null;
+  descadastrado?: boolean;
+  semEndereco?: boolean;
+  orientacaoGuardada?: { tipo: string; texto: string };
+}
+
+export interface ResumoPrevia {
+  total: number;
+  validas: number;
+  semWhatsapp: number;
+  corrigir: number;
+  invalidas: number;
+  aceitaveis: number;
+  comWhatsapp: number;
+  descadastrados: number;
+  orientacoesGuardadas: number;
+}
+
+export type AvisoPlanilha = 'varias_abas' | 'sem_coluna_whatsapp' | 'sem_coluna_endereco';
+
+export interface Previa {
+  data: string;
+  linhas: LinhaPrevia[];
+  resumo: ResumoPrevia;
+  avisos: AvisoPlanilha[];
+}
+
+export interface ResultadoConfirmacao {
+  cargaId: string | null;
+  aceitos: number;
+  descartados: number;
+  descartes: Array<{ n: number; codigo: string; motivo: Motivo; detalhe?: string | null }>;
+  avisadosNaHora: number;
+}
+
+// ——— Pacotes do distrito ———
+
+export interface PacoteDistrito {
+  id: string;
+  codigo: string;
+  nome: string;
+  whatsapp: string | null;
+  endereco: CamposEndereco;
+  status: StatusPacote;
+  rotulo: string;
+  naoEnviadoMotivo: string | null;
+  escalonado: boolean;
+  sinais: unknown;
+  descadastrado: boolean;
+  rastreio: { descricao: string; em: string | null } | null;
+  orientacaoVigente: {
+    id: string;
+    tipo: string;
+    texto: string;
+    estado: string;
+    origem: string;
+    valeAPartirDe: string | null;
+    pontoDesativado: boolean;
+  } | null;
+  respostaCarteiro: { resposta: string; em: string | null } | null;
+}
+
+export interface ListaPacotes {
+  cargaId: string;
+  data: string;
+  somenteLeitura: boolean;
+  distrito: { id: string; codigo: string; nome: string };
+  statusCarga: StatusQuadro;
+  liberada: boolean;
+  resumo: { total: number; comWhatsapp: number; porStatus: ContagemPorStatus };
+  pagina: number;
+  porPagina: number;
+  total: number;
+  totalPaginas: number;
+  pacotes: PacoteDistrito[];
+}
+
+// ——— Cadastro ———
+
+export interface Pagina<T> {
+  itens: T[];
+  total: number;
+  pagina: number;
+  tamanho: number;
+  totalPaginas: number;
+}
+
+export interface Distrito {
+  id: string;
+  unidadeId: string;
+  codigo: string;
+  nome: string;
+  ativo: boolean;
+  carteiroPadrao: { id: string; nome: string | null; ativo: boolean } | null;
+  atualizadoEm: string;
+}
+
+export interface CarteiroCadastro {
+  id: string;
+  unidadeId: string;
+  nome: string | null;
+  matricula: string;
+  whatsapp: string | null;
+  ativo: boolean;
+  possuiLogin: boolean;
+  distritosPadrao: Array<{ id: string; codigo: string; nome: string }>;
+  atualizadoEm: string;
+}
+
+export type TipoPonto = 'AGENCIA' | 'LOCKER';
+
+export interface PontoRetirada {
+  id: string;
+  unidadeId: string;
+  tipo: TipoPonto;
+  nome: string;
+  endereco: string;
+  horario: string;
+  ativo: boolean;
+  atualizadoEm: string;
+}
+
+// ——— Gestão ———
+
+export type TipoCanal = 'WAHA' | 'WABA';
+
+export interface CanalProsio {
+  id: string;
+  nome: string;
+  baseUrl: string;
+  tipo: TipoCanal;
+  compartilhado: boolean;
+  ativo: boolean;
+  unidades?: number;
+  tokenEntrada?: string;
+}
+
+export interface UnidadeGestao {
+  id: string;
+  codigo: string;
+  nome: string;
+  tipo: 'CDD' | 'CEE' | 'HIBRIDA';
+  logradouro: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+  ativa: boolean;
+  canalProsioId: string | null;
+  prosioUnidadeRef: string | null;
+  mediacaoAtiva: boolean;
+  canalProsio: { id: string; nome: string; tipo: TipoCanal; compartilhado: boolean; ativo: boolean } | null;
+  supervisoresAtivos: number;
+  semSupervisor: boolean;
+}
+
+export interface Supervisor {
+  id: string;
+  nome: string;
+  email: string | null;
+  matricula: string | null;
+  role: string;
+  unidadeId: string | null;
+  unidade: { id: string; nome: string; codigo: string } | null;
+  telefoneCelular: string | null;
+  ativo: boolean;
+}
+
+export interface SessaoAtendimento {
+  url: string;
+  expiraEm: string;
+}

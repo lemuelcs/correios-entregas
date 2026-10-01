@@ -412,14 +412,17 @@ export class LiberacaoService {
 
   /** Esgotadas as tentativas (ou erro não tentável): `NAO_ENVIADO` com `falha_envio` (US-011.EC-7). */
   async marcarFalhaEnvio(pacoteId: string, code = 'falha_envio'): Promise<void> {
-    const { count } = await prisma.pacoteDia.updateMany({
-      where: { id: pacoteId, status: { in: [...ENVIAVEIS] } },
-      data: { status: 'NAO_ENVIADO', naoEnviadoMotivo: 'falha_envio' },
+    // Status e evento na mesma transação: quem vê `NAO_ENVIADO` vê também o
+    // `aviso_falhou` (antes eram dois comandos, e havia uma janela sem o evento).
+    const count = await prisma.$transaction(async (tx) => {
+      const { count: n } = await tx.pacoteDia.updateMany({
+        where: { id: pacoteId, status: { in: [...ENVIAVEIS] } },
+        data: { status: 'NAO_ENVIADO', naoEnviadoMotivo: 'falha_envio' },
+      });
+      if (n > 0) await registrarEvento(pacoteId, 'aviso_falhou', { code }, tx);
+      return n;
     });
-    if (count > 0) {
-      await registrarEvento(pacoteId, 'aviso_falhou', { code });
-      avisosTotal.inc({ resultado: 'falha_envio' });
-    }
+    if (count > 0) avisosTotal.inc({ resultado: 'falha_envio' });
   }
 
   // ——— Caso de mediação ——————————————————————————————————————————————————
