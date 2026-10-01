@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useAuthStore } from '@/stores/auth.store';
+import { destinoAposLogin } from '@/hooks/useAuthGuard';
 
 type IdentifierType = 'cpf' | 'matricula' | 'email';
 
@@ -18,6 +19,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   function handleIdentifierChange(value: string) {
     if (identifierType === 'cpf' || identifierType === 'matricula') {
@@ -40,10 +42,9 @@ export function LoginPage() {
       const credentials: { cpf?: string; matricula?: string; email?: string; senha: string } = { senha };
       credentials[identifierType] = identifier;
       const user = await login(credentials);
-      if (user.role === 'GESTAO') navigate('/gestao');
-      else if (user.role === 'UNIDADE') navigate('/unidade');
-      else if (user.role === 'CARTEIRO') navigate('/carteiro');
-      else navigate('/destinatario');
+      // Supervisor → Monitoramento › Carregar Dados; Gestão → Cadastro; papéis legados → shells antigos.
+      // Com `?voltar=` (sessão expirada), volta à tela pedida se ela for do papel.
+      navigate(destinoAposLogin(user.role, searchParams.get('voltar')), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
     } finally {
@@ -81,8 +82,9 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{config.label}</label>
+            <label htmlFor="login-identificador" className="block text-sm font-medium text-gray-700 mb-1">{config.label}</label>
             <input
+              id="login-identificador"
               type={config.type}
               value={identifier}
               onChange={(e) => handleIdentifierChange(e.target.value)}
@@ -94,8 +96,9 @@ export function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+            <label htmlFor="login-senha" className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
             <input
+              id="login-senha"
               type="password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
@@ -106,7 +109,7 @@ export function LoginPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+            <div role="alert" className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
           )}
 
           <button
