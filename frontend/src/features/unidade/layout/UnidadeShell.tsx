@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router';
 import { Toaster } from 'react-hot-toast';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { FaixaPrototipo } from '@/features/entregas/components/FaixaPrototipo';
 import { UnidadeHeader } from './UnidadeHeader';
 import { UnidadeSidebar } from './UnidadeSidebar';
 import { getUnidadePageMeta } from '../unidade.config';
@@ -13,7 +14,9 @@ export function UnidadeShell() {
   const isWhatsAppArea = location.pathname === '/unidade/whatsapp' || location.pathname.startsWith('/unidade/whatsapp/');
 
   return (
-    <div className="min-h-screen bg-correios-surface lg:flex">
+    <div className="min-h-screen bg-correios-surface">
+      <FaixaPrototipo voltarPara="/entregas/carregar" />
+      <div className="lg:flex">
       <Toaster position="top-right" />
       <UnidadeSidebar />
 
@@ -22,6 +25,7 @@ export function UnidadeShell() {
         <main className={isWhatsAppArea ? 'p-0' : 'px-5 py-5 lg:px-8 lg:py-6'}>
           <Outlet />
         </main>
+      </div>
       </div>
     </div>
   );
