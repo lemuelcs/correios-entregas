@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import client from 'prom-client';
 
-const register = new client.Registry();
+export const register = new client.Registry();
 
 /** Registro exposto em `/metrics` (módulos registram contadores próprios nele). */
 export { register as metricsRegistry };

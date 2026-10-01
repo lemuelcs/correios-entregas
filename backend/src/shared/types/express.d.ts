@@ -7,6 +7,8 @@ declare global {
         sub: string;
         role: Role;
         unidadeId?: string;
+        /** Claim do login: o carteiro ainda precisa trocar a senha temporária. */
+        senhaTemporaria?: boolean;
       };
     }
   }

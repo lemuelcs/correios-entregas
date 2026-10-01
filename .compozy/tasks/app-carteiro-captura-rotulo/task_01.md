@@ -1,23 +1,24 @@
 ---
-status: pending
-title: "Fundação: migrations, núcleo de dados, auth e infra de teste"
+status: completed
+title: "Extensões de dados, auth do carteiro e utilitários do rótulo"
 type: backend
 complexity: critical
 ---
 
-# Task 1: Fundação: migrations, núcleo de dados, auth e infra de teste
+# Task 1: Extensões de dados, auth do carteiro e utilitários do rótulo
 
 ## Overview
 
-Esta tarefa monta a base de que todas as outras dependem:
-- a primeira baseline de migrations do Prisma, porque hoje não existe `prisma/migrations` e o dev foi criado por `db push`;
-- o núcleo de dados do distrito do dia, compartilhado com o PRD de monitoramento;
-- as correções pré-requisito de S10 e refresh token;
-- o fluxo de senha do carteiro (troca obrigatória, bloqueio, sessão longa);
-- os utilitários puros de leitura do rótulo;
-- uma infra de testes de integração segura, que só roda em banco `_test`.
+Esta tarefa prepara o backend da captura sobre o núcleo do monitoramento (ADR-014):
+- a migration que estende `PacoteDia` e `Usuario` e cria `Captura`;
+- o fluxo de senha do carteiro (troca obrigatória, bloqueio, sessão longa) e a rotação do refresh token, que hoje desloga no segundo refresh;
+- o parser do DataMatrix SIGEP;
+- a classificação de telefone;
+- a resolução do distrito do dia do carteiro.
 
-É crítica porque mexe em auth (todos os logins) e na forma de migrar o banco.
+É crítica porque mexe em auth, o que afeta todos os logins.
+
+**Pré-requisito entre workflows** (o Compozy não expressa esta aresta): a task **01 de `monitoramento-entregas-whatsapp`** concluída (baseline, migration do núcleo, `s10.ts` corrigido, `telefone.ts`, harness de testes). O módulo `entregas` e o gancho de aviso (task_04 de lá) são exigidos só a partir da task_02 daqui. Verifique no início e pare, com uma mensagem clara, se faltar algo.
 
 <critical>
 - ALWAYS READ the PRD, the TechSpec, and their catalogs (`_user_stories.md`, `_tests.md`) before starting
@@ -28,79 +29,74 @@ Esta tarefa monta a base de que todas as outras dependem:
 </critical>
 
 <requirements>
-- MUST criar a migration baseline `0000_baseline` do schema atual e documentar o `prisma migrate resolve --applied` para o banco de dev ANTES da migration da feature; MUST conferir com `prisma migrate diff` contra o banco de dev que não há drift, e registrar qualquer drift encontrado em vez de aplicá-lo às cegas.
-- MUST adicionar os enums e os modelos `Distrito`, `DistritoDia`, `Pacote`, `Captura` e `PacoteEvento` e os campos `senhaTemporaria`, `tentativasFalhas` e `bloqueadoAte` em `Usuario`, exatamente como em TechSpec › Data Models, com `@@unique([data, codigo])` em `Pacote`.
-- MUST NOT alterar `Objeto` nem os modelos do SGPD v2.
-- MUST corrigir `validateS10` e `calculateS10CheckDigit` para a regra UPU (resto 0 → 5, resto 1 → 0) e aceitar qualquer sufixo de duas letras, com normalização de espaços, hífens e minúsculas.
-- MUST criar `parseSigepDataMatrix` (ADR-011) e `normalizarWhatsapp`/`mesmoNumero` como módulos puros, sem dependência de Node, para que a task_04 possa copiá-los ao frontend.
-- MUST criar `distrito-dia.service` que resolve o distrito do dia do carteiro (designação, depois distrito padrão), com o dia civil em America/Sao_Paulo e um relógio injetável.
-- MUST fazer `POST /auth/refresh` devolver `{ accessToken, refreshToken }` com rotação (revoga o usado); o TTL do refresh é de 30 dias para CARTEIRO e 7 dias para os demais.
-- MUST implementar `POST /auth/trocar-senha`, o claim `senhaTemporaria` no token, o bloqueio de 15 min após 5 falhas seguidas (423 `acesso_bloqueado`), 403 `acesso_desativado` para inativo, e a mesma mensagem para matrícula inexistente e senha errada.
-- MUST expor um middleware `requireSenhaDefinitiva` que responde 403 `troca_de_senha_obrigatoria` (usado pelas rotas `/captura` na task_02).
-- MUST criar o `globalSetup` do Jest que aborta se o `DATABASE_URL` não terminar em `_test` e aplica `prisma migrate deploy`; MUST criar helpers de app em processo (supertest) e de semente.
-- MUST renomear o banco da CI para `correiosentregas_test` em `.github/workflows/ci.yml`.
-- SHOULD remover do `app.health.test.ts` a dependência de servidor vivo (usar supertest).
+- MUST verificar, antes de qualquer edição, que existem `backend/prisma/migrations/0000_baseline`, os modelos `CargaDistrito`, `EscalaDistrito`, `PacoteDia` e `EventoPacote`, `validateS10(..., { qualquerPais })`, `normalizarTelefone` e o `globalSetup` com a trava `_test`. Se algum faltar, MUST parar e reportar.
+- MUST implementar a recusa de usuário inativo no LOGIN (403 `acesso_desativado`). A recusa de token já emitido no `authenticate` é da task_03 do monitoramento: se ela ainda não estiver mergeada, a segunda metade do IT-045 fica como `it.todo` com o motivo, e é habilitada quando ela chegar.
+- MUST criar uma migration nova, depois das do monitoramento, com os enums `OrigemPacote` e `ResultadoCapturaTipo`; os campos de `PacoteDia` (`origem` com default PLANILHA, `codigoDigitado`, `capturadoPorId`, `telefoneOutro`); o modelo `Captura`; e os campos de `Usuario` (`senhaTemporaria`, `tentativasFalhas`, `bloqueadoAte`), conforme TechSpec › Data Models.
+- MUST conferir se `EventoPacote.pacoteId` tem FK; se tiver, garantir que a remoção física de `PacoteDia` preserve os eventos (`onDelete: SetNull` ou equivalente), sem quebrar os testes do monitoramento.
+- MUST NOT recriar baseline, S10, `telefone.ts` nem harness; MUST reutilizar os do monitoramento.
+- MUST criar `shared/utils/sigep-datamatrix.ts` (`parseSigepDataMatrix`, ADR-011) como módulo puro, sem dependência de Node.
+- MUST criar `classificarTelefone` (WhatsApp × fixo sobre `normalizarTelefone`) e `mesmoNumero` como funções puras.
+- MUST criar `modules/captura/distrito-do-dia.service.ts`: a escala de hoje, depois o distrito padrão (sem escala de hoje para outro carteiro); vários distritos → lista; dia civil em America/Sao_Paulo com relógio injetável; `garantirCarga(distritoId, data)`.
+- MUST fazer o `POST /auth/refresh` devolver `{ accessToken, refreshToken }` com rotação; TTL do refresh de 30 dias para CARTEIRO e 7 dias para os demais.
+- MUST implementar `POST /auth/trocar-senha`, o claim `senhaTemporaria`, o bloqueio de 15 min após 5 falhas (423 `acesso_bloqueado`), a mensagem única para matrícula inexistente ou senha errada, e o middleware `requireSenhaDefinitiva` (403 `troca_de_senha_obrigatoria`).
+- MUST gerar as fixtures de rótulo sintéticas da Strategy de `_tests.md` em `backend/src/__tests__/fixtures/rotulos/` (script versionado com `bwip-js`, já dependência do backend: Code 128 do objeto, código do CEP e DataMatrix SIGEP montado por um `montarSigepDataMatrix` inverso do parser), commitando os JPEGs e o script; dados fictícios, DV válido.
+- MUST estender as fábricas `__tests__/fixtures/entregas.ts` com `escala`, `captura` e `pacoteCapturado`, sem mudar as existentes.
 </requirements>
 
 ## Subtasks
-- [ ] 1.1 Baseline de migrations criada e procedimento de adoção no dev registrado na descrição do PR (o CLAUDE.md do repo proíbe criar .md de documentação sem pedido).
-- [ ] 1.2 Modelos e enums do núcleo e campos de `Usuario` adicionados, com a migration da feature gerada.
-- [ ] 1.3 S10 corrigido, com vetores UPU.
-- [ ] 1.4 Parser do DataMatrix SIGEP e normalização de telefone como módulos puros.
-- [ ] 1.5 Serviço de resolução do distrito do dia do carteiro.
-- [ ] 1.6 Auth: rotação de refresh, TTL por papel, troca de senha, bloqueio, inativo e middleware de senha definitiva.
-- [ ] 1.7 Infra de testes: trava `_test`, `globalSetup`, supertest em processo, sementes; CI com banco `_test`.
-- [ ] 1.8 Todos os testes atribuídos passando.
+- [x] 1.1 Verificação dos pré-requisitos do monitoramento.
+- [x] 1.2 Migration da captura (`PacoteDia`, `Usuario`, `Captura`, enums) e a preservação dos eventos na remoção.
+- [x] 1.3 Parser do DataMatrix SIGEP.
+- [x] 1.4 Classificação e igualdade de telefone.
+- [x] 1.5 Distrito do dia do carteiro e garantia da carga.
+- [x] 1.6 Auth: rotação, TTL por papel, troca de senha, bloqueio e middleware de senha definitiva.
+- [x] 1.7 Fábricas de teste estendidas e fixtures de rótulo geradas.
+- [x] 1.8 Todos os testes atribuídos passando, e a suíte do monitoramento continua verde.
 
 ## Implementation Details
 
-Os padrões estão em TechSpec › Data Models, API Endpoints (Auth) e Testing Approach. Os módulos seguem o padrão routes/controller/service com singleton e zod no controller (`backend/src/modules/auth/`). O `distrito-dia.service.ts` fica em `backend/src/modules/captura/`, que é criado aqui só com esse serviço.
+Os padrões estão em TechSpec › Data Models, API Endpoints (Auth) e Testing Approach, e em ADR-014. Módulos no padrão routes/controller/service com zod no controller.
 
 ### Relevant Files
-- `backend/prisma/schema.prisma` — os modelos novos e os campos de `Usuario`; `Usuario` em :206, `RefreshToken` em :235, `Carteiro` em :248.
-- `backend/prisma.config.ts` — a configuração do Prisma e do seed.
-- `backend/src/shared/utils/s10.ts` — o bug do DV (:35-36) e a regex só com BR (:42).
-- `backend/src/modules/auth/auth.service.ts` — o login (:24-38), o refresh sem rotação (:56-79) e os TTLs (:7-9).
-- `backend/src/modules/auth/auth.controller.ts` — o schema zod da matrícula (`length(8)`).
-- `backend/src/shared/middleware/auth.middleware.ts` — `authenticate` e `requireRole`, e o payload do JWT.
-- `backend/src/shared/middleware/error-handler.middleware.ts` — `AppError` e o mapeamento de Prisma e Zod.
-- `backend/jest.config.js`, `backend/src/__tests__/app.health.test.ts` — o Jest atual.
-- `backend/src/app.ts` — a exportação do app para supertest.
-- `.github/workflows/ci.yml` — o banco `correiosentregas_db` deve virar `_test`.
+- `backend/prisma/schema.prisma` — `PacoteDia`, `EventoPacote` e `Usuario`, depois da migration do monitoramento.
+- `backend/prisma/migrations/` — a baseline e a migration do monitoramento (pré-requisito).
+- `backend/src/shared/utils/s10.ts`, `backend/src/shared/utils/telefone.ts` — do monitoramento, reutilizados.
+- `backend/src/modules/auth/auth.service.ts` — login (:24-38), refresh sem rotação (:56-79), TTLs (:7-9).
+- `backend/src/modules/auth/auth.controller.ts`, `auth.routes.ts` — as rotas novas.
+- `backend/src/shared/middleware/auth.middleware.ts` — `authenticate` (que o monitoramento fez recusar inativo) e `requireRole`.
+- `backend/src/__tests__/fixtures/entregas.ts` — as fábricas do monitoramento.
+- `.compozy/tasks/monitoramento-entregas-whatsapp/_techspec.md` — os nomes do núcleo.
 
 ### Dependent Files
-- `frontend/src/services/api.ts` — passa a receber o refreshToken rotacionado (ajustado na task_04).
-- `backend/src/modules/captura/*` e `backend/src/modules/supervisao/*` — consomem o núcleo (tasks 02 e 03).
+- `backend/src/modules/captura/*` — a task_02 consome os modelos, o parser e o distrito do dia.
+- `frontend/src/services/api.ts` — grava o refresh rotacionado (task_04).
 
 ### Related ADRs
-- [ADR-007: Núcleo do distrito do dia com outbox](adrs/adr-007.md) — os modelos criados aqui.
+- [ADR-014: A captura estende o núcleo do monitoramento](adrs/adr-014.md) — o escopo desta tarefa.
 - [ADR-004: PWA com matrícula e senha](adrs/adr-004.md) — senha temporária e sessão longa.
-- [ADR-011: zxing-wasm e DataMatrix](adrs/adr-011.md) — o parser SIGEP.
-- [ADR-013: Testes com banco _test](adrs/adr-013.md) — a trava e a CI.
+- [ADR-011: zxing-wasm e DataMatrix](adrs/adr-011.md) — o parser.
+- [ADR-013: Testes com banco _test](adrs/adr-013.md)
 
 ## Deliverables
-- A baseline e a migration da feature em `backend/prisma/migrations/`.
-- Os utilitários `s10.ts` (corrigido), `sigep-datamatrix.ts` e `telefone.ts` em `backend/src/shared/utils/`.
-- `backend/src/modules/captura/distrito-dia.service.ts`.
-- Auth atualizado, com as novas rotas e o middleware.
-- A infra de testes (`globalSetup`, helpers) e a CI com banco `_test`.
+- A migration da captura em `backend/prisma/migrations/`.
+- `backend/src/shared/utils/sigep-datamatrix.ts` e as funções de telefone.
+- `backend/src/modules/captura/distrito-do-dia.service.ts`.
+- Auth atualizado, com as rotas novas e o middleware.
+- As fábricas de teste estendidas.
 - Every test case assigned in `## Tests` implemented and passing **(REQUIRED)**
 
 ## Tests
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-001, UT-002, UT-003, UT-004, UT-005, UT-006 — validação S10 (UPU)
-- [ ] UT-007, UT-008, UT-009, UT-010, UT-011, UT-012 — parser DataMatrix SIGEP
-- [ ] UT-013, UT-014, UT-015, UT-016, UT-017 — normalização de telefone
-- [ ] UT-056, UT-057, UT-058, UT-059, UT-060, UT-061 — resolução do distrito do dia
-- [ ] UT-062, UT-063, UT-064, UT-065, UT-066, UT-067, UT-068, UT-069, UT-070 — auth
-- [ ] UT-125 — trava do banco `_test`
-- [ ] IT-042, IT-043, IT-044, IT-045 — refresh rotativo, credenciais, bloqueio e inativo via HTTP
+- [x] UT-007, UT-008, UT-009, UT-010, UT-011, UT-012 — parser DataMatrix SIGEP
+- [x] UT-013, UT-014, UT-015, UT-016, UT-017 — `classificarTelefone` e `mesmoNumero`
+- [x] UT-056, UT-057, UT-058, UT-059, UT-060, UT-061 — distrito do dia
+- [x] UT-062, UT-063, UT-064, UT-065, UT-066, UT-067, UT-068, UT-069, UT-070 — auth
+- [x] IT-042, IT-043, IT-044, IT-045 — refresh rotativo, credenciais, bloqueio e inativo via HTTP (a metade "token já emitido" do IT-045 fica em `it.todo` até a task_03 do monitoramento)
 
 ## Success Criteria
 - Every assigned test case implemented and passing
-- `prisma migrate deploy` num banco vazio `_test` cria o schema inteiro sem erro
-- `npm test` com o `DATABASE_URL` apontando para um banco sem `_test` aborta antes de conectar
-- Dois refresh seguidos funcionam; reusar o refresh antigo dá 401
+- A suíte de testes do monitoramento continua passando após a migration e as mudanças de auth
+- Dois refresh seguidos funcionam; reusar o antigo dá 401
 - `npm run lint` e `npm run build` passam no backend

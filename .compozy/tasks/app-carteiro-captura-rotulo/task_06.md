@@ -1,21 +1,20 @@
 ---
-status: pending
-title: Telas do supervisor
+status: completed
+title: Extensões do supervisor nas telas de entregas
 type: frontend
 complexity: medium
 ---
 
-# Task 6: Telas do supervisor
+# Task 6: Extensões do supervisor nas telas de entregas
 
 ## Overview
 
-Esta tarefa entrega as telas do supervisor, na área da unidade:
-- os distritos do dia, com as pendências de conferência e as transferências;
-- a lista de pacotes do distrito, com a origem, o selo "código digitado", o histórico de sobrescritas e a foto do rótulo;
-- a remoção de pacote;
-- a definição e redefinição da senha do carteiro.
+Esta tarefa leva a captura às telas do supervisor que o monitoramento cria no `EntregasShell` (ADR-014):
+- na lista de pacotes: os chips de origem, o selo "código digitado", o histórico de sobrescritas, a foto do rótulo e a remoção;
+- no quadro: as pendências de conferência e as transferências;
+- no cadastro de carteiros: a ação "Definir senha".
 
-É a visão que o monitoramento vai depois expandir.
+**Pré-requisito entre workflows**: a task_07 de `monitoramento-entregas-whatsapp` concluída (o `EntregasShell`, `CarregarDadosPage`, `DistritoPacotesPage` e `CadastroPage`).
 
 <critical>
 - ALWAYS READ the PRD, the TechSpec, and their catalogs (`_user_stories.md`, `_tests.md`) before starting
@@ -26,51 +25,55 @@ Esta tarefa entrega as telas do supervisor, na área da unidade:
 </critical>
 
 <requirements>
-- MUST criar `DistritosDiaPage` (data selecionável; por distrito: carteiro do dia, status, contagens, "N para conferir no app do carteiro" quando N>0, e as transferências de entrada e saída com código, carteiro e hora; designação do carteiro do dia).
-- MUST criar `DistritoPacotesPage` (os chips de origem "Planilha", "Foto" e "Planilha + foto"; o selo "código digitado"; o histórico com os valores antes e depois; a foto do rótulo; "Foto excluída em DD/MM (prazo de retenção)" no 410; e Remover com confirmação).
-- MUST adicionar o cadastro mínimo de distritos (código, nome, carteiro padrão).
-- MUST adicionar a ação "Definir senha" ao cadastro de carteiros existente (`CadastrosConfigPage section="carteiros"`).
-- MUST montar as rotas dentro do `UnidadeShell` existente, em `/unidade/captura/*`, com um item no menu da unidade.
-- SHOULD seguir o visual dos artboards "Distrito D-01 — pacotes" e "Carregar pacotes do distrito" do protótipo.
+- MUST verificar no início que `frontend/src/features/entregas/` existe com as páginas do monitoramento; se não existir, MUST parar e reportar.
+- MUST estender `DistritoPacotesPage` com:
+  - os chips "Planilha", "Foto" e "Planilha + foto";
+  - o selo "código digitado";
+  - o histórico do pacote, com os valores antes e depois;
+  - a foto do rótulo, e "Foto excluída em DD/MM (prazo de retenção)" no 410;
+  - o botão Remover, com confirmação.
+- MUST estender `CarregarDadosPage` (o quadro) com "N para conferir no app do carteiro" quando N>0, e as transferências de entrada e saída (código, carteiro, hora).
+- MUST adicionar "Definir senha" à aba Carteiros de `CadastroPage`, chamando `PUT /entregas/captura/carteiros/:id/senha`.
+- MUST seguir os tokens visuais e as regras de acessibilidade do monitoramento (alvos de 44 px, rótulos, foco visível, sem rolagem horizontal em 390 px).
+- MUST NOT alterar o comportamento existente dessas páginas além das adições.
 </requirements>
 
 ## Subtasks
-- [ ] 6.1 Rotas e item de menu na área da unidade.
-- [ ] 6.2 Distritos do dia, com pendências, transferências e designação.
-- [ ] 6.3 Pacotes do distrito, com origem, histórico, foto e remoção.
-- [ ] 6.4 Cadastro mínimo de distritos.
-- [ ] 6.5 Senha do carteiro no cadastro existente.
-- [ ] 6.6 Todos os testes atribuídos passando.
+- [x] 6.1 Verificação do pré-requisito do monitoramento.
+- [x] 6.2 Origem, selo, histórico, foto e remoção na lista de pacotes.
+- [x] 6.3 Pendências e transferências no quadro.
+- [x] 6.4 "Definir senha" no cadastro de carteiros.
+- [x] 6.5 Todos os testes atribuídos passando.
 
 ## Implementation Details
 
-As páginas ficam em `frontend/src/features/supervisao-captura/pages/` e a store em `frontend/src/features/supervisao-captura/supervisao.store.ts`. A API está em TechSpec › API Endpoints (Supervisor), implementada na task_03.
+As mudanças ficam nas páginas e stores de `frontend/src/features/entregas/` (monitoramento). Os endpoints estão em TechSpec › API Endpoints (Supervisor), implementados na task_03.
 
 ### Relevant Files
-- `frontend/src/features/unidade/layout/UnidadeShell.tsx`, `frontend/src/features/unidade/unidade.config.ts` — o shell e o menu da unidade.
-- `frontend/src/main.tsx` — as rotas da unidade e `CadastrosConfigPage section="carteiros"` (:86).
-- `frontend/src/shared/ui/` — Badge, Panel e AlertBanner.
-- `.compozy/tasks/app-carteiro-captura-rotulo/prototipo/Distrito.dc.html`, `prototipo/Upload.dc.html` — o visual de referência.
-- `frontend/src/services/api.ts` — o cliente (task_04).
+- `frontend/src/features/entregas/pages/DistritoPacotesPage.tsx`, `CarregarDadosPage.tsx`, `CadastroPage.tsx` — criadas pela task_07 do monitoramento.
+- `frontend/src/index.css` — os tokens `@theme` do monitoramento.
+- `.compozy/tasks/app-carteiro-captura-rotulo/prototipo/Distrito.dc.html` — o visual de referência.
+- `frontend/src/services/api.ts` — o cliente.
 
 ### Dependent Files
-- `frontend/src/features/unidade/unidade.config.ts` — o novo item de menu.
+- Os testes de frontend do monitoramento para essas páginas, se existirem, precisam continuar passando.
 
 ### Related ADRs
+- [ADR-014: Estender o núcleo do monitoramento](adrs/adr-014.md)
 - [ADR-001: Transferência e foto vence](adrs/adr-001.md)
 - [ADR-004: Senha gerida pelo supervisor](adrs/adr-004.md)
 - [ADR-006: Retenção da foto](adrs/adr-006.md)
 
 ## Deliverables
-- As telas do supervisor em `/unidade/captura/*` e a senha do carteiro no cadastro.
+- As extensões nas telas de entregas.
 - Every test case assigned in `## Tests` implemented and passing **(REQUIRED)**
 
 ## Tests
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-121, UT-122 — pacotes do distrito, com origem e foto excluída
-- [ ] UT-123, UT-124 — quadro do dia, com transferências e pendências
+- [x] UT-121, UT-122 — pacotes do distrito, com origem e foto excluída
+- [x] UT-123, UT-124 — quadro, com transferências e pendências
 
 ## Success Criteria
 - Every assigned test case implemented and passing
