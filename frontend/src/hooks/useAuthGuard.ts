@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '../stores/auth.store';
-import { api } from '../services/api';
+import { ApiError, api } from '../services/api';
 import type { Role, User } from '../types/api.types';
 
 const HOME_BY_ROLE: Record<Role, string> = {
   GESTAO: '/gestao',
   UNIDADE: '/unidade',
-  CARTEIRO: '/carteiro',
+  CARTEIRO: '/carteiro/captura',
   DESTINATARIO: '/destinatario',
 };
 
@@ -39,7 +39,9 @@ export function useAuthGuard(requiredRole?: Role) {
           const u = ('user' in data && data.user) ? data.user : data as User;
           useAuthStore.setState({ user: u });
         })
-        .catch(() => {
+        .catch((err: unknown) => {
+          // Sem rede (app do carteiro aberto offline): mantém a sessão e a fila.
+          if (!(err instanceof ApiError)) return;
           // Token is invalid/expired — redirect to login
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
