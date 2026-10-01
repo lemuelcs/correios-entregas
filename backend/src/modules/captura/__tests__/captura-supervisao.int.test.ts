@@ -407,13 +407,25 @@ describe('Captura › supervisor no módulo entregas', () => {
   // Ativa sozinho quando a liberação (task_06 do monitoramento) for mesclada.
   const liberacaoDisponivel = rotaExiste('post', '/cargas/:cargaId/liberar');
   (liberacaoDisponivel ? it : it.skip)('IT-088 liberar o D-03 com paraConferir > 0 é permitido (a captura não bloqueia)', async () => {
-    const c = await carga(s.d03.id);
-    await criarPacote({ cargaId: c.id });
-    await quatroParaConferir();
-    const r = await api().post(`/api/v1/entregas/cargas/${c.id}/liberar`).set(auth(tokenS1)).send({});
-    expect(r.status).toBeLessThan(300);
-    expect((await prisma.cargaDistrito.findUniqueOrThrow({ where: { id: c.id } })).status).not.toBe('CARREGADO');
-    expect(cartao((await quadro()).body, 'D-03').paraConferir).toBe(4);
+    // A liberação (monitoramento) lê o relógio real e recusa carga de dia passado
+    // (`somente_leitura`); a semente usa HOJE fixo, então só o Date é congelado nele.
+    // Pacote sem WhatsApp + confirmarSemAvisos: o caso não depende de canal Prosio.
+    jest.useFakeTimers({
+      now: new Date('2026-09-30T15:00:00-03:00'),
+      doNotFake: ['nextTick', 'setImmediate', 'clearImmediate', 'setTimeout', 'clearTimeout',
+        'setInterval', 'clearInterval', 'queueMicrotask', 'hrtime', 'performance'],
+    });
+    try {
+      const c = await carga(s.d03.id);
+      await criarPacote({ cargaId: c.id, whatsappE164: null });
+      await quatroParaConferir();
+      const r = await api().post(`/api/v1/entregas/cargas/${c.id}/liberar`).set(auth(tokenS1)).send({ confirmarSemAvisos: true });
+      expect(r.status).toBeLessThan(300);
+      expect((await prisma.cargaDistrito.findUniqueOrThrow({ where: { id: c.id } })).status).not.toBe('CARREGADO');
+      expect(cartao((await quadro()).body, 'D-03').paraConferir).toBe(4);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('IT-089 depois de conferir as 4 → paraConferir 0', async () => {
