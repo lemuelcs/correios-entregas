@@ -66,6 +66,104 @@ export interface RespostaLiberacao {
   jaLiberada?: boolean;
 }
 
+// ——— Saídas do dia (ADR-019) ———
+
+/** Motivos de descarte de uma linha do arquivo da saída. */
+export type MotivoSaida =
+  | Motivo
+  | 'sem_rota'
+  | 'rota_invalida'
+  | 'rota_inativa'
+  | 'rota_liberada'
+  | 'rota_em_outra_saida'
+  | 'limite_rota';
+
+/** Linha do arquivo que não entrou: só linha, rota, código e motivo (sem nome nem telefone). */
+export interface DescarteSaida {
+  n: number;
+  rota: string | null;
+  codigo: string;
+  motivo: MotivoSaida;
+  detalhe?: string | null;
+}
+
+export interface SaidaDoDia {
+  id: string;
+  unidadeId: string;
+  unidadeNome: string;
+  numero: number;
+  /** `HH:MM`. */
+  horario: string;
+  arquivoNome: string;
+  importadaEm: string;
+  aceitos: number;
+  descartados: number;
+  /** Ausente na visão de todas as unidades. */
+  descartes?: DescarteSaida[];
+}
+
+/** Cartão de uma rota no dia. `saidaNumero: null` = carga fora de uma saída (aba "Sem saída"). */
+export interface CartaoRota extends CartaoDistrito {
+  saidaNumero: number | null;
+  unidade: { id: string; nome: string };
+}
+
+/** `GET /entregas/saidas`. */
+export interface QuadroSaidas {
+  data: string;
+  somenteLeitura: boolean;
+  /** Todas as unidades juntas (Gestão): só leitura. */
+  agregado: boolean;
+  unidade: { id: string; nome: string } | null;
+  saidas: SaidaDoDia[];
+  proximaSaida: number;
+  rotas: CartaoRota[];
+}
+
+/** `POST /entregas/saidas/importar`. */
+export interface ResultadoImportacaoSaida {
+  saida: SaidaDoDia;
+  reimportacao: boolean;
+  aceitos: number;
+  descartados: number;
+  descartes: DescarteSaida[];
+  rotas: number;
+  rotasCriadas: string[];
+  rotasSemCarteiro: string[];
+  rotasLiberadas: string[];
+  carteirosNaoEncontrados: Array<{ rota: string; valor: string }>;
+  avisos: AvisoPlanilha[];
+}
+
+export type ResultadoLiberacaoRota =
+  | ({ rota: string | null; cargaId: string; ok: true } & RespostaLiberacao)
+  | { rota: string | null; cargaId: string; ok: false; erro: string };
+
+/** `POST /entregas/saidas/liberar`. */
+export interface RespostaLiberacaoLote {
+  resultados: ResultadoLiberacaoRota[];
+  liberadas: number;
+  falhas: number;
+  avisosAgendados: number;
+  agendadoPara?: string;
+}
+
+export interface AtribuicaoCarteiro {
+  distritoId: string;
+  carteiroId: string;
+  definirPadrao?: boolean;
+}
+
+/** `PUT /entregas/saidas/carteiros`. */
+export interface RespostaAtribuicao {
+  resultados: Array<
+    | { distritoId: string; rota: string | null; ok: true; carteiro: { id: string; nome: string | null } | null }
+    | { distritoId: string; rota: string | null; ok: false; erro: string }
+  >;
+  atribuidas: number;
+  falhas: number;
+}
+
 // ——— Carga ———
 
 export type Situacao = 'valida' | 'sem_whatsapp' | 'corrigir' | 'invalida';

@@ -39,6 +39,10 @@ const ERROS: Record<string, string> = {
   pacote_entregue: 'Este pacote já consta como entregue.',
   orientacao_vazia: 'Escreva a orientação para o carteiro.',
   orientacao_longa: 'A orientação passa de 300 caracteres.',
+  horario_obrigatorio: 'Confirme o horário da saída antes de importar.',
+  saida_fora_de_ordem: 'Importe as saídas em ordem: falta a saída anterior.',
+  saida_invalida: 'Número de saída inválido.',
+  unidade_inativa: 'A unidade está desativada.',
   nao_encontrado: 'Registro não encontrado.',
   'Dados inválidos': 'Confira os campos do formulário.',
 };

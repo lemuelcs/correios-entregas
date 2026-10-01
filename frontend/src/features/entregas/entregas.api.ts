@@ -15,7 +15,12 @@ import type {
   PontoRetirada,
   Previa,
   Quadro,
+  QuadroSaidas,
+  AtribuicaoCarteiro,
+  RespostaAtribuicao,
   RespostaLiberacao,
+  RespostaLiberacaoLote,
+  ResultadoImportacaoSaida,
   ResultadoConfirmacao,
   HistoricoPacote,
   SessaoAtendimento,
@@ -57,6 +62,21 @@ export function linhaParaEnvio(l: LinhaPrevia) {
 export const entregasApi = {
   // ——— Monitoramento › Carregar Dados ———
   quadro: (p: { data?: string; unidadeId?: string }) => api.get<Quadro>(`/entregas/quadro${query(p)}`),
+
+  // Saídas do dia (ADR-019). `unidadeId: 'todas'` (Gestão) devolve todas as unidades juntas, só leitura.
+  saidas: (p: { data?: string; unidadeId?: string }) => api.get<QuadroSaidas>(`/entregas/saidas${query(p)}`),
+  /** Importa direto (sem prévia): 400 `horario_obrigatorio` / `coluna_ausente`, 409 `saida_fora_de_ordem`. */
+  importarSaida(p: { arquivo: File; numero: number; horario: string; data?: string; unidadeId?: string }) {
+    const form = new FormData();
+    form.append('numero', String(p.numero));
+    form.append('horario', p.horario);
+    if (p.data) form.append('data', p.data);
+    form.append('arquivo', p.arquivo);
+    return api.postForm<ResultadoImportacaoSaida>(`/entregas/saidas/importar${query({ unidadeId: p.unidadeId })}`, form);
+  },
+  liberarRotas: (cargaIds: string[]) => api.post<RespostaLiberacaoLote>('/entregas/saidas/liberar', { cargaIds }),
+  atribuirCarteiros: (atribuicoes: AtribuicaoCarteiro[], p: { data?: string; unidadeId?: string } = {}) =>
+    api.put<RespostaAtribuicao>(`/entregas/saidas/carteiros${query({ unidadeId: p.unidadeId })}`, { ...(p.data ? { data: p.data } : {}), atribuicoes }),
 
   previaArquivo(distritoId: string, arquivo: File) {
     const form = new FormData();
