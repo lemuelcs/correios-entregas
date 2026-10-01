@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Frontend Entregas
 type: frontend
 complexity: high
@@ -37,15 +37,15 @@ Entrega a interface nova do correios-entregas, seguindo o protótipo validado (h
 </requirements>
 
 ## Subtasks
-- [ ] 7.1 Suporte a `FormData` no cliente de API e os stores Zustand novos com propagação de erro e polling.
-- [ ] 7.2 `EntregasShell`, menu (com versão recolhida) e registro das rotas `/entregas/*`.
-- [ ] 7.3 Redirecionamento por papel no login e a faixa "Protótipo" nos shells legados.
-- [ ] 7.4 Página do quadro de distritos, com filtros, resumo e o diálogo de liberação.
-- [ ] 7.5 Página de carregamento de pacotes (planilha ou colar, prévia, correção, confirmação).
-- [ ] 7.6 Página da lista de pacotes do distrito, com filtros por status e sinalizações.
-- [ ] 7.7 Página de Cadastro com as abas por papel e o carteiro do dia.
-- [ ] 7.8 Página de Atendimento com iframe e alternativa "Abrir em nova aba"; página Rotas "em breve".
-- [ ] 7.9 Playwright configurado, as jornadas de interface e o job de CI.
+- [x] 7.1 Suporte a `FormData` no cliente de API e os stores Zustand novos com propagação de erro e polling.
+- [x] 7.2 `EntregasShell`, menu (com versão recolhida) e registro das rotas `/entregas/*`.
+- [x] 7.3 Redirecionamento por papel no login e a faixa "Protótipo" nos shells legados.
+- [x] 7.4 Página do quadro de distritos, com filtros, resumo e o diálogo de liberação.
+- [x] 7.5 Página de carregamento de pacotes (planilha ou colar, prévia, correção, confirmação).
+- [x] 7.6 Página da lista de pacotes do distrito, com filtros por status e sinalizações.
+- [x] 7.7 Página de Cadastro com as abas por papel e o carteiro do dia.
+- [x] 7.8 Página de Atendimento com iframe e alternativa "Abrir em nova aba"; página Rotas "em breve".
+- [x] 7.9 Playwright configurado, as jornadas de interface e o job de CI.
 
 ## Implementation Details
 Ver TechSpec: "Component Overview" (Frontend Entregas), "API Endpoints" e ADR-015. O protótipo tem as telas de referência (`Main`, `Upload`, `Distrito`, `Cadastro`, `Atendimento`, `Rotas`, `Sgpd`, `Sidebar`). Cópias locais de parte delas estão em `.compozy/tasks/app-carteiro-captura-rotulo/prototipo/`.
@@ -80,17 +80,17 @@ Ver TechSpec: "Component Overview" (Frontend Entregas), "API Endpoints" e ADR-01
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] E2E-005 — menu, Rotas em breve, SGPD v2 e volta
-- [ ] E2E-006 — carregamento de planilha e "28 de 37"
-- [ ] E2E-007 — diálogo de liberação e bloqueios
-- [ ] E2E-008 — Cadastro (distrito, carteiro, ponto)
-- [ ] E2E-009 — Atendimento em iframe e alternativa
-- [ ] E2E-010 — jornada da Gestão (canal, unidade, supervisor)
-- [ ] E2E-011 — tela de 390 px
-- [ ] E2E-012 — polling atualiza o quadro e a lista
-- [ ] E2E-013 — unidade sem distritos
-- [ ] E2E-014 — sessão expirada volta ao módulo
-- [ ] E2E-015 — papéis legados e favoritos antigos
+- [x] E2E-005 — menu, Rotas em breve, SGPD v2 e volta
+- [x] E2E-006 — carregamento de planilha e "28 de 37"
+- [x] E2E-007 — diálogo de liberação e bloqueios
+- [x] E2E-008 — Cadastro (distrito, carteiro, ponto)
+- [x] E2E-009 — Atendimento em iframe e alternativa
+- [x] E2E-010 — jornada da Gestão (canal, unidade, supervisor)
+- [x] E2E-011 — tela de 390 px
+- [x] E2E-012 — polling atualiza o quadro e a lista
+- [x] E2E-013 — unidade sem distritos
+- [x] E2E-014 — sessão expirada volta ao módulo
+- [x] E2E-015 — papéis legados e favoritos antigos
 
 ## Success Criteria
 - Every assigned test case implemented and passing
