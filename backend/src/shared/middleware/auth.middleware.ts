@@ -78,7 +78,13 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
         return;
       }
       // Papel e unidade vêm do banco: um supervisor movido passa a ver só a unidade nova.
-      req.user = { sub: payload.sub, role: estado.role, unidadeId: estado.unidadeId ?? undefined };
+      // O claim `senhaTemporaria` segue do token: `requireSenhaDefinitiva` depende dele.
+      req.user = {
+        sub: payload.sub,
+        role: estado.role,
+        unidadeId: estado.unidadeId ?? undefined,
+        senhaTemporaria: payload.senhaTemporaria,
+      };
       next();
     },
     (err: unknown) => next(err),

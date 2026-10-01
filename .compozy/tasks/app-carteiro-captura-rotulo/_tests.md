@@ -440,7 +440,7 @@ Todos via supertest contra o app em processo, com banco `_test`, espião no ganc
 - **IT-042**: `POST /auth/refresh` duas vezes seguidas, usando o token devolvido a cada vez → as duas dão 200. Reusar o primeiro token → 401.
 - **IT-043**: matrícula inexistente → 401 com a mensagem "Matrícula ou senha incorretas"; matrícula certa e senha errada → a mesma resposta.
 - **IT-044**: 5 senhas erradas → a 6ª tentativa, mesmo correta, dá 423 `acesso_bloqueado`.
-- **IT-045**: `ativo=false` → login 403 `acesso_desativado`; um access token já emitido → a próxima chamada dá 403.
+- **IT-045**: `ativo=false` → login 403 `acesso_desativado`; um access token já emitido → a próxima chamada dá 401 (recusa do `authenticate` do monitoramento, que é o dono desse comportamento).
 - **IT-046** S1 `PUT /api/v1/entregas/captura/carteiros/C1/senha {senha: 'Temp@2026'}` → 204; C1 entra com ela e `senhaTemporaria = true`.
 - **IT-047**: S1 redefine a senha de C1 → os refresh tokens de C1 são revogados (o refresh anterior dá 401).
 - **IT-048**: `PUT .../senha {senha: '123'}` → 400 `senha_fraca`.

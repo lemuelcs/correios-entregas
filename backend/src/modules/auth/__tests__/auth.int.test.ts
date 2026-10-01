@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import { app } from '../../../app';
 import { prisma } from '../../../shared/utils/prisma';
-import { authenticate, requireSenhaDefinitiva } from '../../../shared/middleware/auth.middleware';
+import { authenticate, invalidarCacheUsuario, requireSenhaDefinitiva } from '../../../shared/middleware/auth.middleware';
 import { errorHandler } from '../../../shared/middleware/error-handler.middleware';
 import {
   criarCarteiroComLogin,
@@ -94,10 +94,21 @@ describe('auth (HTTP)', () => {
     expect(r.body.details).toEqual({ code: 'acesso_desativado' });
   });
 
-  // A recusa de um access token já emitido é do `authenticate`, que a task_03 do
-  // monitoramento-entregas-whatsapp faz recusar usuário inativo; ela ainda não está
-  // mergeada nesta branch. Habilitar quando chegar.
-  it.todo('IT-045 ativo=false → um access token já emitido dá 403 na próxima chamada (depende da task_03 do monitoramento)');
+  // A recusa de um token já emitido é do `authenticate` do monitoramento (task_03 de
+  // lá), que responde 401 "Usuário inativo ou inexistente"; o contrato da captura segue o dele.
+  it('IT-045 ativo=false → um access token já emitido dá 401 na próxima chamada', async () => {
+    const { usuario } = await criarCarteiroComLogin({ unidadeId });
+    const entrada = await login(usuario.matricula!, SENHA_PADRAO);
+    expect(entrada.status).toBe(200);
+    const auth = { Authorization: `Bearer ${entrada.body.accessToken}` };
+    expect((await request(app).get('/api/v1/auth/me').set(auth).set('Connection', 'close')).status).toBe(200);
+
+    await prisma.usuario.update({ where: { id: usuario.id }, data: { ativo: false } });
+    invalidarCacheUsuario(usuario.id);
+
+    const depois = await request(app).get('/api/v1/auth/me').set(auth).set('Connection', 'close');
+    expect(depois.status).toBe(401);
+  });
 
   describe('troca de senha e requireSenhaDefinitiva', () => {
     // App mínimo: a rota /captura (com requireSenhaDefinitiva) é da task_02.
