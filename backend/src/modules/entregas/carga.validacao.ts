@@ -12,7 +12,7 @@
  * As consultas ao banco são injetadas (`ConsultasValidacao`) para que a regra
  * seja testável sem banco; `consultasPrisma` é a implementação real.
  */
-import type { TipoOrientacao } from '@prisma/client';
+import type { Prisma, TipoOrientacao } from '@prisma/client';
 import { normalizeS10, validateS10 } from '../../shared/utils/s10';
 import { normalizarTelefone, TelefoneInvalido } from '../../shared/utils/telefone';
 import { prisma } from '../../shared/utils/prisma';
@@ -193,12 +193,23 @@ export function resumir(linhas: LinhaClassificada[]): ResumoClassificacao {
   };
 }
 
-/** Consultas reais para o distrito `distrito` na `data`. */
-export function consultasPrisma(opcoes: { data: Date; unidadeId: string }): ConsultasValidacao {
+/**
+ * Consultas reais para a unidade na `data`. `db` aceita o cliente de uma
+ * transação; `ignorarCargaIds` tira da conta de "já está no dia" os pacotes das
+ * cargas que a importação da saída vai substituir (ADR-019).
+ */
+export function consultasPrisma(opcoes: {
+  data: Date;
+  unidadeId: string;
+  db?: Prisma.TransactionClient;
+  ignorarCargaIds?: string[];
+}): ConsultasValidacao {
+  const db = opcoes.db ?? prisma;
+  const ignorar = opcoes.ignorarCargaIds ?? [];
   return {
     async codigosNoDia(codigos) {
-      const existentes = await prisma.pacoteDia.findMany({
-        where: { data: opcoes.data, codigo: { in: codigos } },
+      const existentes = await db.pacoteDia.findMany({
+        where: { data: opcoes.data, codigo: { in: codigos }, ...(ignorar.length ? { cargaId: { notIn: ignorar } } : {}) },
         select: { codigo: true, carga: { select: { distrito: { select: { codigo: true, unidadeId: true } } } } },
       });
       return new Map(existentes.map((p) => [
@@ -207,14 +218,14 @@ export function consultasPrisma(opcoes: { data: Date; unidadeId: string }): Cons
       ]));
     },
     async descadastrados(numeros) {
-      const lista = await prisma.descadastroWhatsapp.findMany({
+      const lista = await db.descadastroWhatsapp.findMany({
         where: { whatsappE164: { in: numeros } },
         select: { whatsappE164: true },
       });
       return new Set(lista.map((d) => d.whatsappE164));
     },
     async orientacoesGuardadas(codigos) {
-      const lista = await prisma.orientacao.findMany({
+      const lista = await db.orientacao.findMany({
         where: {
           codigo: { in: codigos },
           estado: 'GUARDADA',

@@ -76,6 +76,11 @@ export interface RespostaLiberacao {
   jaLiberada?: boolean;
 }
 
+/** Resultado de uma rota na liberação em lote. `erro` é o código do bloqueio (ex.: `sem_carteiro`). */
+export type ResultadoLiberacaoRota =
+  | ({ cargaId: string; ok: true } & RespostaLiberacao)
+  | { cargaId: string; ok: false; erro: string };
+
 export interface OpcoesLiberar {
   usuarioId?: string;
   confirmarSemAvisos?: boolean;
@@ -135,13 +140,13 @@ export class LiberacaoService {
       where: { cargaId },
       select: { id: true, status: true, whatsappE164: true },
     });
-    if (pacotes.length === 0) throw new AppError(409, 'carga_vazia', { mensagem: 'Distrito sem encomendas' });
+    if (pacotes.length === 0) throw new AppError(409, 'carga_vazia', { mensagem: 'Rota sem encomendas' });
     const semWhatsapp = pacotes.filter((p) => !p.whatsappE164).length;
 
     if (carga.status !== 'CARREGADO') return { avisosAgendados: 0, semWhatsapp, descadastrados: 0, jaLiberada: true };
 
     const carteiro = await this.carteiroParaLiberar(carga.distritoId, carga.data, carga.distrito.carteiroPadrao);
-    if (!carteiro) throw new AppError(409, 'sem_carteiro', { mensagem: 'Distrito sem carteiro no dia' });
+    if (!carteiro) throw new AppError(409, 'sem_carteiro', { mensagem: 'Rota sem carteiro no dia' });
 
     const aguardando = pacotes.filter((p) => p.whatsappE164 && p.status === 'AGUARDANDO_LIBERACAO');
     const descadastrados = await this.descadastrados(aguardando.map((p) => p.whatsappE164!));
@@ -221,6 +226,26 @@ export class LiberacaoService {
       descadastrados: bloqueados.length,
       ...(agendamento.agendadoPara ? { agendadoPara: agendamento.agendadoPara.toISOString() } : {}),
     };
+  }
+
+  /**
+   * Liberação em lote (ADR-019): libera cada carga com a mesma regra da
+   * liberação de uma rota (idempotência, adiamento noturno, bloqueios) e
+   * devolve o resultado de cada uma. Uma falha não interrompe as demais. Não
+   * aceita `confirmarSemAvisos`: rota sem destinatário avisável falha com
+   * `nenhum_destinatario` e é liberada sozinha, com a confirmação explícita.
+   */
+  async liberarVarias(cargaIds: readonly string[], opcoes: Pick<OpcoesLiberar, 'usuarioId'> = {}): Promise<ResultadoLiberacaoRota[]> {
+    const resultados: ResultadoLiberacaoRota[] = [];
+    for (const cargaId of [...new Set(cargaIds)]) {
+      try {
+        resultados.push({ cargaId, ok: true, ...(await this.liberar(cargaId, { usuarioId: opcoes.usuarioId })) });
+      } catch (err) {
+        if (!(err instanceof AppError)) throw err;
+        resultados.push({ cargaId, ok: false, erro: err.message });
+      }
+    }
+    return resultados;
   }
 
   /** Carteiro do dia para a liberação: troca do dia, senão o padrão; precisa estar ativo. */

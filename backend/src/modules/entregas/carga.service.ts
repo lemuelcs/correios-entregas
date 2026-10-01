@@ -71,7 +71,7 @@ export const cargaInternos = {
   },
 };
 
-function dadosDoPacote(l: LinhaClassificada, cargaId: string, data: Date): Prisma.PacoteDiaCreateManyInput {
+export function dadosDoPacote(l: LinhaClassificada, cargaId: string, data: Date): Prisma.PacoteDiaCreateManyInput {
   // `corrigir` sem correção entra como "sem WhatsApp".
   const whatsappE164 = l.situacao === 'valida' ? l.whatsapp : null;
   return {
@@ -165,14 +165,48 @@ export interface FiltrosQuadro {
   busca?: string;
 }
 
-export async function montarQuadro(unidadeId: string, data: Date, filtros: FiltrosQuadro = {}, agora = new Date()) {
+/** Cartão de uma rota (distrito) no dia: o que o quadro e as saídas mostram. */
+export interface CartaoRota {
+  distritoId: string;
+  codigo: string;
+  nome: string;
+  ativo: boolean;
+  cargaId: string | null;
+  carteiro: { id: string; nome: string | null } | null;
+  semCarteiro: boolean;
+  status: StatusQuadro;
+  total: number;
+  comWhatsapp: number;
+  porStatus: ContagemPorStatus;
+  escalonamentos: number;
+  liberadoEm: Date | null;
+  paraConferir: number;
+  transferencias: { entrada: unknown[]; saida: unknown[] };
+}
+
+export interface CartaoRotaDoDia {
+  cartao: CartaoRota;
+  /** Saída que trouxe a rota (ADR-019); `null` = carga sem saída ou rota sem carga. */
+  saida: { id: string; numero: number } | null;
+  unidade: { id: string; nome: string };
+}
+
+/**
+ * Cartões das rotas que casam com `where` na `data`. Carteiro do cartão:
+ * snapshot da liberação → carteiro do dia (`EscalaDistrito`) → carteiro padrão.
+ */
+export async function cartoesDoDia(where: Prisma.DistritoWhereInput, data: Date, agora = new Date()): Promise<CartaoRotaDoDia[]> {
   const distritos = await prisma.distrito.findMany({
-    where: { unidadeId, OR: [{ ativo: true }, { cargas: { some: { data } } }] },
+    where,
     orderBy: { codigo: 'asc' },
     include: {
+      unidade: { select: { id: true, nome: true } },
       carteiroPadrao: { select: { id: true, nome: true, ativo: true } },
       escalas: { where: { data }, include: { carteiro: { select: { id: true, nome: true, ativo: true } } } },
-      cargas: { where: { data }, include: { carteiro: { select: { id: true, nome: true, ativo: true } } } },
+      cargas: {
+        where: { data },
+        include: { carteiro: { select: { id: true, nome: true, ativo: true } }, saida: { select: { id: true, numero: true } } },
+      },
     },
   });
 
@@ -199,7 +233,7 @@ export async function montarQuadro(unidadeId: string, data: Date, filtros: Filtr
     transferenciasPorDistrito(distritos.flatMap((d) => d.cargas.map((c) => ({ id: c.id, distritoId: d.id })))),
   ]);
 
-  const cartoes = distritos.map((d) => {
+  return distritos.map((d) => {
     const carga = d.cargas[0] ?? null;
     const porStatus = carga ? porStatusDe.get(carga.id) ?? {} : {};
     const total = Object.values(porStatus).reduce((a, n) => a + (n ?? 0), 0);
@@ -208,23 +242,32 @@ export async function montarQuadro(unidadeId: string, data: Date, filtros: Filtr
     const carteiro = carteiroDoDia && carteiroDoDia.ativo ? { id: carteiroDoDia.id, nome: carteiroDoDia.nome } : null;
     const status: StatusQuadro = derivarStatusCarga({ carga, porStatus, agora });
     return {
-      distritoId: d.id,
-      codigo: d.codigo,
-      nome: d.nome,
-      ativo: d.ativo,
-      cargaId: carga?.id ?? null,
-      carteiro,
-      semCarteiro: carteiro === null,
-      status,
-      total,
-      comWhatsapp: carga ? whatsDe.get(carga.id) ?? 0 : 0,
-      porStatus,
-      escalonamentos: carga ? escalDe.get(carga.id) ?? 0 : 0,
-      liberadoEm: carga?.liberadoEm ?? null,
-      paraConferir: pendenciasDe.get(d.id) ?? 0,
-      transferencias: transferenciasDe.get(d.id) ?? { entrada: [], saida: [] },
+      cartao: {
+        distritoId: d.id,
+        codigo: d.codigo,
+        nome: d.nome,
+        ativo: d.ativo,
+        cargaId: carga?.id ?? null,
+        carteiro,
+        semCarteiro: carteiro === null,
+        status,
+        total,
+        comWhatsapp: carga ? whatsDe.get(carga.id) ?? 0 : 0,
+        porStatus,
+        escalonamentos: carga ? escalDe.get(carga.id) ?? 0 : 0,
+        liberadoEm: carga?.liberadoEm ?? null,
+        paraConferir: pendenciasDe.get(d.id) ?? 0,
+        transferencias: transferenciasDe.get(d.id) ?? { entrada: [], saida: [] },
+      },
+      saida: carga?.saida ?? null,
+      unidade: d.unidade,
     };
   });
+}
+
+export async function montarQuadro(unidadeId: string, data: Date, filtros: FiltrosQuadro = {}, agora = new Date()) {
+  const doDia = await cartoesDoDia({ unidadeId, OR: [{ ativo: true }, { cargas: { some: { data } } }] }, data, agora);
+  const cartoes = doDia.map((c) => c.cartao);
 
   let filtrados = cartoes;
   if (filtros.status) {
@@ -240,7 +283,7 @@ export async function montarQuadro(unidadeId: string, data: Date, filtros: Filtr
   return {
     data: formatarData(data),
     somenteLeitura: data.getTime() < hojeBrasilia(agora).getTime(),
-    semDistritos: !distritos.some((d) => d.ativo),
+    semDistritos: !cartoes.some((c) => c.ativo),
     distritos: filtrados,
   };
 }

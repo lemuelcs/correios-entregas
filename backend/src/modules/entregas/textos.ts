@@ -258,13 +258,13 @@ export interface ItemResumo {
 /**
  * Resumo das orientações conhecidas, em mensagens de até 20 itens numeradas
  * "1/2", "2/2" (US-023.EC-1). Nenhuma orientação → nenhuma mensagem.
- * `troca`: o carteiro assumiu o distrito depois da liberação (US-005.AC-3).
+ * `troca`: o carteiro assumiu a rota depois da liberação (US-005.AC-3).
  */
 export function montarResumoCarteiro(itens: readonly ItemResumo[], opcoes: { troca?: boolean } = {}): string[] {
   if (itens.length === 0) return [];
   const total = Math.ceil(itens.length / TAMANHO_BLOCO_RESUMO);
   const titulo = opcoes.troca
-    ? 'Você assumiu o distrito hoje. Orientações pendentes'
+    ? 'Você assumiu a rota hoje. Orientações pendentes'
     : 'Orientações de hoje';
   const mensagens: string[] = [];
   for (let b = 0; b < total; b += 1) {

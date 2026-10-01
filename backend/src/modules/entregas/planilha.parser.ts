@@ -8,6 +8,10 @@
  * - Cabeçalhos equivalentes (PRD › Validação da lista) são reconhecidos sem
  *   acento e sem diferença de caixa.
  *
+ * O arquivo da saída (ADR-019) traz todas as rotas da unidade: ganha a coluna
+ * obrigatória `rota` e a opcional `carteiro` (matrícula ou nome), e limites
+ * próprios (5.000 linhas, 5 MB). O limite de 500 continua valendo por rota.
+ *
  * Só lê: a validação (S10, WhatsApp, duplicidade…) é do `carga.validacao.ts`.
  */
 import ExcelJS from 'exceljs';
@@ -15,6 +19,16 @@ import Papa from 'papaparse';
 
 export const MAX_LINHAS = 500;
 export const MAX_BYTES_ARQUIVO = 2 * 1024 * 1024;
+/** Arquivo da saída (todas as rotas da unidade): até 5.000 linhas e 5 MB. Por rota, valem as 500 de `MAX_LINHAS`. */
+export const MAX_LINHAS_SAIDA = 5000;
+export const MAX_BYTES_ARQUIVO_SAIDA = 5 * 1024 * 1024;
+
+export interface OpcoesLeitura {
+  /** Máximo de linhas de dados (padrão: `MAX_LINHAS`). */
+  maxLinhas?: number;
+  /** Arquivo da saída: sem a coluna `rota` → `coluna_ausente`. */
+  exigirRota?: boolean;
+}
 
 export type CodigoParserErro =
   | 'coluna_ausente'
@@ -58,6 +72,10 @@ export interface LinhaLida extends CamposEndereco {
   whatsapp: string | null;
   /** Linha colada com campos a menos (só o código, por exemplo). */
   faltamCampos?: boolean;
+  /** Código da rota (só quando a planilha tem a coluna `rota`). */
+  rota?: string | null;
+  /** Matrícula ou nome do carteiro da rota (só quando a planilha tem a coluna `carteiro`). */
+  carteiro?: string | null;
 }
 
 export interface ResultadoLeitura {
@@ -67,7 +85,7 @@ export interface ResultadoLeitura {
 
 export type FormatoArquivo = 'csv' | 'xlsx';
 
-type Campo = 'codigo' | 'nome' | 'whatsapp' | 'endereco' | keyof Omit<CamposEndereco, 'enderecoTexto'>;
+type Campo = 'codigo' | 'nome' | 'whatsapp' | 'endereco' | 'rota' | 'carteiro' | keyof Omit<CamposEndereco, 'enderecoTexto'>;
 
 /** Cabeçalhos aceitos, já normalizados (sem acento, minúsculos, só letras e dígitos). */
 const CABECALHOS: Record<string, Campo> = {};
@@ -85,6 +103,8 @@ aceitar('bairro', ['bairro']);
 aceitar('cidade', ['cidade', 'município', 'municipio', 'localidade']);
 aceitar('uf', ['uf', 'estado']);
 aceitar('cep', ['cep']);
+aceitar('rota', ['rota', 'código da rota', 'codigo da rota', 'cód rota', 'cod rota', 'número da rota', 'numero da rota', 'nº da rota', 'nº rota', 'distrito', 'código do distrito', 'codigo do distrito', 'cod distrito']);
+aceitar('carteiro', ['carteiro', 'matrícula', 'matricula', 'matrícula do carteiro', 'matricula do carteiro', 'matricula carteiro', 'nome do carteiro', 'carteiro da rota', 'entregador']);
 aceitar('referencia', ['referência', 'referencia', 'ponto de referência', 'ponto de referencia', 'observação', 'observacao', 'obs']);
 
 const CAMPOS_ENDERECO_ESTRUTURADO: Campo[] = ['logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'cep'];
@@ -121,7 +141,8 @@ function mapearCabecalho(celulas: string[]): Mapa {
   return mapa;
 }
 
-function montarLinhas(mapa: Mapa, dados: Array<{ n: number; celulas: string[] }>): ResultadoLeitura {
+function montarLinhas(mapa: Mapa, dados: Array<{ n: number; celulas: string[] }>, opcoes: OpcoesLeitura = {}): ResultadoLeitura {
+  if (opcoes.exigirRota && mapa.rota === undefined) throw new ParserErro('coluna_ausente', { coluna: 'rota' });
   if (mapa.codigo === undefined) throw new ParserErro('coluna_ausente', { coluna: 'codigo' });
   if (mapa.nome === undefined) throw new ParserErro('coluna_ausente', { coluna: 'nome' });
 
@@ -154,22 +175,24 @@ function montarLinhas(mapa: Mapa, dados: Array<{ n: number; celulas: string[] }>
     cep: pegar(celulas, 'cep'),
     enderecoTexto: enderecoComoLogradouro ? null : pegar(celulas, 'endereco'),
     referencia: pegar(celulas, 'referencia'),
+    ...(mapa.rota !== undefined ? { rota: pegar(celulas, 'rota') } : {}),
+    ...(mapa.carteiro !== undefined ? { carteiro: pegar(celulas, 'carteiro') } : {}),
   }));
   return { linhas, avisos };
 }
 
 /** Separa cabeçalho e dados, aplicando os limites. */
-function comCabecalho(linhas: Array<{ n: number; celulas: string[] }>): ResultadoLeitura {
+function comCabecalho(linhas: Array<{ n: number; celulas: string[] }>, opcoes: OpcoesLeitura = {}): ResultadoLeitura {
   if (linhas.length === 0) throw new ParserErro('nenhuma_encomenda');
   const [cabecalho, ...dados] = linhas;
   const mapa = mapearCabecalho(cabecalho.celulas);
-  const resultado = montarLinhas(mapa, dados);
+  const resultado = montarLinhas(mapa, dados, opcoes);
   if (dados.length === 0) throw new ParserErro('nenhuma_encomenda');
   return resultado;
 }
 
-function verificarLimite(qtdDados: number): void {
-  if (qtdDados > MAX_LINHAS) throw new ParserErro('limite_linhas', { max: MAX_LINHAS });
+function verificarLimite(qtdDados: number, max = MAX_LINHAS): void {
+  if (qtdDados > max) throw new ParserErro('limite_linhas', { max });
 }
 
 // ——— CSV e texto ——————————————————————————————————————————————————
@@ -182,7 +205,7 @@ export function adivinharSeparador(texto: string): string {
   return ',';
 }
 
-function lerTabela(texto: string): Array<{ n: number; celulas: string[] }> {
+function lerTabela(texto: string, max = MAX_LINHAS): Array<{ n: number; celulas: string[] }> {
   const limpo = texto.replace(/^\uFEFF/, '');
   const resultado = Papa.parse<string[]>(limpo, {
     delimiter: adivinharSeparador(limpo),
@@ -195,7 +218,7 @@ function lerTabela(texto: string): Array<{ n: number; celulas: string[] }> {
     if (linhaVazia(celulas)) return;
     linhas.push({ n: i + 1, celulas });
     // cabeçalho + 500 dados: a 502ª linha não vazia já estoura
-    if (linhas.length > MAX_LINHAS + 1) throw new ParserErro('limite_linhas', { max: MAX_LINHAS });
+    if (linhas.length > max + 1) throw new ParserErro('limite_linhas', { max });
   });
   return linhas;
 }
@@ -209,11 +232,12 @@ export function decodificarTexto(buffer: Buffer): string {
   }
 }
 
-export function lerCsv(conteudo: Buffer | string): ResultadoLeitura {
+export function lerCsv(conteudo: Buffer | string, opcoes: OpcoesLeitura = {}): ResultadoLeitura {
   const texto = typeof conteudo === 'string' ? conteudo : decodificarTexto(conteudo);
-  const linhas = lerTabela(texto);
-  verificarLimite(Math.max(0, linhas.length - 1));
-  return comCabecalho(linhas);
+  const max = opcoes.maxLinhas ?? MAX_LINHAS;
+  const linhas = lerTabela(texto, max);
+  verificarLimite(Math.max(0, linhas.length - 1), max);
+  return comCabecalho(linhas, opcoes);
 }
 
 const PADRAO_S10 = /^[A-Za-z]{2}\s?\d{8}\s?\d\s?[A-Za-z]{2}$/;
@@ -293,7 +317,8 @@ export function textoDaCelula(valor: ExcelJS.CellValue): string {
   return '';
 }
 
-export async function lerXlsx(buffer: Buffer): Promise<ResultadoLeitura> {
+export async function lerXlsx(buffer: Buffer, opcoes: OpcoesLeitura = {}): Promise<ResultadoLeitura> {
+  const max = opcoes.maxLinhas ?? MAX_LINHAS;
   const livro = new ExcelJS.Workbook();
   try {
     await livro.xlsx.load(buffer as unknown as ArrayBuffer);
@@ -311,11 +336,11 @@ export async function lerXlsx(buffer: Buffer): Promise<ResultadoLeitura> {
     for (let c = 0; c < celulas.length; c += 1) celulas[c] ??= '';
     if (linhaVazia(celulas)) return;
     linhas.push({ n: numero, celulas });
-    if (linhas.length > MAX_LINHAS + 1) throw new ParserErro('limite_linhas', { max: MAX_LINHAS });
+    if (linhas.length > max + 1) throw new ParserErro('limite_linhas', { max });
   });
 
-  verificarLimite(Math.max(0, linhas.length - 1));
-  const resultado = comCabecalho(linhas);
+  verificarLimite(Math.max(0, linhas.length - 1), max);
+  const resultado = comCabecalho(linhas, opcoes);
   if (livro.worksheets.length > 1) resultado.avisos.unshift('varias_abas');
   return resultado;
 }
@@ -341,7 +366,15 @@ export function detectarFormato(nomeArquivo: string, mimetype: string, buffer: B
   throw new ParserErro('formato_nao_suportado');
 }
 
-export async function lerArquivo(arquivo: { buffer: Buffer; originalname: string; mimetype: string }): Promise<ResultadoLeitura> {
+export async function lerArquivo(
+  arquivo: { buffer: Buffer; originalname: string; mimetype: string },
+  opcoes: OpcoesLeitura = {},
+): Promise<ResultadoLeitura> {
   const formato = detectarFormato(arquivo.originalname, arquivo.mimetype, arquivo.buffer);
-  return formato === 'xlsx' ? lerXlsx(arquivo.buffer) : lerCsv(arquivo.buffer);
+  return formato === 'xlsx' ? lerXlsx(arquivo.buffer, opcoes) : lerCsv(arquivo.buffer, opcoes);
+}
+
+/** Arquivo da saída (ADR-019): coluna `rota` obrigatória, até `MAX_LINHAS_SAIDA` linhas. */
+export async function lerArquivoSaida(arquivo: { buffer: Buffer; originalname: string; mimetype: string }): Promise<ResultadoLeitura> {
+  return lerArquivo(arquivo, { maxLinhas: MAX_LINHAS_SAIDA, exigirRota: true });
 }
