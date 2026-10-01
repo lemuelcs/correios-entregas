@@ -16,7 +16,8 @@ import { registrarRotasAtendimento, registrarRotasCadastro } from './cadastro.ro
 import { registrarRotasOrientacao } from './orientacao.routes';
 import { parserWebhookProsio, registrarRotasProsio, ROTA_WEBHOOK_PROSIO } from './prosio-entrada.routes';
 
-// task_06 (liberação/orientação/Prosio): import { registrarRotas… } from './….routes';
+// task_06 (liberação e avisos):
+import { registrarRotasLiberacao } from './liberacao.controller';
 
 const rotasPublicas = Router();
 const rotasAutenticadas = Router();
@@ -35,7 +36,7 @@ registrarRotasAtendimento(rotasAutenticadas);
 
 registrarRotasOrientacao(rotasAutenticadas); // task_05: orientação manual (US-026)
 
-// task_06: registrarRotas…(rotasAutenticadas);
+registrarRotasLiberacao(rotasAutenticadas); // task_06: liberação do distrito (US-011)
 
 export const entregasRoutes = Router();
 entregasRoutes.use(rotasPublicas);
