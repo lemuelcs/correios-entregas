@@ -41,7 +41,8 @@ O schema passa a ter migrations versionadas a partir de uma linha de base (ADR-0
 | Componente | Local | Responsabilidade |
 |---|---|---|
 | **Cadastro** | `modules/entregas/cadastro.*` | Distritos, carteiros, carteiro do dia (`EscalaDistrito`), pontos de retirada. Unidades e supervisores estendem `modules/gestao` (canal Prosio, `mediacaoAtiva`). |
-| **Carga** | `modules/entregas/carga.*`, `planilha.parser.ts` | Prévia sem estado (planilha ou texto), confirmação, quadro do dia, lista de pacotes do distrito, derivação de status. |
+| **Carga** | `modules/entregas/carga.*`, `planilha.parser.ts` | Prévia sem estado (planilha ou texto), confirmação, quadro do dia, lista de pacotes do distrito, derivação de status. Desde o ADR-019, a prévia e a confirmação por distrito servem a "Adicionar pacotes" numa rota. |
+| **Saídas** (ADR-019) | `modules/entregas/saida.*` | Importação direta do arquivo da saída (todas as rotas da unidade), resumo de descartes, reimportação das rotas não liberadas, criação de rota, carteiro da rota, listagem das saídas do dia (por unidade ou agregada) e atribuição de carteiros. A liberação em lote fica em `liberacao.service.ts` (`liberarVarias`). |
 | **Liberação** | `modules/entregas/liberacao.service.ts` | Libera o distrito: enfileira avisos (com adiamento noturno), resumo ao carteiro e abertura dos casos de mediação. Idempotente. |
 | **Orientação** | `modules/entregas/orientacao.service.ts` | Máquina de estados da orientação: criar, substituir, guardar para o próximo dia, enviar ao carteiro, registrar Vi/Feito/Não foi possível, orientação manual. |
 | **Entrada Prosio** | `modules/entregas/prosio-entrada.*` | Webhook assinado (status de mensagem e `mediation.outcome`) e ações de botão (`CE_OP`, `CE_PT`, `CE_SN`, `CE_CT`). |
@@ -175,9 +176,26 @@ model EscalaDistrito {                   // carteiro do dia (troca só hoje)
   @@id([distritoId, data])
 }
 
+// ADR-019: saída do dia da unidade. Um arquivo por saída, com todas as rotas.
+model Saida {
+  id String @id @default(uuid())
+  unidadeId String
+  data DateTime @db.Date
+  numero Int
+  horario String @db.Char(5)             // HH:MM
+  arquivoNome String
+  importadaEm DateTime
+  importadaPorId String?
+  aceitos Int @default(0)
+  descartados Int @default(0)
+  descartes Json @default("[]")          // [{n, rota, codigo, motivo, detalhe?}] — sem nome nem telefone
+  @@unique([unidadeId, data, numero])
+}
+
 model CargaDistrito {
   id String @id @default(uuid())
   distritoId String
+  saidaId String?                        // ADR-019; null = carga fora de uma saída (captura do rótulo, lista por rota)
   data DateTime @db.Date
   status StatusCarga @default(CARREGADO)
   carteiroId String?                     // snapshot na liberação
@@ -251,8 +269,8 @@ model WebhookRecebido { chave String @id recebidoEm DateTime @default(now()) }
 
 | Dado | Regra |
 |---|---|
-| Quadro — pendente de upload | Não existe `CargaDistrito` do dia (ou ela tem 0 pacotes). |
-| Quadro — dados carregados | `CARREGADO`. |
+| Quadro — pendente de upload | Não existe `CargaDistrito` do dia (ou ela tem 0 pacotes). Só no `GET /quadro` legado: no quadro das saídas (ADR-019) a rota só aparece quando tem carga, e a carga sem pacote conta como carregada. |
+| Quadro — dados carregados ("Carregada" na interface) | `CARREGADO`. |
 | Quadro — liberado | Liberado sem nenhum aviso `ENVIADO` ainda. |
 | Quadro — em entrega | Liberado com algum aviso `ENVIADO` ou além. |
 | Quadro — concluído | Todos os pacotes `ENTREGUE`, `INSUCESSO`, `SEM_WHATSAPP` com status final do rastreio, ou `NAO_ENVIADO` após as 20h. |
@@ -282,6 +300,10 @@ Todos sob `/api/v1/entregas`. O JWT é obrigatório, exceto em `prosio/*`.
 
 | Método e rota | Papel | Corpo / resposta |
 |---|---|---|
+| `GET /saidas?data=&unidadeId=` | UNIDADE/GESTAO | (ADR-019) `{data, somenteLeitura, agregado, unidade, saidas: [{id, unidadeId, unidadeNome, numero, horario, arquivoNome, importadaEm, aceitos, descartados, descartes?}], proximaSaida, rotas: [{…cartão do quadro, saidaNumero, unidade}]}`. Supervisor: só a própria unidade. Gestão: sem `unidadeId` ou com `todas` → todas as unidades ativas, sem `descartes`. `saidaNumero: null` = carga sem saída. |
+| `POST /saidas/importar?unidadeId=` | UNIDADE/GESTAO | (ADR-019) Multipart `arquivo` (CSV/XLSX, ≤5 MB, ≤5.000 linhas, coluna `rota` obrigatória), `numero`, `horario` (HH:MM), `data?` → `201 {saida, reimportacao, aceitos, descartados, descartes, rotas, rotasCriadas, rotasSemCarteiro, rotasLiberadas, carteirosNaoEncontrados, avisos}`. Grava direto. Sem horário → 400 `horario_obrigatorio`; sem a coluna → 400 `coluna_ausente`; saída fora de ordem → 409 `saida_fora_de_ordem`; data anterior → 409 `somente_leitura`; Gestão sem unidade → 400 `unidade_obrigatoria`. |
+| `PUT /saidas/carteiros?unidadeId=` | UNIDADE/GESTAO | (ADR-019) `{data?, atribuicoes: [{distritoId, carteiroId, definirPadrao?}]}` → `{resultados: [{distritoId, rota, ok, carteiro? \| erro?}], atribuidas, falhas}`. Grava o carteiro do dia (`EscalaDistrito`) e, se pedido, o padrão da rota. |
+| `POST /saidas/liberar` | UNIDADE | (ADR-019) `{cargaIds}` → `{resultados: [{rota, cargaId, ok, avisosAgendados?, semWhatsapp?, descadastrados?, agendadoPara?, jaLiberada? \| erro?}], liberadas, falhas, avisosAgendados, agendadoPara?}`. Aplica `liberar` a cada carga; carga de outra unidade → `nao_encontrado` no item. |
 | `GET /quadro?data=YYYY-MM-DD` | UNIDADE/GESTAO | `{distritos: [{distritoId, codigo, nome, carteiro, status, total, comWhatsapp, porStatus: {…}, escalonamentos}]}` |
 | `POST /cargas/:distritoId/previa` | UNIDADE | Multipart `arquivo` (CSV/XLSX, ≤2 MB) **ou** `{texto}` → `{linhas: [{n, codigo, nome, whatsapp, endereco…, situacao, motivo?, orientacaoGuardada?}], resumo}`. Arquivo de outro tipo → 415; mais de 500 linhas → 413; coluna obrigatória ausente → 400 `coluna_ausente`. |
 | `POST /cargas/:distritoId/confirmar` | UNIDADE | `{data, linhas}` → `{aceitos, descartados, cargaId}`. Revalida tudo. Código já em outro distrito no dia → a linha é descartada com motivo. Se a carga já foi liberada, as linhas novas com WhatsApp são avisadas na hora. |
@@ -468,6 +490,7 @@ As propostas de conhecimento (`conhecimento`) são gravadas em `EventoPacote` e 
 - **Shell novo com polling (ADR-015):** troca de até 30 s de atraso na tela.
 - **Rastreio adaptativo e S10 corrigido (ADR-016):** escolha do dono do produto pelo custo.
 - **Planilha no servidor (ADR-017):** uma validação só.
+- **Carga por saída, importação direta (ADR-019):** um arquivo por unidade por saída, sem prévia; troca a correção na tela pelo resumo "N aceitos, M descartados" gravado com a saída. A reimportação atualiza no lugar os pacotes das rotas não liberadas (transação única, com trava consultiva por unidade e dia). O banco mantém `Distrito`/`CargaDistrito`; "rota" é só o nome na interface.
 - **Motivo do "Não foi possível" por botões**, em vez de texto livre: o texto do carteiro cairia na desambiguação da mediação. Pequeno desvio do US-022.AC-2, que pedia texto curto.
 
 ### Known Risks
@@ -501,6 +524,10 @@ As propostas de conhecimento (`conhecimento`) são gravadas em `EventoPacote` e 
 | US-026 | Carga (`POST /pacotes/:id/orientacao`) + Orientação |
 | US-027–US-029 | Atendimento + Prosio P1–P3 |
 | US-036–US-039 | Frontend Entregas (shell, rotas, quadro, lista de pacotes, SGPD v2) |
+| US-041–US-043 | Saídas (`POST /saidas/importar`, `GET /saidas`) + parser (`rota`, `carteiro`) + CarregarDadosPage |
+| US-044 | Saídas (`PUT /saidas/carteiros`) + Cadastro (`definirEscala`) + modal "Atribuir carteiros" |
+| US-045 | Liberação (`liberarVarias`, `POST /saidas/liberar`) |
+| US-046 | Saídas (escopo: `unidadeId=todas` para a Gestão) + CarregarDadosPage |
 
 **Metas do PRD:**
 
@@ -535,3 +562,4 @@ As propostas de conhecimento (`conhecimento`) são gravadas em `EventoPacote` e 
 - [ADR-015: Shell Entregas com polling](adrs/adr-015.md) — `/entregas/*`, polling de 30 s, legado intacto.
 - [ADR-016: Rastreio adaptativo e S10](adrs/adr-016.md) — De hora em hora para lidos e interagindo; varredura às 20h; dígito corrigido.
 - [ADR-017: Planilha no backend](adrs/adr-017.md) — Prévia sem estado, confirmação idempotente.
+- [ADR-019: Carga do dia por saída](adrs/adr-019.md) — Um arquivo por unidade por saída, importação direta, reimportação das rotas não liberadas, "rota" na interface, carteiro da rota em três níveis.
