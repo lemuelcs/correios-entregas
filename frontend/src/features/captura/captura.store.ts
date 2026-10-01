@@ -156,10 +156,12 @@ export const useCapturaStore = create<CapturaState>((set, get) => ({
     try {
       const h = await api.get<Hoje>('/captura/hoje');
       guardarHoje(h);
-      set({ hoje: h, erroHoje: null });
+      set({ hoje: h, erroHoje: null, online: true });
     } catch (err) {
-      // Sem rede: fica o último guardado. Erro do servidor: mostra a mensagem.
-      if (err instanceof ApiError) set({ erroHoje: err.message });
+      // Erro do servidor: mostra a mensagem. Sem rede (mesmo com `navigator.onLine`
+      // dizendo que há): fica o último guardado e o app passa a "Sem conexão".
+      if (err instanceof ApiError) set({ erroHoje: err.message, online: true });
+      else set({ online: false });
     } finally {
       set({ carregandoHoje: false });
     }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useAuthStore } from '@/stores/auth.store';
@@ -13,6 +13,8 @@ import { CapturaHomePage } from './CapturaHomePage';
 import { ConferirListPage } from './ConferirListPage';
 import { ConferirPage } from './ConferirPage';
 import { PacotePage } from './PacotePage';
+
+const INTERVALO_RECONEXAO_MS = 5_000;
 
 /**
  * App do carteiro em `/carteiro/captura/*`: tela cheia, fora do `CarteiroShell`.
@@ -77,6 +79,22 @@ export function CapturaApp() {
       sync.stop();
     };
   }, [senhaTemporaria, carregarHoje, atualizarFila, receberResultado, definirOnline]);
+
+  // Sem conexão: tenta de novo a cada poucos segundos (o evento `online` nem sempre
+  // chega, ex.: sinal fraco); quando a rede volta, envia a fila na hora.
+  const online = useCapturaStore((s) => s.online);
+  const estavaOffline = useRef(false);
+  useEffect(() => {
+    if (senhaTemporaria) return;
+    if (online) {
+      if (estavaOffline.current) void obterCaptureSync().sincronizar();
+      estavaOffline.current = false;
+      return;
+    }
+    estavaOffline.current = true;
+    const t = setInterval(() => void carregarHoje(), INTERVALO_RECONEXAO_MS);
+    return () => clearInterval(t);
+  }, [online, senhaTemporaria, carregarHoje]);
 
   return (
     <div className="min-h-dvh bg-[#F4F6F9] text-[#1B2230]">

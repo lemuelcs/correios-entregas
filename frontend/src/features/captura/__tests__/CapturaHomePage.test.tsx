@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { obterCaptureQueue } from '../captureQueue';
+import { CHAVE_HOJE, useCapturaStore } from '../captura.store';
 import { CapturaApp } from '../pages/CapturaApp';
 import { novaCaptura } from './fabricas';
 import { D03, fetchFalso, hojeExemplo, json, limparCaptura, logarCarteiro } from './telas.ajuda';
@@ -39,12 +40,12 @@ describe('CapturaHomePage', () => {
   });
 
   it('UT-101 mostra "D-03 · Águas Claras Sul", a data de hoje, o contador de capturados e os contadores', async () => {
+    // Sem sinal: o início abre com o último GET /hoje guardado no aparelho.
     const hoje = hojeExemplo({ contadores: { capturados: 12, paraConferir: 2 } });
-    fetchFalso({
-      'GET /captura/hoje': json(200, hoje),
-      // Sem sinal: o envio falha na rede e as fotos seguem na fila.
-      'POST /captura/capturas': () => Promise.reject(new TypeError('Failed to fetch')),
-    });
+    localStorage.setItem(CHAVE_HOJE, JSON.stringify(hoje));
+    useCapturaStore.getState().reiniciar();
+    const semRede = () => Promise.reject(new TypeError('Failed to fetch'));
+    fetchFalso({ 'GET /captura/hoje': semRede, 'POST /captura/capturas': semRede });
     await obterCaptureQueue().add(novaCaptura());
     await obterCaptureQueue().add(novaCaptura());
     await obterCaptureQueue().add(novaCaptura());
