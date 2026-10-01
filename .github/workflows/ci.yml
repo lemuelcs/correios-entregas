@@ -86,3 +86,62 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Jornadas E2E das telas da captura (Playwright, ADR-013): o frontend no
+  # `vite preview` do build de teste (VITE_E2E=1, câmera trocada pelas fixtures
+  # de rótulo via ?e2eImage=) e o backend com o extrator falso
+  # (CAPTURA_AI_PROVIDER=fake), ViaCEP falso e o banco _test recriado.
+  e2e-captura:
+    name: E2E (captura)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: correios_user
+          POSTGRES_PASSWORD: correios_ci
+          POSTGRES_DB: correiosentregas_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U correios_user -d correiosentregas_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://correios_user:correios_ci@localhost:5432/correiosentregas_test?schema=e2e_captura
+      TEST_REDIS_URL: redis://localhost:6379/2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Prisma generate
+        run: cd backend && npx prisma generate
+
+      - name: Install Chromium
+        run: cd frontend && npx playwright install --with-deps chromium
+
+      # build:e2e + playwright test -c playwright.captura.config.ts
+      - name: E2E da captura
+        run: npm run test:e2e:captura -w frontend
+
+      - name: Relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-captura
+          path: |
+            frontend/playwright-report-captura
+            frontend/test-results-captura
+          retention-days: 7
