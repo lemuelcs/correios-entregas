@@ -216,7 +216,7 @@ function FormCarteiro({ carteiro, distritos, aoFechar, aoSalvar }: { carteiro: C
       }}
     >
       <Campo rotulo="Nome">{entrada({ value: nome, onChange: (e) => setNome(e.target.value), required: true, minLength: 2, maxLength: 120 })}</Campo>
-      <Campo rotulo="Matrícula">{entrada({ value: matricula, onChange: (e) => setMatricula(e.target.value), required: true, maxLength: 20 })}</Campo>
+      <Campo rotulo="Matrícula" dica="8 dígitos, com ou sem pontos">{entrada({ value: matricula, onChange: (e) => setMatricula(e.target.value), required: true, maxLength: 20 })}</Campo>
       <Campo rotulo="WhatsApp" dica="Com DDD, ex.: (61) 99155-3301">{entrada({ value: whatsapp, onChange: (e) => setWhatsapp(e.target.value), required: true, inputMode: 'tel' })}</Campo>
       <Campo rotulo="Distrito padrão">
         {(id) => (

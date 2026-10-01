@@ -249,6 +249,10 @@ export async function definirSenhaCarteiro(carteiro: Carteiro, senha: string): P
     const atual = await tx.carteiro.findUniqueOrThrow({ where: { id: carteiro.id } });
     const matricula = atual.matricula.trim();
     if (!matricula) throw new AppError(409, 'O carteiro não tem matrícula cadastrada', { code: 'matricula_ausente' });
+    // O login exige exatamente 8 caracteres: um login com outra matrícula nunca entraria.
+    if (matricula.length !== 8) {
+      throw new AppError(409, 'A matrícula do carteiro deve ter 8 caracteres; corrija no cadastro', { code: 'matricula_invalida' });
+    }
 
     if (atual.usuarioId) {
       await tx.usuario.update({

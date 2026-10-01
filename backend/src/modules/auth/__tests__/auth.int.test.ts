@@ -58,6 +58,13 @@ describe('auth (HTTP)', () => {
     expect(dias).toBeLessThanOrEqual(30);
   });
 
+  it('IT-115 login aceita a matrícula com máscara (8.301.552-0 = 83015520)', async () => {
+    const { usuario } = await criarCarteiroComLogin({ unidadeId });
+    const m = usuario.matricula!;
+    const mascarada = `${m[0]}.${m.slice(1, 4)}.${m.slice(4, 7)}-${m[7]}`;
+    expect((await login(mascarada, SENHA_PADRAO)).status).toBe(200);
+  });
+
   it('IT-043 matrícula inexistente e senha errada dão a mesma resposta 401', async () => {
     const { usuario } = await criarCarteiroComLogin({ unidadeId });
 

@@ -5,7 +5,11 @@ import { authService } from './auth.service';
 const loginSchema = z.object({
   cpf: z.string().length(11).optional(),
   email: z.string().email().optional(),
-  matricula: z.string().length(8).optional(),
+  // Com ou sem máscara (`8.301.552-0` → `83015520`), como no cadastro: sempre 8 caracteres.
+  matricula: z.preprocess(
+    (v) => (typeof v === 'string' ? v.replace(/[\s.\-/]/g, '').toUpperCase() : v),
+    z.string().length(8),
+  ).optional(),
   senha: z.string().min(6),
 }).refine(data => {
   const identifiers = [data.cpf, data.email, data.matricula].filter(Boolean);

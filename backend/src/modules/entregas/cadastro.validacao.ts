@@ -88,6 +88,21 @@ export function normalizarMatricula(matricula: string): string {
   return (matricula ?? '').replace(/[\s.\-/]/g, '').toUpperCase();
 }
 
+/** Tamanho da matrícula sem máscara (o login também exige exatamente 8). */
+export const TAMANHO_MATRICULA = 8;
+
+/** Matrícula normalizada com exatamente 8 caracteres; senão 400 `matricula_invalida`. */
+export function lerMatricula(entrada: string): string {
+  const matricula = normalizarMatricula(entrada);
+  if (matricula.length !== TAMANHO_MATRICULA) {
+    throw new AppError(400, 'matricula_invalida', {
+      campo: 'matricula',
+      mensagem: 'A matrícula deve ter 8 caracteres (com ou sem pontos)',
+    });
+  }
+  return matricula;
+}
+
 /** WhatsApp em E.164; inválido → 400 `whatsapp_invalido` com o formato esperado. */
 export function lerWhatsapp(entrada: string, campo = 'whatsapp'): string {
   try {

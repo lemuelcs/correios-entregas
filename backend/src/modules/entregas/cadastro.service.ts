@@ -10,7 +10,7 @@ import { formatarData, hojeBrasilia } from './datas';
 import { notificarTrocaCarteiro } from './ganchos';
 import { naoEncontrado } from './escopo';
 import type { Listagem } from './cadastro.schemas';
-import { garantirLimitePontos, lerWhatsapp, normalizarMatricula, validarNomePonto } from './cadastro.validacao';
+import { garantirLimitePontos, lerWhatsapp, lerMatricula, normalizarMatricula, validarNomePonto } from './cadastro.validacao';
 
 /** Carga liberada e ainda não encerrada: o distrito está "em operação". */
 const STATUS_EM_OPERACAO = ['LIBERADO', 'EM_ENTREGA'] as const;
@@ -376,8 +376,7 @@ export interface NovoCarteiro {
 
 export async function criarCarteiro(unidadeId: string, dados: NovoCarteiro) {
   const whatsappE164 = lerWhatsapp(dados.whatsapp);
-  const matricula = normalizarMatricula(dados.matricula);
-  if (!matricula) throw new AppError(400, 'matricula_invalida', { campo: 'matricula' });
+  const matricula = lerMatricula(dados.matricula);
   await garantirMatriculaLivre(dados.matricula, { unidadeId });
   await garantirWhatsappLivre(whatsappE164);
   if (dados.distritoPadraoId) await distritoDaUnidade(unidadeId, dados.distritoPadraoId);
@@ -412,8 +411,7 @@ export async function editarCarteiro(carteiro: Carteiro, dados: EdicaoCarteiro) 
   const data: Prisma.CarteiroUncheckedUpdateInput = {};
   if (dados.nome !== undefined) data.nome = dados.nome;
   if (dados.matricula !== undefined) {
-    const matricula = normalizarMatricula(dados.matricula);
-    if (!matricula) throw new AppError(400, 'matricula_invalida', { campo: 'matricula' });
+    const matricula = lerMatricula(dados.matricula);
     if (matricula !== atual.matricula) {
       await garantirMatriculaLivre(dados.matricula, { unidadeId: atual.unidadeId, ignorarCarteiroId: atual.id, ignorarUsuarioId: atual.usuarioId });
       data.matricula = matricula;

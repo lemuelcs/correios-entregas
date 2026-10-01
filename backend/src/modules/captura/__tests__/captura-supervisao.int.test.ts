@@ -174,6 +174,14 @@ describe('Captura › supervisor no módulo entregas', () => {
     expect((await prisma.carteiro.findUniqueOrThrow({ where: { id: semMatricula.id } })).usuarioId).toBeNull();
   });
 
+  it('IT-114 carteiro com matrícula fora de 8 caracteres → 409 matricula_invalida, sem criar login', async () => {
+    const legado = await criarCarteiro({ unidadeId: s.u1.id, matricula: 'X123456' });
+    const r = await definirSenha(tokenS1, legado.id, 'Temp@2026');
+    expect(r.status).toBe(409);
+    expect(r.body.details.code).toBe('matricula_invalida');
+    expect((await prisma.carteiro.findUniqueOrThrow({ where: { id: legado.id } })).usuarioId).toBeNull();
+  });
+
   it('IT-050 duas redefinições paralelas → exatamente uma senha vale (a última gravada)', async () => {
     const [a, b] = await Promise.all([
       definirSenha(tokenS1, s.c1.carteiro.id, 'SenhaA@2026'),

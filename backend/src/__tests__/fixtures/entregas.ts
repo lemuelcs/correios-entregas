@@ -135,7 +135,7 @@ export async function criarSupervisor(
     data: {
       nome: `Supervisor ${n}`,
       email: `supervisor-${lote}-${n}@teste.local`,
-      matricula: `S${lote}${n}`,
+      matricula: `S${lote}${String(n).padStart(3, '0').slice(-3)}`,
       telefoneCelular: whatsappUnico(),
       role: 'UNIDADE',
       senha: await hashDe(senha),
@@ -167,7 +167,7 @@ export async function criarCarteiro(
   return prisma.carteiro.create({
     data: {
       nome: `Carteiro ${n}`,
-      matricula: `C${lote}${n}`,
+      matricula: `C${lote}${String(n).padStart(3, '0').slice(-3)}`,
       whatsappE164: whatsappUnico(),
       ...over,
     },
