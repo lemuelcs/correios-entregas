@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Módulo de captura no backend
 type: backend
 complexity: high
@@ -43,15 +43,15 @@ Esta tarefa entrega o servidor da captura de ponta a ponta:
 </requirements>
 
 ## Subtasks
-- [ ] 2.1 Consulta de CEP com fallback e cache.
-- [ ] 2.2 Extrator de rótulo (Gemini e fake) com dúvida por campo.
-- [ ] 2.3 Armazenamento de fotos em disco e volume no compose.
-- [ ] 2.4 Montagem de campos por fonte e avaliação do mínimo.
-- [ ] 2.5 Conciliação com a lista (criar, atualizar, transferir), outbox, desfazer e remover.
-- [ ] 2.6 Processamento idempotente da captura e rotas `/captura` (hoje, capturas, conferir, confirmar, descartar, desfazer, pacotes, cep, foto, ativo).
-- [ ] 2.7 Job diário de retenção das fotos.
-- [ ] 2.8 Métricas e logs sem dado pessoal; variáveis novas no compose e no `.env.example`.
-- [ ] 2.9 Todos os testes atribuídos passando.
+- [x] 2.1 Consulta de CEP com fallback e cache.
+- [x] 2.2 Extrator de rótulo (Gemini e fake) com dúvida por campo.
+- [x] 2.3 Armazenamento de fotos em disco e volume no compose.
+- [x] 2.4 Montagem de campos por fonte e avaliação do mínimo.
+- [x] 2.5 Conciliação com a lista (criar, atualizar, transferir), outbox, desfazer e remover.
+- [x] 2.6 Processamento idempotente da captura e rotas `/captura` (hoje, capturas, conferir, confirmar, descartar, desfazer, pacotes, cep, foto, ativo).
+- [x] 2.7 Job diário de retenção das fotos.
+- [x] 2.8 Métricas e logs sem dado pessoal; variáveis novas no compose e no `.env.example`.
+- [x] 2.9 Todos os testes atribuídos passando.
 
 ## Implementation Details
 
@@ -92,19 +92,19 @@ Os padrões estão em TechSpec › Component Overview (Backend), Core Interfaces
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-018, UT-019, UT-020, UT-021, UT-022, UT-023, UT-024, UT-025 — `montarCampos`
-- [ ] UT-026, UT-027, UT-028, UT-029, UT-030, UT-031, UT-032, UT-033, UT-126 — `avaliarMinimo`
-- [ ] UT-034, UT-035, UT-036, UT-037, UT-038, UT-039, UT-040, UT-041 — `CepService`
-- [ ] UT-042, UT-043, UT-044, UT-045, UT-046, UT-047 — `GeminiLabelExtractor`
-- [ ] UT-048, UT-049, UT-050, UT-051 — `DiskPhotoStore`
-- [ ] UT-052, UT-053, UT-054, UT-055 — cálculo de retenção
-- [ ] IT-001, IT-002, IT-004, IT-005, IT-006 — distrito do dia via `/captura/hoje`
-- [ ] IT-007, IT-008, IT-009, IT-010, IT-011, IT-012, IT-013, IT-014, IT-015, IT-016, IT-017, IT-018, IT-019, IT-020, IT-021, IT-022, IT-023, IT-024, IT-025, IT-026, IT-027, IT-028, IT-029, IT-030, IT-031, IT-032, IT-033, IT-034, IT-035, IT-036, IT-037, IT-038, IT-039 — captura, conciliação, conferência, CEP e planilha × foto
-- [ ] IT-040, IT-041 — senha temporária bloqueia `/captura` até a troca
-- [ ] IT-052, IT-053, IT-054, IT-055, IT-056, IT-057, IT-058, IT-059, IT-060, IT-061, IT-062, IT-063, IT-064, IT-065, IT-066, IT-067, IT-068, IT-069, IT-070, IT-071, IT-072, IT-073, IT-074, IT-075, IT-076 — troca de WhatsApp, transferência, idempotência, pós-liberação e correção pelo carteiro
-- [ ] IT-090, IT-091, IT-092, IT-093 — retenção e exclusão imediata
-- [ ] IT-094, IT-095, IT-096, IT-097, IT-098, IT-099, IT-100, IT-101, IT-102, IT-103, IT-104, IT-105 — falhas documentadas dos endpoints `/captura`
-- [ ] IT-109, IT-111 — eventos na transação, gancho só após o commit, e falha do gancho
+- [x] UT-018, UT-019, UT-020, UT-021, UT-022, UT-023, UT-024, UT-025 — `montarCampos`
+- [x] UT-026, UT-027, UT-028, UT-029, UT-030, UT-031, UT-032, UT-033, UT-126 — `avaliarMinimo`
+- [x] UT-034, UT-035, UT-036, UT-037, UT-038, UT-039, UT-040, UT-041 — `CepService`
+- [x] UT-042, UT-043, UT-044, UT-045, UT-046, UT-047 — `GeminiLabelExtractor`
+- [x] UT-048, UT-049, UT-050, UT-051 — `DiskPhotoStore`
+- [x] UT-052, UT-053, UT-054, UT-055 — cálculo de retenção
+- [x] IT-001, IT-002, IT-004, IT-005, IT-006 — distrito do dia via `/captura/hoje`
+- [x] IT-007, IT-008, IT-009, IT-010, IT-011, IT-012, IT-013, IT-014, IT-015, IT-016, IT-017, IT-018, IT-019, IT-020, IT-021, IT-022, IT-023, IT-024, IT-025, IT-026, IT-027, IT-028, IT-029, IT-030, IT-031, IT-032, IT-033, IT-034, IT-035, IT-036, IT-037, IT-038, IT-039 — captura, conciliação, conferência, CEP e planilha × foto
+- [x] IT-040, IT-041 — senha temporária bloqueia `/captura` até a troca
+- [x] IT-052, IT-053, IT-054, IT-055, IT-056, IT-057, IT-058, IT-059, IT-060, IT-061, IT-062, IT-063, IT-064, IT-065, IT-066, IT-067, IT-068, IT-069, IT-070, IT-071, IT-072, IT-073, IT-074, IT-075, IT-076 — troca de WhatsApp, transferência, idempotência, pós-liberação e correção pelo carteiro
+- [x] IT-090, IT-091, IT-092, IT-093 — retenção e exclusão imediata
+- [x] IT-094, IT-095, IT-096, IT-097, IT-098, IT-099, IT-100, IT-101, IT-102, IT-103, IT-104, IT-105 — falhas documentadas dos endpoints `/captura`
+- [x] IT-109, IT-111 — eventos na transação, gancho só após o commit, e falha do gancho
 
 ## Success Criteria
 - Every assigned test case implemented and passing
