@@ -12,6 +12,7 @@ import { MAX_LINHAS, ParserErro, type AvisoParser, type CamposEndereco } from '.
 import { formatarData, hojeBrasilia } from './datas';
 import { derivarStatusCarga, lerFiltroStatusQuadro, rotuloStatusPacote, type ContagemPorStatus, type StatusQuadro } from './status';
 import { aoAdicionarPacotesEmCargaLiberada } from './ganchos';
+import { fotosDosPacotes, pendenciasPorDistrito, transferenciasPorDistrito } from '../captura/captura-supervisao.service';
 
 export const PACOTES_POR_PAGINA = 50;
 
@@ -192,6 +193,11 @@ export async function montarQuadro(unidadeId: string, data: Date, filtros: Filtr
   }
   const whatsDe = new Map(whatsRows.map((r) => [r.cargaId, r._count._all]));
   const escalDe = new Map(escalRows.map((r) => [r.cargaId, r._count._all]));
+  // Captura do rótulo (extensão aditiva): pendências do carteiro e transferências do dia.
+  const [pendenciasDe, transferenciasDe] = await Promise.all([
+    pendenciasPorDistrito(distritos.map((d) => d.id), data),
+    transferenciasPorDistrito(distritos.flatMap((d) => d.cargas.map((c) => ({ id: c.id, distritoId: d.id })))),
+  ]);
 
   const cartoes = distritos.map((d) => {
     const carga = d.cargas[0] ?? null;
@@ -215,6 +221,8 @@ export async function montarQuadro(unidadeId: string, data: Date, filtros: Filtr
       porStatus,
       escalonamentos: carga ? escalDe.get(carga.id) ?? 0 : 0,
       liberadoEm: carga?.liberadoEm ?? null,
+      paraConferir: pendenciasDe.get(d.id) ?? 0,
+      transferencias: transferenciasDe.get(d.id) ?? { entrada: [], saida: [] },
     };
   });
 
@@ -304,6 +312,7 @@ export async function listarPacotes(carga: CargaAlvo, filtros: FiltrosPacotes = 
   const porStatus: ContagemPorStatus = {};
   for (const g of grupos) porStatus[g.status] = g._count._all;
   const liberada = carga.status !== 'CARREGADO';
+  const temFotoDe = await fotosDosPacotes(pacotes.map((p) => p.id)); // captura (extensão aditiva)
 
   return {
     cargaId: carga.id,
@@ -357,6 +366,10 @@ export async function listarPacotes(carga: CargaAlvo, filtros: FiltrosPacotes = 
           criadaEm: o.criadaEm,
         },
         respostaCarteiro: o?.respostaCarteiro ? { resposta: o.respostaCarteiro, em: o.respondidoEm } : null,
+        // Captura do rótulo (extensão aditiva).
+        origem: p.origem,
+        codigoDigitado: p.codigoDigitado,
+        temFoto: temFotoDe.get(p.id) ?? false,
       };
     }),
   };
