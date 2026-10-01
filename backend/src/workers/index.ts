@@ -3,6 +3,8 @@ import { startVroomWorker, stopVroomWorker } from './vroom.worker';
 import { startPyvrpWorker, stopPyvrpWorker } from './pyvrp.worker';
 import { startDneSyncWorker, stopDneSyncWorker } from './dne-sync.worker';
 import { startNpsNotifyWorker, stopNpsNotifyWorker } from './nps-notify.worker';
+import { startEntregasRastreioWorker, stopEntregasRastreioWorker } from './entregas-rastreio.worker';
+import { startEntregasAvisoWorker, stopEntregasAvisoWorker } from './entregas-aviso.worker';
 
 export function startWorkers(): void {
   startGeocoderWorker();
@@ -10,6 +12,8 @@ export function startWorkers(): void {
   startPyvrpWorker();
   startDneSyncWorker();
   startNpsNotifyWorker();
+  startEntregasRastreioWorker();
+  startEntregasAvisoWorker();
 }
 
 export async function stopWorkers(): Promise<void> {
@@ -19,5 +23,7 @@ export async function stopWorkers(): Promise<void> {
     stopPyvrpWorker(),
     stopDneSyncWorker(),
     stopNpsNotifyWorker(),
+    stopEntregasRastreioWorker(),
+    stopEntregasAvisoWorker(),
   ]);
 }

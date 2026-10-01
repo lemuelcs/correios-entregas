@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { unidadesGestaoService } from './unidades-gestao.service';
-import { createUnidadeSchema, updateUnidadeSchema } from './gestao.schemas';
+import { createUnidadeEntregasSchema as createUnidadeSchema, updateUnidadeEntregasSchema as updateUnidadeSchema } from './gestao.schemas';
 
 export class UnidadesGestaoController {
   async list(req: Request, res: Response, next: NextFunction) {

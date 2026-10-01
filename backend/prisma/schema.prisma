@@ -146,6 +146,62 @@ enum GeocodeAccuracy {
   APPROXIMATE
 }
 
+// ——— ENTREGAS MEDIADAS (ADR-013) ———————————————————————————————
+
+enum TipoCanal {
+  WAHA
+  WABA
+}
+
+enum StatusCarga {
+  CARREGADO
+  LIBERADO
+  EM_ENTREGA
+  CONCLUIDO
+}
+
+enum StatusPacote {
+  SEM_WHATSAPP
+  AGUARDANDO_LIBERACAO
+  AGENDADO
+  NAO_ENVIADO
+  ENVIADO
+  LIDO
+  INTERAGINDO
+  INSUCESSO
+  ENTREGUE
+}
+
+enum TipoPonto {
+  AGENCIA
+  LOCKER
+}
+
+enum TipoOrientacao {
+  AMANHA
+  VIZINHO
+  AGENCIA
+  LOCKER
+  OUTRA
+  MANUAL
+}
+
+enum EstadoOrientacao {
+  AGUARDANDO_CONFIRMACAO
+  ENVIADA
+  VISTA
+  FEITA
+  NAO_FOI_POSSIVEL
+  GUARDADA
+  SUBSTITUIDA
+}
+
+enum OrigemOrientacao {
+  BOTAO
+  MEDIACAO
+  SUPERVISOR
+}
+
 // ——— MODELS ———————————————————————————————————————————————————
 
 model SuperintendenciaEstadual {
@@ -189,7 +245,15 @@ model Unidade {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  // Entregas mediadas (ADR-012): canal Prosio da unidade.
+  canalProsioId    String?
+  prosioUnidadeRef String? // obrigatório quando o canal é compartilhado (regra no serviço)
+  mediacaoAtiva    Boolean  @default(false)
+  // Concorrência otimista dos PUT de cadastro (409 alterado_por_outro).
+  atualizadoEm     DateTime @default(now()) @updatedAt
+
   se           SuperintendenciaEstadual? @relation(fields: [seId], references: [id])
+  canalProsio  CanalProsio?              @relation(fields: [canalProsioId], references: [id])
   usuarios     Usuario[]
   carteiros    Carteiro[]
   objetos      Objeto[]
@@ -200,6 +264,10 @@ model Unidade {
   lockers      LockerCorreios[]
   fluxoConfigs FluxoConfig[]
 
+  distritos      Distrito[]
+  pontosRetirada PontoRetirada[]
+
+  @@index([canalProsioId])
   @@map("unidades")
 }
 
@@ -229,6 +297,9 @@ model Usuario {
   refreshTokens RefreshToken[]
   eventos       ObjetoEvento[]
 
+  cargasLiberadas    CargaDistrito[] @relation("CargaLiberadaPor")
+  orientacoesCriadas Orientacao[]    @relation("OrientacaoCriadaPor")
+
   @@map("usuarios")
 }
 
@@ -247,9 +318,12 @@ model RefreshToken {
 
 model Carteiro {
   id              String       @id @default(uuid())
-  usuarioId       String       @unique
+  // Opcional desde as entregas mediadas (ADR-013): o carteiro não precisa de login.
+  usuarioId       String?      @unique
   unidadeId       String
   matricula       String       @unique
+  nome            String?
+  whatsappE164    String?      @unique
   modalPrincipal  ModalEntrega @default(A_PE)
   cnh             String?
   telefonePiloto  String?
@@ -258,10 +332,15 @@ model Carteiro {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  usuario Usuario    @relation(fields: [usuarioId], references: [id])
+  usuario Usuario?   @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
   unidade Unidade    @relation(fields: [unidadeId], references: [id])
   pontos  PontoDia[]
   rotas   Rota[]
+
+  distritosPadrao Distrito[]       @relation("DistritoCarteiroPadrao")
+  escalas         EscalaDistrito[]
+  cargas          CargaDistrito[]
+  orientacoes     Orientacao[]
 
   @@map("carteiros")
 }
@@ -647,4 +726,190 @@ model FluxoConfig {
 
   @@unique([unidadeId, codigo])
   @@map("fluxo_configs")
+}
+
+// ——— ENTREGAS MEDIADAS (ADR-011, ADR-012, ADR-013) ——————————————————
+
+model CanalProsio {
+  id                    String    @id @default(uuid())
+  nome                  String
+  baseUrl               String // origin, ex. https://prosio.com.br
+  apiKeyCifrada         String // AES-256-GCM (ENTREGAS_CRYPTO_KEY)
+  callbackSecretCifrado String
+  tokenEntradaHash      String // sha256 do bearer usado pelas integrações do Prosio
+  tipo                  TipoCanal @default(WAHA)
+  compartilhado         Boolean   @default(false)
+  ativo                 Boolean   @default(true)
+  criadoEm              DateTime  @default(now())
+  atualizadoEm          DateTime  @default(now()) @updatedAt
+
+  unidades Unidade[]
+
+  @@map("canais_prosio")
+}
+
+model Distrito {
+  id               String   @id @default(uuid())
+  unidadeId        String
+  codigo           String
+  nome             String
+  carteiroPadraoId String?
+  ativo            Boolean  @default(true)
+  criadoEm         DateTime @default(now())
+  atualizadoEm     DateTime @default(now()) @updatedAt
+
+  unidade        Unidade          @relation(fields: [unidadeId], references: [id])
+  carteiroPadrao Carteiro?        @relation("DistritoCarteiroPadrao", fields: [carteiroPadraoId], references: [id], onDelete: SetNull)
+  escalas        EscalaDistrito[]
+  cargas         CargaDistrito[]
+
+  @@unique([unidadeId, codigo])
+  @@map("distritos")
+}
+
+// Carteiro do dia (troca só na data).
+model EscalaDistrito {
+  distritoId String
+  data       DateTime @db.Date
+  carteiroId String
+
+  distrito Distrito @relation(fields: [distritoId], references: [id], onDelete: Cascade)
+  carteiro Carteiro @relation(fields: [carteiroId], references: [id])
+
+  @@id([distritoId, data])
+  @@index([carteiroId])
+  @@map("escalas_distrito")
+}
+
+model CargaDistrito {
+  id            String      @id @default(uuid())
+  distritoId    String
+  data          DateTime    @db.Date
+  status        StatusCarga @default(CARREGADO)
+  carteiroId    String? // snapshot na liberação
+  liberadoEm    DateTime?
+  liberadoPorId String?
+  criadoEm      DateTime    @default(now())
+  atualizadoEm  DateTime    @default(now()) @updatedAt
+
+  distrito    Distrito    @relation(fields: [distritoId], references: [id])
+  carteiro    Carteiro?   @relation(fields: [carteiroId], references: [id])
+  liberadoPor Usuario?    @relation("CargaLiberadaPor", fields: [liberadoPorId], references: [id])
+  pacotes     PacoteDia[]
+
+  @@unique([distritoId, data])
+  @@map("cargas_distrito")
+}
+
+model PacoteDia {
+  id                String       @id @default(uuid())
+  cargaId           String
+  data              DateTime     @db.Date // desnormalizado para a unicidade
+  codigo            String       @db.Char(13)
+  nome              String
+  whatsappE164      String?
+  logradouro        String?
+  numero            String?
+  complemento       String?
+  bairro            String?
+  cidade            String?
+  uf                String?      @db.Char(2)
+  cep               String?      @db.Char(8)
+  enderecoTexto     String?
+  referencia        String?
+  status            StatusPacote
+  naoEnviadoMotivo  String?
+  escalonado        Boolean      @default(false)
+  prosioMessageId   String?
+  mediacaoCaseId    String?
+  rastreioDescricao String?
+  rastreioEm        DateTime?
+  // Sinalizações ao supervisor (ex.: divergencia, nao_entregue_carteiro, retido_consentimento).
+  sinais            String[]     @default([])
+  criadoEm          DateTime     @default(now())
+  atualizadoEm      DateTime     @default(now()) @updatedAt
+
+  carga       CargaDistrito  @relation(fields: [cargaId], references: [id], onDelete: Cascade)
+  orientacoes Orientacao[]
+  eventos     EventoPacote[]
+
+  @@unique([codigo, data])
+  @@index([cargaId, status])
+  @@map("pacotes_dia")
+}
+
+model PontoRetirada {
+  id           String    @id @default(uuid())
+  unidadeId    String
+  tipo         TipoPonto
+  nome         String    @db.VarChar(24)
+  endereco     String
+  horario      String
+  ativo        Boolean   @default(true)
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @default(now()) @updatedAt
+
+  unidade     Unidade      @relation(fields: [unidadeId], references: [id])
+  orientacoes Orientacao[]
+
+  @@index([unidadeId, tipo, ativo])
+  @@map("pontos_retirada")
+}
+
+model Orientacao {
+  id               String           @id @default(uuid())
+  codigo           String           @db.Char(13) // liga dias diferentes do mesmo pacote
+  pacoteId         String? // null enquanto guardada sem carga
+  tipo             TipoOrientacao
+  texto            String           @db.VarChar(300)
+  pontoRetiradaId  String?
+  vizinhoNome      String?
+  vizinhoCasa      String?
+  estado           EstadoOrientacao
+  origem           OrigemOrientacao
+  criadaPorId      String?
+  carteiroId       String?
+  respostaCarteiro String?
+  respondidoEm     DateTime?
+  valeAPartirDe    DateTime?        @db.Date
+  criadaEm         DateTime         @default(now())
+  // Sinalizações da orientação (ex.: nao_entregue_carteiro, falha_envio_carteiro).
+  sinais           String[]         @default([])
+
+  pacote        PacoteDia?     @relation(fields: [pacoteId], references: [id], onDelete: SetNull)
+  pontoRetirada PontoRetirada? @relation(fields: [pontoRetiradaId], references: [id])
+  criadaPor     Usuario?       @relation("OrientacaoCriadaPor", fields: [criadaPorId], references: [id])
+  carteiro      Carteiro?      @relation(fields: [carteiroId], references: [id])
+
+  @@index([codigo, estado])
+  @@index([pacoteId])
+  @@map("orientacoes")
+}
+
+model EventoPacote {
+  id       String   @id @default(uuid())
+  pacoteId String
+  tipo     String
+  dados    Json
+  criadoEm DateTime @default(now())
+
+  pacote PacoteDia @relation(fields: [pacoteId], references: [id], onDelete: Cascade)
+
+  @@index([pacoteId, criadoEm])
+  @@map("eventos_pacote")
+}
+
+model DescadastroWhatsapp {
+  whatsappE164 String   @id
+  em           DateTime @default(now())
+
+  @@map("descadastros_whatsapp")
+}
+
+// Idempotência do webhook do Prosio.
+model WebhookRecebido {
+  chave      String   @id
+  recebidoEm DateTime @default(now())
+
+  @@map("webhooks_recebidos")
 }

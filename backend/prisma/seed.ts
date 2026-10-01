@@ -267,8 +267,9 @@ async function main() {
     const digits = serial.split('').map(Number);
     const sum = digits.reduce((acc, d, i) => acc + d * weights[i], 0);
     const remainder = sum % 11;
-    if (remainder === 0) return 0;
-    if (remainder === 1) return 5;
+    // Regra da UPU: resto 0 -> 5, resto 1 -> 0 (mesma de src/shared/utils/s10.ts).
+    if (remainder === 0) return 5;
+    if (remainder === 1) return 0;
     return 11 - remainder;
   }
 

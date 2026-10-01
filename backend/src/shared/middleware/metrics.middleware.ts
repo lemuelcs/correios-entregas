@@ -3,6 +3,9 @@ import client from 'prom-client';
 
 const register = new client.Registry();
 
+/** Registro exposto em `/metrics` (módulos registram contadores próprios nele). */
+export { register as metricsRegistry };
+
 client.collectDefaultMetrics({
   prefix: 'correios_entrega_',
   register,

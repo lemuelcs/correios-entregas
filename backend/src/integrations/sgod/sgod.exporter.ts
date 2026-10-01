@@ -185,7 +185,8 @@ class SgodExporter {
     // --- Capacidade ---
 
     const carteirosTotal = await prisma.carteiro.count({
-      where: { unidadeId, ativo: true },
+      // Só os carteiros do SGPD v2 (com usuário); os das entregas mediadas ficam fora.
+      where: { unidadeId, ativo: true, usuarioId: { not: null } },
     });
 
     const carteirosPresentes = await prisma.pontoDia.count({

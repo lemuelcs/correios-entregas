@@ -89,6 +89,8 @@ export class RoteirizacaoService {
       where: {
         unidadeId,
         ativo: true,
+        // Carteiros sem usuário (entregas mediadas, ADR-013) ficam fora da roteirização.
+        usuarioId: { not: null },
         pontos: {
           some: {
             data: today,

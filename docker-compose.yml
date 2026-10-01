@@ -130,6 +130,13 @@ services:
       WHATSAPP_HUB_TENANT_ID: CORREIOS
       # JWT_SECRET compartilhado com ms-whatsapp para inter-service auth (proxy reemite token).
       WHATSAPP_HUB_JWT_SECRET: ${CORREIOS_WHATSAPP_HUB_JWT_SECRET}
+      # Entregas mediadas: chave AES-256-GCM dos segredos dos canais Prosio
+      # (64 hex ou `openssl rand -base64 32`) e token do Seu Rastreio. Valores
+      # só no .env da raiz (gitignored); vazio aqui sobrescreve o backend/.env.
+      ENTREGAS_CRYPTO_KEY: ${CORREIOS_ENTREGAS_CRYPTO_KEY:-}
+      SEU_RASTREIO_TOKEN: ${CORREIOS_SEU_RASTREIO_TOKEN:-}
+      # Banco dedicado dos testes de integração (nome precisa terminar em _test).
+      TEST_DATABASE_URL: ${CORREIOS_TEST_DATABASE_URL:-}
       APP_URL: http://backend:3002
       PORT: 3002
       FRONTEND_URL: http://localhost:5181

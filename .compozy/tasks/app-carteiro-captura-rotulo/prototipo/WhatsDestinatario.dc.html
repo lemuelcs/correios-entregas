@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>WhatsApp do destinatário</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+button:focus-visible{outline:2px solid #1E4FA3;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; position: relative; overflow: hidden; background: #ECE8E1; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1B2230;">
+  <header style="display: flex; align-items: center; gap: 10px; padding: 14px 14px; background: #14213A; color: #FFFFFF;">
+    <div style="width: 38px; height: 38px; border-radius: 50%; background: #F2B705; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14213A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"></path><path d="M3 7v10l9 4 9-4V7"></path><path d="M12 11v10"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; min-width: 0;">
+      <strong style="font-size: 16px;">Correios Entregas</strong>
+      <span style="font-size: 12px; color: #BFD0E8;">Conta comercial · CDD Taguatinga</span>
+    </div>
+    <button type="button" onClick="{{restart}}" style="margin-left: auto; min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid #3A4E72; background: transparent; color: #FFFFFF; font: inherit; font-size: 13px; cursor: pointer;">Recomeçar</button>
+  </header>
+
+  <div style="flex-grow: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px;">
+    <span style="align-self: center; font-size: 12px; padding: 4px 10px; border-radius: 8px; background: #DDE6F0; color: #3C4555;">Hoje</span>
+    <sc-for list="{{msgs}}" as="m" hint-placeholder-count="3">
+      <div style="{{m.style}}">
+        <span style="white-space: pre-line;">{{m.text}}</span>
+        <span style="align-self: flex-end; font-size: 11px; color: #6B7280;">{{m.time}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{hasActions}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 10px 12px 16px; display: flex; flex-direction: column; gap: 8px; background: #F6F3EE; border-top: 1px solid #DDD6CB;">
+      <sc-for list="{{actions}}" as="a" hint-placeholder-count="1">
+        <button type="button" onClick="{{a.go}}" style="min-height: 44px; border-radius: 22px; border: 1px solid #C9D5E6; background: #FFFFFF; color: #1E4FA3; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;">{{a.label}}</button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{sheet.open}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: rgba(20,33,58,.4); display: flex; align-items: flex-end;">
+      <div role="dialog" aria-modal="true" aria-labelledby="sheet-t" style="width: 100%; background: #FFFFFF; border-radius: 16px 16px 0 0; padding: 16px 16px 20px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box;">
+        <h2 id="sheet-t" style="margin: 0 0 8px; font-size: 17px; text-align: center;">{{sheet.title}}</h2>
+        <sc-for list="{{sheet.rows}}" as="r" hint-placeholder-count="5">
+          <button type="button" onClick="{{r.go}}" style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 52px; padding: 10px 8px; border: 0; border-bottom: 1px solid #EEF1F5; background: #FFFFFF; font: inherit; text-align: left; cursor: pointer;">
+            <strong style="font-size: 15px;">{{r.label}}</strong>
+            <span style="font-size: 13px; color: #5B6474;">{{r.desc}}</span>
+          </button>
+        </sc-for>
+        <button type="button" onClick="{{closeSheet}}" style="margin-top: 8px; min-height: 44px; border: 0; background: none; color: #1E4FA3; font: inherit; font-weight: 700; cursor: pointer;">Fechar</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { path: ['start'], sheet: null }; }
+  renderVals() {
+    const b = (text, time) => ({ who: 'bot', text, time: time || '08h56' });
+    const d = (text, time) => ({ who: 'me', text, time: time || '10h10' });
+    const N = {
+      start: { msgs: [b('Olá, Maria, sua encomenda OY526018152BR já saiu para entrega. Se tiver alguma dificuldade para receber sua encomenda, nos avise.\n\nEste canal nunca pede pagamento, senha ou código.')], actions: [{ label: 'Ver opções', sheet: 'main' }] },
+      amanha: { msgs: [d('Tentar novamente amanhã'), b('Combinado. O carteiro não vai tentar hoje; tentaremos amanhã, quinta-feira (01/10). Se mudar de ideia, é só responder aqui.', '10h10')], actions: [] },
+      viz1: { msgs: [d('Deixar com meu vizinho'), b('Qual o nome do vizinho?', '10h10')], actions: [{ label: 'Responder: Dona Célia', to: 'viz2' }] },
+      viz2: { msgs: [d('Dona Célia', '10h11'), b('Qual o número da casa ou do apartamento?', '10h11')], actions: [{ label: 'Responder: casa 47', to: 'viz3' }] },
+      viz3: { msgs: [d('Casa 47', '10h11'), b('Deixar com Dona Célia, casa 47. Confirma?', '10h11')], actions: [{ label: 'Sim', to: 'vizOk' }, { label: 'Não, corrigir', to: 'viz1b' }] },
+      viz1b: { msgs: [d('Não', '10h12'), b('Tudo bem. Qual o nome do vizinho?', '10h12')], actions: [{ label: 'Responder: Dona Célia', to: 'viz2' }] },
+      vizOk: { msgs: [d('Sim', '10h12'), b('Pronto! O carteiro já recebeu sua orientação: deixar com Dona Célia, casa 47.', '10h12')], actions: [] },
+      ag1: { msgs: [d('Deixar na agência'), b('Em qual agência você prefere retirar?', '10h10')], actions: [{ label: 'Ver agências', sheet: 'agencias' }] },
+      agOk: { msgs: [d('AC Taguatinga Centro', '10h11'), b('Combinado. Sua encomenda ficará na AC Taguatinga Centro, C 12 Lote 1, Taguatinga. Atendimento de segunda a sexta, das 9h às 17h. Leve um documento com foto.', '10h11')], actions: [] },
+      lk1: { msgs: [d('Deixar no locker'), b('Em qual locker você prefere retirar?', '10h10')], actions: [{ label: 'Ver lockers', sheet: 'lockers' }] },
+      lkOk: { msgs: [d('Locker Estação Águas Claras', '10h11'), b('Combinado. Sua encomenda ficará no Locker Estação Águas Claras, na estação do metrô, disponível 24 horas.', '10h11')], actions: [] },
+      out1: { msgs: [d('Outra opção'), b('Conte como prefere receber.', '10h10')], actions: [{ label: 'Escrever: “Pode deixar na portaria com o Seu João, até as 18h”', to: 'out2' }] },
+      out2: { msgs: [d('Pode deixar na portaria com o Seu João, até as 18h', '10h11'), b('Entendi: deixar na portaria com o Seu João, até 18h. Confirma?', '10h11')], actions: [{ label: 'Sim', to: 'outOk' }, { label: 'Não', to: 'outNo' }] },
+      outOk: { msgs: [d('Sim', '10h12'), b('Pronto! O carteiro já recebeu sua orientação.', '10h12')], actions: [] },
+      outNo: { msgs: [d('Não', '10h12'), b('Tudo bem. Vou chamar um atendente da unidade, que continua a conversa por aqui.', '10h12')], actions: [] },
+    };
+    const SHEETS = {
+      main: { title: 'Como podemos ajudar?', rows: [
+        { label: 'Tentar novamente amanhã', desc: 'Hoje não vou poder receber', to: 'amanha' },
+        { label: 'Deixar com meu vizinho', desc: 'Informe o nome e a casa ou apartamento', to: 'viz1' },
+        { label: 'Deixar na agência', desc: 'Retiro depois numa agência', to: 'ag1' },
+        { label: 'Deixar no locker', desc: 'Retiro depois num locker', to: 'lk1' },
+        { label: 'Outra opção', desc: 'Conte como prefere receber', to: 'out1' },
+      ] },
+      agencias: { title: 'Agências', rows: [
+        { label: 'AC Taguatinga Centro', desc: 'C 12 Lote 1 · seg–sex 9h–17h', to: 'agOk' },
+        { label: 'AC Águas Claras', desc: 'Av. Castanheiras 1050 · seg–sex 9h–17h, sáb 9h–12h', to: 'agOk' },
+      ] },
+      lockers: { title: 'Lockers', rows: [
+        { label: 'Locker Estação Águas Claras', desc: 'Estação do metrô · 24 horas', to: 'lkOk' },
+        { label: 'Locker Taguatinga Shopping', desc: 'QS 1 Rua 210 · 10h–22h', to: 'lkOk' },
+      ] },
+    };
+    const goTo = (id) => () => this.setState({ path: this.state.path.concat([id]), sheet: null });
+    const bubble = (who) => 'max-width: 82%; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 6px; border-radius: 10px; font-size: 15px; line-height: 1.4; box-shadow: 0 1px 0 rgba(0,0,0,.06); ' +
+      (who === 'bot' ? 'align-self: flex-start; background: #FFFFFF;' : 'align-self: flex-end; background: #D6E7FB;');
+    const msgs = [];
+    this.state.path.forEach((id) => N[id].msgs.forEach((m) => msgs.push({ ...m, style: bubble(m.who) })));
+    const last = N[this.state.path[this.state.path.length - 1]];
+    const actions = last.actions.map((a) => ({ label: a.label, go: a.sheet ? () => this.setState({ sheet: a.sheet }) : goTo(a.to) }));
+    const sh = this.state.sheet ? SHEETS[this.state.sheet] : null;
+    return {
+      msgs, actions, hasActions: actions.length > 0,
+      sheet: sh ? { open: true, title: sh.title, rows: sh.rows.map((r) => ({ ...r, go: goTo(r.to) })) } : { open: false },
+      closeSheet: () => this.setState({ sheet: null }),
+      restart: () => this.setState({ path: ['start'], sheet: null }),
+    };
+  }
+}
+</script>
+</body>
+</html>

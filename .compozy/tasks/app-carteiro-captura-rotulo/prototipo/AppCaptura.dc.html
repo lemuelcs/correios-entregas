@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>App do carteiro — captura de rótulo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0}
+button:focus-visible,input:focus-visible{outline:2px solid #1E4FA3;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; background: #F4F6F9; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1B2230;">
+
+  <sc-if value="{{isHome}}" hint-placeholder-val="{{true}}">
+    <div style="height: 100%; display: flex; flex-direction: column;">
+      <header style="padding: 18px 18px 16px; background: #14213A; color: #FFFFFF; display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 13px; color: #BFD0E8;">Renato Alves Costa · CDD Taguatinga</span>
+        <h1 style="margin: 0; font-size: 22px;">D-03 · Águas Claras Sul</h1>
+        <span style="font-size: 14px; color: #DCE3EE;">Hoje, 30/09 · <strong style="color: #FFFFFF; font-variant-numeric: tabular-nums;">{{count}}</strong> pacotes capturados</span>
+      </header>
+      <div style="padding: 16px; display: flex; flex-direction: column; gap: 14px; flex-grow: 1; overflow-y: auto;">
+        <sc-if value="{{saved}}" hint-placeholder-val="{{false}}">
+          <div role="status" style="padding: 12px 14px; border-radius: 10px; background: #E2F2E8; color: #1F6F43; font-weight: 600; font-size: 15px;">Pacote OY895559797BR salvo no D-03</div>
+        </sc-if>
+        <button type="button" onClick="{{openCamera}}" style="min-height: 64px; border-radius: 14px; border: 0; background: #1E4FA3; color: #FFFFFF; font: inherit; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+          Fotografar rótulo
+        </button>
+        <h2 style="margin: 4px 0 0; font-size: 15px; color: #5B6474; font-weight: 600;">Capturados agora há pouco</h2>
+        <sc-for list="{{items}}" as="it" hint-placeholder-count="4">
+          <div style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="display: flex; justify-content: space-between; gap: 8px; align-items: center;">
+              <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px;">{{it.code}}</span>
+              <span style="{{it.chip}}">{{it.status}}</span>
+            </div>
+            <strong style="font-size: 15px;">{{it.name}}</strong>
+            <span style="font-size: 13px; color: #5B6474;">{{it.address}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isCamera}}" hint-placeholder-val="{{false}}">
+    <div style="height: 100%; background: #0E1422; color: #FFFFFF; display: flex; flex-direction: column;">
+      <div style="padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" onClick="{{goHome}}" style="min-height: 44px; padding: 0 12px; border: 0; background: none; color: #FFFFFF; font: inherit; font-size: 15px; cursor: pointer;">Cancelar</button>
+        <span style="font-size: 14px; color: #BFD0E8;">D-03 · pacote {{next}}</span>
+      </div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 0 24px;">
+        <div style="position: relative; width: 300px; height: 380px; border-radius: 12px; background: #1C2436; display: flex; align-items: center; justify-content: center;">
+          <div aria-label="Rótulo de envio enquadrado" style="width: 230px; height: 300px; background: #F7F5EF; border-radius: 4px; transform: rotate(-3deg); padding: 14px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; color: #1B2230;">
+            <div style="display: flex; gap: 2px; height: 44px; align-items: stretch;">
+              <sc-for list="{{bars}}" as="w" hint-placeholder-count="30"><div style="{{w}}"></div></sc-for>
+            </div>
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-align: center;">OY 895 559 797 BR</span>
+            <span style="font-size: 9px; font-weight: 700; letter-spacing: .08em;">DESTINATÁRIO</span>
+            <span style="font-size: 12px; font-weight: 700;">ALINE RODRIGUES</span>
+            <span style="font-size: 11px; line-height: 1.35;">QNC 4 CASA 17<br>TAGUATINGA NORTE<br>BRASÍLIA / DF<br>72115-040</span>
+            <span style="font-size: 11px;">TEL: (61) 9 9340-1?87</span>
+          </div>
+          <div style="position: absolute; inset: 18px; border: 3px solid #F2B705; border-radius: 10px;"></div>
+        </div>
+        <span style="font-size: 15px; text-align: center; color: #DCE3EE;">Enquadre o rótulo inteiro dentro da moldura</span>
+      </div>
+      <div style="padding: 24px; display: flex; justify-content: center;">
+        <button type="button" onClick="{{shoot}}" aria-label="Tirar foto" style="width: 76px; height: 76px; border-radius: 50%; border: 5px solid #FFFFFF; background: #F2B705; cursor: pointer;"></button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isReview}}" hint-placeholder-val="{{false}}">
+    <div style="height: 100%; display: flex; flex-direction: column;">
+      <header style="padding: 16px 18px; background: #FFFFFF; border-bottom: 1px solid #E1E4EA; display: flex; flex-direction: column; gap: 2px;">
+        <h1 style="margin: 0; font-size: 20px;">Confira os dados</h1>
+        <span style="font-size: 14px; color: #5B6474;">Lidos do rótulo · corrija o que estiver destacado</span>
+      </header>
+      <form style="flex-grow: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="f-code" style="font-size: 14px; font-weight: 600;">Código do objeto</label>
+          <input id="f-code" value="OY895559797BR" style="height: 46px; padding: 0 12px; border: 1px solid #9FD2B3; border-radius: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 15px; background: #FFFFFF;">
+          <span style="font-size: 13px; color: #1F6F43; font-weight: 600;">Dígito verificador confere</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="f-name" style="font-size: 14px; font-weight: 600;">Destinatário</label>
+          <input id="f-name" value="Aline Rodrigues" style="height: 46px; padding: 0 12px; border: 1px solid #D5DAE2; border-radius: 8px; font: inherit; font-size: 15px;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="f-tel" style="font-size: 14px; font-weight: 600;">WhatsApp</label>
+          <input id="f-tel" value="(61) 99340-1_87" style="height: 46px; padding: 0 12px; border: 2px solid #E0A400; border-radius: 8px; font: inherit; font-size: 15px; background: #FFFBEF;">
+          <span style="font-size: 13px; color: #8A5A00; font-weight: 600;">Um dígito ficou ilegível. Confira no rótulo ou deixe em branco.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="f-end" style="font-size: 14px; font-weight: 600;">Endereço</label>
+          <input id="f-end" value="QNC 4 Casa 17 · Taguatinga Norte · Brasília-DF" style="height: 46px; padding: 0 12px; border: 1px solid #D5DAE2; border-radius: 8px; font: inherit; font-size: 15px;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <label for="f-cep" style="font-size: 14px; font-weight: 600;">CEP</label>
+          <input id="f-cep" value="72115-040" style="height: 46px; padding: 0 12px; border: 1px solid #D5DAE2; border-radius: 8px; font: inherit; font-size: 15px;">
+        </div>
+      </form>
+      <div style="padding: 12px 18px 20px; display: flex; flex-direction: column; gap: 8px; background: #FFFFFF; border-top: 1px solid #E1E4EA;">
+        <button type="button" onClick="{{save}}" style="min-height: 52px; border-radius: 12px; border: 0; background: #1E4FA3; color: #FFFFFF; font: inherit; font-size: 17px; font-weight: 700; cursor: pointer;">Salvar no D-03</button>
+        <button type="button" onClick="{{openCamera}}" style="min-height: 44px; border-radius: 12px; border: 1px solid #D5DAE2; background: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer;">Refazer foto</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { screen: 'home', count: 12, saved: false }; }
+  renderVals() {
+    const chip = (ok) => 'font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 99px; ' + (ok ? 'background: #E2F2E8; color: #1F6F43;' : 'background: #FDF1D6; color: #7A4E00;');
+    const base = [
+      { code: 'NL131860912BR', name: 'Luciana Ferreira Gomes', address: 'Av. Araucárias 1325 Bl. B Apto 302', ok: true },
+      { code: 'LB390996032BR', name: 'Antônio Carlos Ribeiro', address: 'Rua 7 Sul Lote 12', ok: false },
+      { code: 'QB908301669BR', name: 'João Pedro Martins', address: 'Rua 25 Norte Lote 3 Apto 1204', ok: true },
+    ];
+    const list = this.state.saved ? [{ code: 'OY895559797BR', name: 'Aline Rodrigues', address: 'QNC 4 Casa 17', ok: true }].concat(base) : base;
+    const bars = [];
+    for (let i = 0; i < 34; i++) bars.push('flex-grow: ' + (1 + ((i * 7) % 3)) + '; background: ' + (i % 2 ? '#F7F5EF' : '#1B2230') + ';');
+    return {
+      isHome: this.state.screen === 'home', isCamera: this.state.screen === 'camera', isReview: this.state.screen === 'review',
+      count: this.state.count, next: this.state.count + 1, saved: this.state.saved,
+      items: list.map((it) => ({ ...it, status: it.ok ? 'Completo' : 'Sem WhatsApp', chip: chip(it.ok) })),
+      bars,
+      openCamera: () => this.setState({ screen: 'camera', saved: false }),
+      goHome: () => this.setState({ screen: 'home' }),
+      shoot: () => this.setState({ screen: 'review' }),
+      save: () => this.setState({ screen: 'home', count: this.state.count + 1, saved: true }),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Distrito D-01 — pacotes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap">
+<style>
+body{margin:0;background:#F4F6F9}
+a{color:#1E4FA3}a:hover{color:#163C7D}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #1E4FA3;outline-offset:2px}
+</style>
+</helmet>
+<div style="display: flex; min-height: 100vh; background: #F4F6F9; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1B2230;">
+  <dc-import name="Sidebar" active="carregar" hint-size="248px,900px"></dc-import>
+
+  <main style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; padding: 28px 32px 48px; box-sizing: border-box;">
+    <a href="Main.dc.html" style="font-size: 14px; font-weight: 600; text-decoration: none;">← Voltar ao quadro de distritos</a>
+    <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 15px; padding: 2px 8px; border-radius: 6px; background: #E9EDF3;">D-01</span>
+          <h1 style="margin: 0; font-size: 28px; font-weight: 700;">Taguatinga Norte</h1>
+          <span style="font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 99px; color: #0F5F5F; background: #DDF2EF;">Em entrega</span>
+        </div>
+        <span style="font-size: 15px; color: #5B6474;">Carteiro: <strong style="color: #1B2230;">Marcos Paulo Lima</strong> · liberado às 08h55 · 42 pacotes, 38 com WhatsApp</span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <label for="busca" style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Buscar por código ou nome</label>
+        <input id="busca" type="search" placeholder="Buscar código ou nome" style="height: 44px; width: 260px; padding: 0 12px; border: 1px solid #D5DAE2; border-radius: 8px; font: inherit; background: #FFFFFF;">
+        <a href="Upload.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid #D5DAE2; background: #FFFFFF; color: #1B2230; text-decoration: none; font-weight: 600;">Adicionar pacotes</a>
+      </div>
+    </header>
+
+    <div role="group" aria-label="Filtrar por status" style="display: flex; flex-wrap: wrap; gap: 8px;">
+      <sc-for list="{{filters}}" as="f" hint-placeholder-count="7">
+        <button type="button" onClick="{{f.pick}}" aria-pressed="{{f.pressed}}" style="{{f.style}}"><span style="{{f.dot}}"></span>{{f.label}} <span style="font-variant-numeric: tabular-nums; opacity: .8;">{{f.n}}</span></button>
+      </sc-for>
+    </div>
+
+    <section style="background: #FFFFFF; border: 1px solid #E1E4EA; border-radius: 12px; overflow-x: auto;">
+      <table style="width: 100%; min-width: 1060px; border-collapse: collapse; font-size: 14px;">
+        <thead>
+          <tr style="text-align: left; color: #5B6474; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;">
+            <th style="padding: 12px 20px; font-weight: 600;">Código</th>
+            <th style="padding: 12px; font-weight: 600;">Destinatário</th>
+            <th style="padding: 12px; font-weight: 600;">Status</th>
+            <th style="padding: 12px; font-weight: 600;">Orientação</th>
+            <th style="padding: 12px; font-weight: 600;">Carteiro</th>
+            <th style="padding: 12px 20px; font-weight: 600;"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden;">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+            <tr style="border-top: 1px solid #EEF1F5; vertical-align: top;">
+              <td style="padding: 14px 20px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; white-space: nowrap;">{{r.code}}</td>
+              <td style="padding: 14px 12px;"><div style="font-weight: 600;">{{r.name}}</div><div style="font-size: 13px; color: #5B6474;">{{r.address}}</div></td>
+              <td style="padding: 14px 12px;"><span style="{{r.chip}}">{{r.status}}</span><sc-if value="{{r.hasFlag}}" hint-placeholder-val="{{false}}"><div style="font-size: 12px; font-weight: 600; color: #8A3A00; margin-top: 4px;">{{r.flag}}</div></sc-if></td>
+              <td style="padding: 14px 12px; max-width: 280px;">{{r.orientation}}</td>
+              <td style="padding: 14px 12px; color: #3C4555;">{{r.ack}}</td>
+              <td style="padding: 14px 20px; text-align: right;"><sc-if value="{{r.hasChat}}" hint-placeholder-val="{{false}}"><a href="Atendimento.dc.html" style="font-weight: 600; white-space: nowrap;">Ver conversa</a></sc-if></td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { filter: 'all' }; }
+  renderVals() {
+    const ST = {
+      semwa:       { label: 'Sem WhatsApp', fg: '#4B5563', bg: '#EEF0F3', dot: '#C9CED6' },
+      enviado:     { label: 'Enviado',      fg: '#1E4FA3', bg: '#E6EEFA', dot: '#9DB8DD' },
+      lido:        { label: 'Lido',         fg: '#1E4FA3', bg: '#DCE8F8', dot: '#3F7CC8' },
+      interagindo: { label: 'Interagindo',  fg: '#5E3A91', bg: '#F0E8FA', dot: '#7A4FB5' },
+      insucesso:   { label: 'Insucesso',    fg: '#A42A1F', bg: '#FBE5E2', dot: '#C0392B' },
+      entregue:    { label: 'Entregue',     fg: '#1F6F43', bg: '#E2F2E8', dot: '#2E8B57' },
+    };
+    const all = [
+      { s: 'interagindo', code: 'OY526018152BR', name: 'Maria Aparecida Souza', address: 'QNA 12 Casa 45 · Taguatinga Norte', orientation: 'Deixar com a vizinha Dona Célia, casa 47', ack: 'Vi · 10h12', flag: '', chat: true },
+      { s: 'interagindo', code: 'OY432319485BR', name: 'Paulo Henrique Dias', address: 'QND 3 Lote 9 Apto 201 · Taguatinga Norte', orientation: 'Aguardando resposta a “Outra opção”', ack: '—', flag: 'Escalonamento aberto', chat: true },
+      { s: 'entregue', code: 'QB757491181BR', name: 'Cristiane Batista', address: 'QNB 8 Casa 22 · Taguatinga Norte', orientation: 'Deixar na portaria com o Seu João', ack: 'Feito · 09h48', flag: '', chat: true },
+      { s: 'insucesso', code: 'PX625276011BR', name: 'Ricardo Nogueira', address: 'QNA 30 Casa 3 · Taguatinga Norte', orientation: 'Tentar novamente amanhã (guardada)', ack: 'Não tentado hoje', flag: 'Orientação guardada para 01/10', chat: true },
+      { s: 'lido', code: 'OY895559797BR', name: 'Aline Rodrigues', address: 'QNC 4 Casa 17 · Taguatinga Norte', orientation: '—', ack: '—', flag: '', chat: false },
+      { s: 'enviado', code: 'NL711471044BR', name: 'Fábio Santana', address: 'QNE 11 Lote 6 · Taguatinga Norte', orientation: '—', ack: '—', flag: '', chat: false },
+      { s: 'entregue', code: 'QB974650759BR', name: 'Tatiane Oliveira', address: 'QNB 1 Casa 30 · Taguatinga Norte', orientation: 'Deixar na Agência Taguatinga Centro', ack: 'Feito · 10h31', flag: '', chat: true },
+      { s: 'semwa', code: 'NX786579756BR', name: 'Edson Pereira', address: 'QNA 18 Casa 12 · Taguatinga Norte', orientation: '—', ack: '—', flag: '', chat: false },
+      { s: 'insucesso', code: 'AA518190935BR', name: 'Gabriela Sousa', address: 'QND 40 Casa 5 · Taguatinga Norte', orientation: '—', ack: 'Não foi possível: ninguém atendeu', flag: '', chat: false },
+    ];
+    const counts = { all: 42, semwa: 4, enviado: 6, lido: 9, interagindo: 4, insucesso: 2, entregue: 17 };
+    const filters = ['all', 'semwa', 'enviado', 'lido', 'interagindo', 'insucesso', 'entregue'].map((k) => {
+      const on = this.state.filter === k;
+      return {
+        label: k === 'all' ? 'Todos' : ST[k].label, n: counts[k], pressed: on ? 'true' : 'false',
+        pick: () => this.setState({ filter: k }),
+        dot: k === 'all' ? 'display: none;' : 'display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: ' + ST[k].dot + ';',
+        style: 'display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 99px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; gap: 4px; border: 1px solid ' + (on ? '#1B2230' : '#D5DAE2') + '; background: ' + (on ? '#1B2230' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#1B2230') + ';',
+      };
+    });
+    const rows = all.filter((r) => this.state.filter === 'all' || r.s === this.state.filter).map((r) => ({
+      ...r, status: ST[r.s].label, hasFlag: !!r.flag, hasChat: r.chat,
+      chip: 'display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 9px; border-radius: 99px; white-space: nowrap; color: ' + ST[r.s].fg + '; background: ' + ST[r.s].bg + ';',
+    }));
+    return { filters, rows };
+  }
+}
+</script>
+</body>
+</html>
