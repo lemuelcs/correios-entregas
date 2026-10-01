@@ -55,7 +55,6 @@ const ERROS: Record<string, string> = {
   distrito_em_operacao: 'A rota está em operação hoje. Desative depois do encerramento.',
   carteiro_em_operacao: 'O carteiro está numa rota liberada hoje. Troque o carteiro do dia ou aguarde o encerramento.',
   unidade_invalida: 'Unidade inválida.',
-  unidade_inativa: 'A unidade está desativada.',
   telefone_obrigatorio: 'Informe o WhatsApp com DDD.',
   nome_obrigatorio: 'Informe o nome.',
   canal_em_uso_compartilhado: 'Mais de uma unidade usa este canal: ele precisa continuar compartilhado.',
