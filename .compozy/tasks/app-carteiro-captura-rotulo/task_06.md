@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Extensões do supervisor nas telas de entregas
 type: frontend
 complexity: medium
@@ -39,11 +39,11 @@ Esta tarefa leva a captura às telas do supervisor que o monitoramento cria no `
 </requirements>
 
 ## Subtasks
-- [ ] 6.1 Verificação do pré-requisito do monitoramento.
-- [ ] 6.2 Origem, selo, histórico, foto e remoção na lista de pacotes.
-- [ ] 6.3 Pendências e transferências no quadro.
-- [ ] 6.4 "Definir senha" no cadastro de carteiros.
-- [ ] 6.5 Todos os testes atribuídos passando.
+- [x] 6.1 Verificação do pré-requisito do monitoramento.
+- [x] 6.2 Origem, selo, histórico, foto e remoção na lista de pacotes.
+- [x] 6.3 Pendências e transferências no quadro.
+- [x] 6.4 "Definir senha" no cadastro de carteiros.
+- [x] 6.5 Todos os testes atribuídos passando.
 
 ## Implementation Details
 
@@ -72,8 +72,8 @@ As mudanças ficam nas páginas e stores de `frontend/src/features/entregas/` (m
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-121, UT-122 — pacotes do distrito, com origem e foto excluída
-- [ ] UT-123, UT-124 — quadro, com transferências e pendências
+- [x] UT-121, UT-122 — pacotes do distrito, com origem e foto excluída
+- [x] UT-123, UT-124 — quadro, com transferências e pendências
 
 ## Success Criteria
 - Every assigned test case implemented and passing
