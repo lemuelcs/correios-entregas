@@ -52,6 +52,20 @@ async function relogar(s: Sessao): Promise<void> {
   s.auth = { Authorization: `Bearer ${login.body.accessToken}` };
 }
 
+/**
+ * Libera a carga num instante fixo do relógio. O token precisa nascer no mesmo
+ * relógio da chamada (expira em 15 min): login dentro do instante e de novo ao
+ * sair, senão o resultado depende da hora real em que a suíte roda.
+ */
+async function liberarNoInstante(s: Sessao, instante: Date, cargaId: string) {
+  const r = await noInstante(instante, async () => {
+    await relogar(s);
+    return post(s, `/api/v1/entregas/cargas/${cargaId}/liberar`);
+  });
+  await relogar(s);
+  return r;
+}
+
 /** Cadastro pela API: carteiro, distrito (com o carteiro padrão) e pontos. */
 async function cadastrar(s: Sessao, pontos: Array<['AGENCIA' | 'LOCKER', string]> = []) {
   const n = proximo();
@@ -138,7 +152,7 @@ describe('Jornadas de API', () => {
     const destinatario = '+5561998120001';
     const { cargaId } = await carregar(s, distrito.id, hoje, [linha('OY526018152BR', '(61) 99812-0001')]);
 
-    const lib = await noInstante(brasilia(hoje, '09:00'), () => post(s, `/api/v1/entregas/cargas/${cargaId}/liberar`));
+    const lib = await liberarNoInstante(s, brasilia(hoje, '09:00'), cargaId);
     expect(lib.status).toBe(202);
     expect(lib.body.avisosAgendados).toBe(1);
     await drenarAvisos();
@@ -180,7 +194,7 @@ describe('Jornadas de API', () => {
     const destinatario = '+5561998120002';
     const planilha = [linha('QB908301669BR', '(61) 99812-0002', 'JOANA SILVA')];
     const { cargaId } = await carregar(s, distrito.id, hoje, planilha);
-    await noInstante(brasilia(hoje, '08:00'), () => post(s, `/api/v1/entregas/cargas/${cargaId}/liberar`));
+    await liberarNoInstante(s, brasilia(hoje, '08:00'), cargaId);
     await drenarAvisos();
     const pacoteId = para(destinatario)[0].corpo.reference as string;
 
@@ -222,7 +236,7 @@ describe('Jornadas de API', () => {
     const hoje = hojeBrasilia();
     const destinatario = '+5561998120003';
     const { cargaId } = await carregar(s, distrito.id, hoje, [linha('AA123456785BR', '(61) 99812-0003')]);
-    await noInstante(brasilia(hoje, '09:00'), () => post(s, `/api/v1/entregas/cargas/${cargaId}/liberar`));
+    await liberarNoInstante(s, brasilia(hoje, '09:00'), cargaId);
     await drenarAvisos();
 
     const externalRef = `AA123456785BR@${formatarData(hoje)}`;
@@ -256,7 +270,7 @@ describe('Jornadas de API', () => {
     const hoje = hojeBrasilia();
     const destinatario = '+5561998120004';
     const { cargaId } = await carregar(s, distrito.id, hoje, [linha('AA100000025BR', '(61) 99812-0004')]);
-    await noInstante(brasilia(hoje, '09:00'), () => post(s, `/api/v1/entregas/cargas/${cargaId}/liberar`));
+    await liberarNoInstante(s, brasilia(hoje, '09:00'), cargaId);
     await drenarAvisos();
     const [aviso] = para(destinatario);
 
