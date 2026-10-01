@@ -72,13 +72,14 @@ test('E2E-011 — tela de 390 px: menu vira botão, mesmos itens, sem rolagem ho
   }
 });
 
-test('E2E-013 — unidade sem distritos: "Cadastre distritos" com atalho', async ({ page }) => {
+test('E2E-013 — unidade sem rotas: quadro pronto para importar a Saída 1 (ADR-019)', async ({ page }) => {
   const c = await controle<{ supervisor: { email: string } }>('/cenarios/vazio', {});
   await entrarDireto(page, c.supervisor.email, '/entregas/carregar');
-  await expect(page.getByRole('heading', { name: 'Cadastre distritos' })).toBeVisible();
-  await page.getByRole('link', { name: 'Ir para o Cadastro' }).click();
-  await expect(page).toHaveURL(/\/entregas\/cadastro$/);
-  await expect(page.getByRole('tab', { name: 'Distritos' })).toHaveAttribute('aria-selected', 'true');
+  // Não há mais "Cadastre distritos": a rota nasce do arquivo da saída.
+  await expect(page.getByRole('heading', { name: 'Importar arquivo da saída' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Saída 1 ainda não foi importada' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Importar Saída 1' })).toBeEnabled();
+  await expect(page.getByRole('heading', { name: 'Cadastre distritos' })).toHaveCount(0);
 });
 
 test('E2E-014 — sessão expirada volta ao módulo depois do login', async ({ page }) => {

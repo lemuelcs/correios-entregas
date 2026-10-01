@@ -67,7 +67,7 @@ export function ResumoImportacao({ saidas, agregado }: { saidas: SaidaDoDia[]; a
               {descartes.map((d) => (
                 <tr key={`${d.n}-${d.codigo}`} data-descarte={d.n} className="border-t border-ce-linha-fraca">
                   <td className="px-3 py-2 tabular-nums">{d.n}</td>
-                  <td className="px-3 py-2 font-codigo">{d.rota ?? '—'}</td>
+                  <td className="whitespace-nowrap px-3 py-2 font-codigo">{d.rota ?? '—'}</td>
                   <td className="px-3 py-2 font-codigo">{d.codigo || '—'}</td>
                   <td className="px-3 py-2">{motivoDoDescarte(d)}</td>
                 </tr>

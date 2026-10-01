@@ -63,8 +63,14 @@ export async function entrarDireto(page: Page, email: string, destino: string, s
   await page.goto(destino);
 }
 
+/** Cartão da rota no quadro das saídas (o código é o da rota no Cadastro). */
 export function cartao(page: Page, codigo: string) {
-  return page.locator(`article[data-distrito="${codigo}"]`);
+  return page.locator(`article[data-rota="${codigo}"]`);
+}
+
+/** Aba de uma saída do dia ("Saída 2", "Sem saída"). */
+export function abaSaida(page: Page, nome: string | RegExp) {
+  return page.getByRole('tablist', { name: 'Saídas do dia' }).getByRole('tab', { name: nome });
 }
 
 /** A página não rola na horizontal (largura do documento cabe na janela). */

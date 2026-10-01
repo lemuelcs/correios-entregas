@@ -107,6 +107,21 @@ async function main(): Promise<void> {
     for (let i = 0; i < 2; i += 1) await f.criarPacote({ cargaId: c06.id, data });
     distritos['D-06'] = { id: d06.id, cargaId: c06.id };
 
+    // Saída 1 do dia (ADR-019): as rotas acima vieram do arquivo dela.
+    const cargaIds = Object.values(distritos).flatMap((d) => (d.cargaId ? [d.cargaId] : []));
+    const saida = await prisma.saida.create({
+      data: {
+        unidadeId: unidade.id,
+        data,
+        numero: 1,
+        horario: '10:00',
+        arquivoNome: 'saida-1.xlsx',
+        importadaEm: new Date(),
+        aceitos: await prisma.pacoteDia.count({ where: { cargaId: { in: cargaIds } } }),
+      },
+    });
+    await prisma.cargaDistrito.updateMany({ where: { id: { in: cargaIds } }, data: { saidaId: saida.id } });
+
     return { supervisor: { email: 'ana.ribeiro@e2e.local', senha: SENHA }, unidadeId: unidade.id, distritos, pacotesD01 };
   }
 
@@ -158,6 +173,51 @@ async function main(): Promise<void> {
     linhas.push([linhas[2][0], 'Luciana F. Gomes', telefone(91), ...endereco(39)]);
     linhas.push([f.codigoS10(52_601_950, 'OY'), '', telefone(92), ...endereco(40)]);
     return linhas;
+  }
+
+  // ——— Arquivos de saída (ADR-019): todas as rotas da unidade num arquivo só ———
+
+  const CABECALHO_SAIDA = ['Rota', 'Carteiro', 'Código', 'Nome', 'WhatsApp', 'Endereço'];
+  const linhaSaida = (rota: string, carteiro: string, serial: number, whats: string, nome = `Destinatário ${serial}`) =>
+    [rota, carteiro, f.codigoS10(53_000_000 + serial, 'OY'), nome, whats, `Rua ${serial} Lote 1`];
+
+  /**
+   * Saída 2: rota 509 (nova, carteiro pelo nome na coluna), rota 510 (nova, sem
+   * carteiro), uma linha da D-03 (já carregada na Saída 1) e três linhas com erro.
+   * No cenário "carregado": 6 aceitos, 4 descartados.
+   */
+  function linhasSaida2(): string[][] {
+    return [
+      linhaSaida('509', 'Wesley Mota Ramos', 1, telefone(201)),
+      linhaSaida('509', 'Wesley Mota Ramos', 2, telefone(202)),
+      linhaSaida('509', 'Wesley Mota Ramos', 3, telefone(203)),
+      linhaSaida('509', 'Wesley Mota Ramos', 4, ''),
+      linhaSaida('510', '', 5, telefone(205)),
+      linhaSaida('510', '', 6, telefone(206)),
+      linhaSaida('D-03', '', 7, telefone(207)),
+      ['509', '', 'AB123456789BR', 'Rafael Moreira', telefone(208), 'Rua 8'],
+      linhaSaida('510', '', 9, '98876-1102', 'Beatriz Lima Castro'),
+      linhaSaida('', '', 10, telefone(210), 'Sem Rota da Silva'),
+    ];
+  }
+
+  /** Reimportação da Saída 2: a 509 ganha um pacote; a 510 troca os dois pacotes por três novos. */
+  function linhasSaida2Reimportacao(): string[][] {
+    return [
+      linhaSaida('509', 'Wesley Mota Ramos', 1, telefone(201)),
+      linhaSaida('509', 'Wesley Mota Ramos', 20, telefone(220)),
+      linhaSaida('510', '', 5, telefone(205)),
+      linhaSaida('510', '', 21, telefone(221)),
+      linhaSaida('510', '', 22, ''),
+    ];
+  }
+
+  async function xlsxSaida(linhas: string[][]): Promise<Buffer> {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Saída');
+    ws.addRow(CABECALHO_SAIDA);
+    for (const l of linhas) ws.addRow(l);
+    return Buffer.from(await wb.xlsx.writeBuffer());
   }
 
   const CABECALHO = ['Código', 'Nome', 'WhatsApp', 'Logradouro', 'Número', 'Complemento', 'Bairro', 'Cidade', 'UF', 'CEP'];
@@ -272,6 +332,15 @@ async function main(): Promise<void> {
     if (nome === 'aguas-claras-sul.xlsx') {
       xlsx(linhasAguasClarasSul()).then((b) => enviar(b, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
         .catch((err: Error) => res.status(500).json({ error: err.message }));
+      return;
+    }
+    if (nome === 'saida-2.xlsx') {
+      xlsxSaida(linhasSaida2()).then((b) => enviar(b, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))
+        .catch((err: Error) => res.status(500).json({ error: err.message }));
+      return;
+    }
+    if (nome === 'saida-2-reimportacao.csv') {
+      enviar(Buffer.from([CABECALHO_SAIDA, ...linhasSaida2Reimportacao()].map((l) => l.join(';')).join('\n'), 'utf8'), 'text/csv');
       return;
     }
     if (nome === 'so-invalidas.csv') {

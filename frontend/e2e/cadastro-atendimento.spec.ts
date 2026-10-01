@@ -58,11 +58,12 @@ test('E2E-008 — Cadastro: distrito, carteiro, ponto e carteiro do dia', async 
   await expect(page.getByRole('row', { name: /AC Taguatinga Centro/ })).toContainText('Agência');
   await expect(page.getByText('Ativos: 1/10 agências · 0/10 lockers')).toBeVisible();
 
-  // O quadro já mostra o D-09 e o D-06 com carteiro.
+  // O quadro já mostra o D-06 com carteiro.
   await page.getByRole('navigation', { name: 'Menu principal' }).getByRole('link', { name: /^Carregar Dados/ }).click();
-  await expect(cartao(page, 'D-09')).toContainText('Pendente de upload');
-  await expect(cartao(page, 'D-06')).toContainText('Carteiro: Renato Alves Costa');
-  await expect(cartao(page, 'D-06').getByRole('button', { name: 'Liberar distrito' })).toBeEnabled();
+  // (ADR-019) A rota só aparece no quadro quando um arquivo de saída a trouxe: o D-09, sem carga, não aparece.
+  await expect(cartao(page, 'D-06')).toContainText('Renato Alves Costa');
+  await expect(cartao(page, 'D-06').getByRole('button', { name: 'Liberar rota' })).toBeEnabled();
+  await expect(cartao(page, 'D-09')).toHaveCount(0);
 });
 
 test('E2E-009 — Atendimento em iframe e alternativa', async ({ page }) => {
@@ -163,7 +164,7 @@ test('E2E-010 — jornada da Gestão: canal, unidade e supervisor', async ({ pag
   await expect(page).toHaveURL(/\/entregas\/carregar$/);
   const menu = page.getByRole('navigation', { name: 'Menu principal' });
   await expect(menu).toContainText('CDD Taguatinga');
-  await expect(page.getByRole('heading', { name: 'Cadastre distritos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Saída 1 ainda não foi importada' })).toBeVisible();
   await expect(page.getByText('D-50')).toHaveCount(0);
   await menu.getByRole('link', { name: /^Cadastro/ }).click();
   await expect(page.getByRole('tab', { name: 'Unidades' })).toHaveCount(0);
