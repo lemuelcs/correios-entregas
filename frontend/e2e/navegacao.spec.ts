@@ -78,7 +78,7 @@ test('E2E-013 — unidade sem distritos: "Cadastre distritos" com atalho', async
   await expect(page.getByRole('heading', { name: 'Cadastre distritos' })).toBeVisible();
   await page.getByRole('link', { name: 'Ir para o Cadastro' }).click();
   await expect(page).toHaveURL(/\/entregas\/cadastro$/);
-  await expect(page.getByRole('tab', { name: 'Distritos' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Rotas', exact: true })).toHaveAttribute('aria-selected', 'true');
 });
 
 test('E2E-014 — sessão expirada volta ao módulo depois do login', async ({ page }) => {

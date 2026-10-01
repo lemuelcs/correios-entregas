@@ -48,7 +48,7 @@ async function abrir(campos: CamposLidos, rotas: Parameters<typeof fetchFalso>[0
   return { ...f, user, ...r };
 }
 
-const salvar = () => screen.getByRole('button', { name: 'Salvar no D-03' });
+const salvar = () => screen.getByRole('button', { name: 'Salvar na rota D-03' });
 
 describe('ConferirPage', () => {
   beforeEach(async () => {
@@ -71,7 +71,7 @@ describe('ConferirPage', () => {
     expect(screen.getByLabelText('Destinatário').closest('[data-campo]')).not.toHaveAttribute('data-duvida');
   });
 
-  it('UT-092 nome apagado → "Salvar no D-03" desabilitado, com "Informe o nome do destinatário"', async () => {
+  it('UT-092 nome apagado → "Salvar na rota D-03" desabilitado, com "Informe o nome do destinatário"', async () => {
     const { user } = await abrir(camposExemplo());
     expect(salvar()).toBeEnabled();
 
@@ -174,7 +174,7 @@ describe('ConferirPage', () => {
     expect(screen.getByTestId('local')).toHaveTextContent('/carteiro/captura/camera?substitui=cap-1');
   });
 
-  it('transferência: "Este pacote está no D-01 hoje. Trazer para o D-03?" e confirma com confirmarTransferencia', async () => {
+  it('transferência: "Este pacote está na rota D-01 hoje. Trazer para a rota D-03?" e confirma com confirmarTransferencia', async () => {
     const { user, chamadas } = await abrir(
       camposExemplo(),
       { 'POST /captura/capturas/cap-1/confirmar': json(200, { tipo: 'SALVO', pacoteId: 'p1', atualizado: false }), 'GET /captura/hoje': json(200, hojeExemplo()) },
@@ -182,8 +182,8 @@ describe('ConferirPage', () => {
     );
 
     await user.click(salvar());
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('Este pacote está no D-01 hoje. Trazer para o D-03?');
-    await user.click(screen.getByRole('button', { name: 'Trazer para o D-03' }));
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Este pacote está na rota D-01 hoje. Trazer para a rota D-03?');
+    await user.click(screen.getByRole('button', { name: 'Trazer para a rota D-03' }));
 
     await waitFor(() => expect(screen.getByTestId('local')).toHaveTextContent('/carteiro/captura/conferir'));
     const envio = chamadas.find((c) => c.caminho === '/captura/capturas/cap-1/confirmar');

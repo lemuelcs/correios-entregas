@@ -62,12 +62,12 @@ describe('CapturaHomePage', () => {
     expect(screen.getByRole('button', { name: 'Fotografar rótulo' })).toBeEnabled();
   });
 
-  it('UT-102 sem distrito → "Você não tem distrito hoje. Fale com o supervisor." e sem o botão da câmera', async () => {
+  it('UT-102 sem rota → "Você não tem rota hoje. Fale com o supervisor." e sem o botão da câmera', async () => {
     fetchFalso({ 'GET /captura/hoje': json(200, hojeExemplo({ distritos: [], ativo: null })) });
 
     renderizar();
 
-    expect(await screen.findByText('Você não tem distrito hoje. Fale com o supervisor.')).toBeInTheDocument();
+    expect(await screen.findByText('Você não tem rota hoje. Fale com o supervisor.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fotografar rótulo' })).not.toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe('CapturaHomePage', () => {
 
     renderizar();
 
-    const seletor = await screen.findByLabelText('Distrito em que os pacotes entram');
+    const seletor = await screen.findByLabelText('Rota em que os pacotes entram');
     const botao = screen.getByRole('button', { name: 'Fotografar rótulo' });
     expect(seletor.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(seletor).getByRole('option', { name: 'D-05 · Vicente Pires' })).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('CapturaHomePage', () => {
     expect(screen.getByTestId('contador-capturados')).toHaveTextContent('0');
   });
 
-  it('UT-105 resultado SALVO → o aviso "Pacote … salvo no D-03 · desfazer"; o desfazer chama só aquele id', async () => {
+  it('UT-105 resultado SALVO → o aviso "Pacote … salvo na rota D-03 · desfazer"; o desfazer chama só aquele id', async () => {
     const a = novaCaptura({ codigo: 'OY716488072BR' });
     const b = novaCaptura({ codigo: 'AA123456785BR', barcodes: { objeto: 'AA123456785BR', cepLinear: null, dataMatrixRaw: null, multiplos: false } });
     await obterCaptureQueue().add(a);
@@ -116,9 +116,9 @@ describe('CapturaHomePage', () => {
 
     renderizar();
 
-    const avisoA = await screen.findByText(/Pacote OY716488072BR salvo no D-03/);
-    expect(await screen.findByText(/Pacote AA123456785BR salvo no D-03/)).toBeInTheDocument();
-    expect(avisoA.closest('[role="status"]')).toHaveTextContent('Pacote OY716488072BR salvo no D-03 · desfazer');
+    const avisoA = await screen.findByText(/Pacote OY716488072BR salvo na rota D-03/);
+    expect(await screen.findByText(/Pacote AA123456785BR salvo na rota D-03/)).toBeInTheDocument();
+    expect(avisoA.closest('[role="status"]')).toHaveTextContent('Pacote OY716488072BR salvo na rota D-03 · desfazer');
 
     await user.click(within(avisoA.closest('[role="status"]') as HTMLElement).getByRole('button', { name: 'desfazer' }));
 
@@ -126,6 +126,6 @@ describe('CapturaHomePage', () => {
     const desfeitos = chamadas.filter((c) => c.caminho.endsWith('/desfazer'));
     expect(desfeitos).toEqual([{ metodo: 'POST', caminho: `/captura/capturas/${a.capturaId}/desfazer`, corpo: undefined }]);
     expect(screen.queryByText(/Pacote OY716488072BR salvo/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Pacote AA123456785BR salvo no D-03/)).toBeInTheDocument();
+    expect(screen.getByText(/Pacote AA123456785BR salvo na rota D-03/)).toBeInTheDocument();
   });
 });

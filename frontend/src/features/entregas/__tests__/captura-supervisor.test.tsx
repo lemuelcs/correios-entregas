@@ -208,10 +208,10 @@ describe('Extensões do supervisor (captura, task_06)', () => {
     fetchMock.mockImplementation(async () => json(200, q));
     abrirQuadro();
 
-    const saida = await screen.findByRole('list', { name: 'Transferências do D-01' });
-    expect(saida).toHaveTextContent('OY716488072BR foi para o D-03 · Patrícia Nunes · 09h40');
-    const entrada = screen.getByRole('list', { name: 'Transferências do D-03' });
-    expect(entrada).toHaveTextContent('OY716488072BR veio do D-01 · Patrícia Nunes · 09h40');
+    const saida = await screen.findByRole('list', { name: 'Transferências da rota D-01' });
+    expect(saida).toHaveTextContent('OY716488072BR foi para a rota D-03 · Patrícia Nunes · 09h40');
+    const entrada = screen.getByRole('list', { name: 'Transferências da rota D-03' });
+    expect(entrada).toHaveTextContent('OY716488072BR veio da rota D-01 · Patrícia Nunes · 09h40');
   });
 
   it('UT-124 paraConferir: 4 → "4 para conferir no app do carteiro"; 0 → nada', async () => {
