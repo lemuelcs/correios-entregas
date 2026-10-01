@@ -206,3 +206,75 @@ export const textosCarteiro = {
 export function botoesMotivos(orientacaoId: string): BotaoMensagem[] {
   return MOTIVOS_NAO_FOI_POSSIVEL.map((m) => ({ id: `CE_CT:${orientacaoId}.${m}`, text: ROTULOS_MOTIVO[m] }));
 }
+
+// ——— Aviso "saiu para entrega" (task_06, US-012) ——————————————————————————
+
+export const OPCOES_AVISO: readonly OpcaoAviso[] = ['AMANHA', 'VIZINHO', 'AGENCIA', 'LOCKER', 'OUTRA'];
+
+export interface DadosAviso {
+  pacoteId: string;
+  nome: string;
+  codigo: string;
+  /** Tipos de ponto com ao menos um ativo na unidade. Ausente → os dois (US-012.EC-1). */
+  pontosAtivos?: { agencia: boolean; locker: boolean };
+  /** Texto da orientação guardada de outro dia (US-012.AC-2). */
+  orientacao?: string | null;
+}
+
+/** Ids `CE_OP:<pacoteId>.<OPCAO>`; agência/locker só quando a unidade tem ponto ativo do tipo. */
+export function botoesAviso(pacoteId: string, pontosAtivos: { agencia: boolean; locker: boolean } = { agencia: true, locker: true }): BotaoMensagem[] {
+  return OPCOES_AVISO
+    .filter((o) => (o === 'AGENCIA' ? pontosAtivos.agencia : o === 'LOCKER' ? pontosAtivos.locker : true))
+    .map((o) => ({ id: `CE_OP:${pacoteId}.${o}`, text: ROTULOS_OPCAO[o] }));
+}
+
+/**
+ * Corpo do aviso (ADR-007: "Olá, <primeiro nome>", texto neutro, sem link nem
+ * pagamento). Com orientação guardada, cita a orientação e mantém as opções.
+ */
+export function montarAviso(d: DadosAviso): { body: string; buttons: BotaoMensagem[] } {
+  const nome = primeiroNome(d.nome);
+  const saudacao = nome ? `Olá, ${nome}, sua encomenda` : 'Olá, sua encomenda';
+  const orientacao = d.orientacao ? limitarTexto(removerDadosSensiveis(d.orientacao)).replace(/[.…]+$/, '') : '';
+  const cauda = orientacao
+    ? `Vamos seguir sua orientação: ${orientacao}. Se quiser mudar, escolha outra opção.`
+    : 'Se tiver alguma dificuldade para receber sua encomenda, nos avise.';
+  return {
+    body: `${saudacao} ${d.codigo} já saiu para entrega. ${cauda}`,
+    buttons: botoesAviso(d.pacoteId, d.pontosAtivos),
+  };
+}
+
+// ——— Resumo ao carteiro (task_06, US-023) ——————————————————————————————
+
+export const TAMANHO_BLOCO_RESUMO = 20;
+
+export interface ItemResumo {
+  codigo: string;
+  nomeDestinatario: string;
+  texto: string;
+}
+
+/**
+ * Resumo das orientações conhecidas, em mensagens de até 20 itens numeradas
+ * "1/2", "2/2" (US-023.EC-1). Nenhuma orientação → nenhuma mensagem.
+ * `troca`: o carteiro assumiu o distrito depois da liberação (US-005.AC-3).
+ */
+export function montarResumoCarteiro(itens: readonly ItemResumo[], opcoes: { troca?: boolean } = {}): string[] {
+  if (itens.length === 0) return [];
+  const total = Math.ceil(itens.length / TAMANHO_BLOCO_RESUMO);
+  const titulo = opcoes.troca
+    ? 'Você assumiu o distrito hoje. Orientações pendentes'
+    : 'Orientações de hoje';
+  const mensagens: string[] = [];
+  for (let b = 0; b < total; b += 1) {
+    const bloco = itens.slice(b * TAMANHO_BLOCO_RESUMO, (b + 1) * TAMANHO_BLOCO_RESUMO);
+    const linhas = bloco.map((it, i) => {
+      const n = b * TAMANHO_BLOCO_RESUMO + i + 1;
+      const nome = primeiroNome(it.nomeDestinatario);
+      return `${n}. ${it.codigo}${nome ? ` · ${nome}` : ''}: ${limitarTexto(removerDadosSensiveis(it.texto))}`;
+    });
+    mensagens.push([`${titulo} (${b + 1}/${total})`, ...linhas].join('\n'));
+  }
+  return mensagens;
+}
