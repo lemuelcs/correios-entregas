@@ -36,7 +36,7 @@ export const useEntregasCargaStore = create<CargaState>((set, get) => {
 
   function distrito(): string {
     const id = get().distritoId;
-    if (!id) throw new Error('Distrito não definido');
+    if (!id) throw new Error('Rota não definida');
     return id;
   }
 

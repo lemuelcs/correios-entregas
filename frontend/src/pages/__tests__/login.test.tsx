@@ -36,8 +36,8 @@ function renderizar(inicial: string | { pathname: string; state?: unknown }, ext
 
 async function entrarComMatricula(matricula: string, senha: string) {
   const user = userEvent.setup();
-  await user.click(screen.getByRole('button', { name: 'Matricula' }));
-  if (matricula) await user.type(screen.getByLabelText('Matricula'), matricula);
+  await user.click(screen.getByRole('button', { name: 'Matrícula' }));
+  if (matricula) await user.type(screen.getByLabelText('Matrícula'), matricula);
   if (senha) await user.type(screen.getByLabelText('Senha'), senha);
   await user.click(screen.getByRole('button', { name: 'Entrar' }));
   return user;
@@ -157,9 +157,9 @@ describe('LoginPage e troca de senha', () => {
     await entrarComMatricula('', '');
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('Matricula')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Matrícula')).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText('Senha')).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByText('Informe a matricula.')).toBeInTheDocument();
+    expect(screen.getByText('Informe a matrícula.')).toBeInTheDocument();
     expect(screen.getByText('Informe a senha.')).toBeInTheDocument();
   });
 
