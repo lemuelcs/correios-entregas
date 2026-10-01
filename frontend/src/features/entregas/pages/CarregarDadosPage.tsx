@@ -34,6 +34,7 @@ import {
   FalhaCarga,
   Pilula,
 } from '../components/ui';
+import { CapturaNoCartao } from '../components/CapturaSupervisor';
 
 type Filtro = 'TODOS' | StatusQuadro;
 
@@ -147,6 +148,8 @@ function CartaoDoDistrito({ d, somenteLeitura, podeLiberar, aoLiberar }: {
           </div>
         </div>
       )}
+
+      <CapturaNoCartao d={d} />
     </article>
   );
 }
@@ -352,6 +355,11 @@ export function CarregarDadosPage() {
             <strong>{aLiberar.total - aLiberar.comWhatsapp} sem WhatsApp</strong> não serão avisados.
           </p>
         ))}
+        {aLiberar && (aLiberar.paraConferir ?? 0) > 0 && (
+          <p className="m-0 rounded-lg bg-ce-corrigir-bg px-3 py-2.5 text-[15px] text-ce-corrigir">
+            <strong>{aLiberar.paraConferir} para conferir no app do carteiro</strong>: esses pacotes ainda não estão na lista. A liberação continua permitida.
+          </p>
+        )}
         {aLiberar && (
           <p className="m-0 text-[15px] text-ce-tinta-2">
             Carteiro do dia: <strong>{aLiberar.carteiro?.nome}</strong>. Ele recebe no WhatsApp o resumo das orientações já conhecidas.

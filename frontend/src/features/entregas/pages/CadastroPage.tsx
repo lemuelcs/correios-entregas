@@ -235,6 +235,33 @@ function FormCarteiro({ carteiro, distritos, aoFechar, aoSalvar }: { carteiro: C
   );
 }
 
+/** Senha temporária do app de captura (ADR-004): o carteiro troca no primeiro acesso. */
+function FormSenhaCarteiro({ carteiro, aoFechar, aoSalvar }: { carteiro: CarteiroCadastro; aoFechar: () => void; aoSalvar: () => Promise<void> }) {
+  const [senha, setSenha] = useState('');
+  const nome = carteiro.nome ?? carteiro.matricula;
+  return (
+    <DialogoFormulario
+      titulo={`Definir senha · ${nome}`}
+      aberto
+      aoFechar={aoFechar}
+      rotuloEnviar="Definir senha"
+      aoEnviar={async () => {
+        await entregasApi.definirSenhaCarteiro(carteiro.id, senha);
+        toast.success(`Senha de ${nome} definida. Passe-a ao carteiro: ele cria a própria senha no primeiro acesso.`);
+        await aoSalvar();
+      }}
+    >
+      <p className="m-0 text-[15px] leading-normal text-ce-tinta-2">
+        O carteiro entra no app de captura com a matrícula <strong className="font-codigo">{carteiro.matricula}</strong> e esta senha.
+        {carteiro.possuiLogin && ' A senha atual deixa de valer e o aparelho dele pede um novo login.'}
+      </p>
+      <Campo rotulo="Senha temporária" dica="De 8 a 72 caracteres.">
+        {entrada({ value: senha, onChange: (e) => setSenha(e.target.value), required: true, minLength: 8, maxLength: 72, autoComplete: 'off', spellCheck: false })}
+      </Campo>
+    </DialogoFormulario>
+  );
+}
+
 // ——— Pontos de retirada ——————————————————————————————————————————————
 
 function FormPonto({ ponto, aoFechar, aoSalvar }: { ponto: PontoRetirada | null; aoFechar: () => void; aoSalvar: () => Promise<void> }) {
@@ -436,6 +463,7 @@ function FormSupervisor({ unidades, aoFechar, aoSalvar }: { unidades: UnidadeGes
 type Edicao =
   | { tipo: 'distrito'; item: Distrito | null }
   | { tipo: 'carteiro'; item: CarteiroCadastro | null }
+  | { tipo: 'senha'; item: CarteiroCadastro }
   | { tipo: 'ponto'; item: PontoRetirada | null }
   | { tipo: 'unidade'; item: UnidadeGestao | null }
   | { tipo: 'supervisor' }
@@ -517,7 +545,12 @@ export function CadastroPage() {
             <span className="tabular-nums">{formatarWhatsapp(c.whatsapp)}</span>,
             c.distritosPadrao.map((d) => d.codigo).join(', ') || '— (volante)',
             <Situacao ativo={c.ativo} />,
-            podeEditar ? editar(`Editar ${c.nome ?? c.matricula}`, () => setEdicao({ tipo: 'carteiro', item: c })) : null,
+            podeEditar ? (
+              <div className="flex flex-wrap gap-x-1">
+                {editar(`Editar ${c.nome ?? c.matricula}`, () => setEdicao({ tipo: 'carteiro', item: c }))}
+                <Botao variante="texto" onClick={() => setEdicao({ tipo: 'senha', item: c })} aria-label={`Definir senha de ${c.nome ?? c.matricula}`}>Definir senha</Botao>
+              </div>
+            ) : null,
           ],
         })) ?? null;
       case 'pontos':
@@ -620,6 +653,7 @@ export function CadastroPage() {
 
       {edicao?.tipo === 'distrito' && <FormDistrito distrito={edicao.item} carteiros={cad.carteiros ?? []} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
       {edicao?.tipo === 'carteiro' && <FormCarteiro carteiro={edicao.item} distritos={cad.distritos ?? []} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
+      {edicao?.tipo === 'senha' && <FormSenhaCarteiro carteiro={edicao.item} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
       {edicao?.tipo === 'ponto' && <FormPonto ponto={edicao.item} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
       {edicao?.tipo === 'canal' && (
         <FormCanal

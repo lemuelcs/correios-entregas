@@ -131,6 +131,12 @@ class ApiClient {
   };
 
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const res = await this.enviar(method, path, body);
+    return await this.parseResponseBody(res) as T;
+  }
+
+  /** Chamada com sessão (refresh, erros como `ApiError`) que devolve a resposta crua, para binários. */
+  private async enviar(method: string, path: string, body?: unknown): Promise<Response> {
     let res = await fetch(`${BASE_URL}${path}`, {
       method,
       headers: this.getHeaders(body),
@@ -174,10 +180,12 @@ class ApiClient {
       throw new ApiError(res.status, message, details);
     }
 
-    return await this.parseResponseBody(res) as T;
+    return res;
   }
 
   get<T>(path: string) { return this.request<T>('GET', path); }
+  /** GET de um binário (ex.: a foto do rótulo). */
+  async getBlob(path: string): Promise<Blob> { return (await this.enviar('GET', path)).blob(); }
   post<T>(path: string, body?: unknown) { return this.request<T>('POST', path, body); }
   /** POST multipart: não fixa o Content-Type JSON. */
   postForm<T>(path: string, form: FormData) { return this.request<T>('POST', path, form); }

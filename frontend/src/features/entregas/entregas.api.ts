@@ -17,6 +17,7 @@ import type {
   Quadro,
   RespostaLiberacao,
   ResultadoConfirmacao,
+  HistoricoPacote,
   SessaoAtendimento,
   Supervisor,
   TipoPonto,
@@ -100,6 +101,14 @@ export const entregasApi = {
   // ——— Atendimento ———
   sessaoAtendimento: (unidadeId?: string) =>
     api.post<SessaoAtendimento>('/entregas/atendimento/sessao', unidadeId ? { unidadeId } : {}),
+
+  // ——— Supervisor da captura (TechSpec da captura › API Endpoints › Supervisor) ———
+  historicoPacote: (pacoteId: string, unidadeId?: string) =>
+    api.get<HistoricoPacote>(`/entregas/captura/pacotes/${pacoteId}/historico${query({ unidadeId })}`),
+  /** JPEG do rótulo; 404 `sem_foto`, 410 `foto_excluida` com `fotoExcluidaEm`. */
+  fotoPacote: (pacoteId: string, unidadeId?: string) => api.getBlob(`/entregas/captura/pacotes/${pacoteId}/foto${query({ unidadeId })}`),
+  removerPacote: (pacoteId: string) => api.delete(`/entregas/captura/pacotes/${pacoteId}`),
+  definirSenhaCarteiro: (carteiroId: string, senha: string) => api.put(`/entregas/captura/carteiros/${carteiroId}/senha`, { senha }),
 
   // ——— Gestão ———
   canais: () => api.get<CanalProsio[]>('/gestao/canais-prosio'),

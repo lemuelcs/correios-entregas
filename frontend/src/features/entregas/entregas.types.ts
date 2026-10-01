@@ -29,6 +29,26 @@ export interface CartaoDistrito {
   porStatus: ContagemPorStatus;
   escalonamentos: number;
   liberadoEm: string | null;
+  /** Captura (extensão aditiva): capturas do dia que esperam o carteiro (conferência ou transferência). */
+  paraConferir?: number;
+  /** Captura (extensão aditiva): transferências confirmadas que entraram ou saíram do distrito no dia. */
+  transferencias?: { entrada: TransferenciaQuadro[]; saida: TransferenciaQuadro[] };
+}
+
+/** Uma transferência entre distritos feita pelo app do carteiro (ADR-001). */
+export interface TransferenciaQuadro {
+  pacoteId: string | null;
+  codigo: string | null;
+  /** Na saída, o distrito de destino; na entrada, o de origem (código, ex.: `D-03`). */
+  distrito: string;
+  distritoId: string;
+  /** Quem transferiu (o carteiro que capturou no destino). */
+  carteiro: { id: string; nome: string | null } | null;
+  /** O carteiro do distrito de origem no momento da transferência. */
+  carteiroAnterior: { id: string; nome: string | null } | null;
+  /** Instante da transferência (ISO). */
+  hora: string;
+  origemLiberada: boolean;
 }
 
 export interface Quadro {
@@ -138,6 +158,30 @@ export interface PacoteDistrito {
     pontoDesativado: boolean;
   } | null;
   respostaCarteiro: { resposta: string; em: string | null } | null;
+  /** Captura (extensão aditiva): de onde vieram os dados do pacote. */
+  origem?: OrigemPacote;
+  /** Captura: o carteiro digitou o código (não foi lido do rótulo). */
+  codigoDigitado?: boolean;
+  /** Captura: a foto da última captura salva ainda está retida. */
+  temFoto?: boolean;
+}
+
+export type OrigemPacote = 'PLANILHA' | 'FOTO' | 'PLANILHA_FOTO';
+
+/** `GET /entregas/captura/pacotes/:id/historico`. */
+export interface HistoricoPacote {
+  pacoteId: string;
+  codigo: string;
+  eventos: EventoHistorico[];
+}
+
+export interface EventoHistorico {
+  id: string;
+  tipo: string;
+  em: string;
+  carteiro: { id: string; nome: string | null } | null;
+  mudancas: Array<{ campo: string; antes: unknown; depois: unknown }>;
+  dados: Record<string, unknown>;
 }
 
 export interface ListaPacotes {
