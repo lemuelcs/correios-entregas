@@ -75,6 +75,10 @@ export const entregasApi = {
   pacotes: (cargaId: string, p: { status?: string; busca?: string; pagina?: number; unidadeId?: string }) =>
     api.get<ListaPacotes>(`/entregas/cargas/${cargaId}/pacotes${query(p)}`),
 
+  /** Orientação manual do supervisor (US-026): 409 `pacote_entregue`, 400 `orientacao_vazia` / `orientacao_longa`. */
+  registrarOrientacao: (pacoteId: string, dados: { texto: string; valeParaAmanha: boolean }, unidadeId?: string) =>
+    api.post(`/entregas/pacotes/${pacoteId}/orientacao${query({ unidadeId })}`, dados),
+
   // ——— Cadastro da unidade ———
   distritos: (unidadeId?: string) => api.get<Pagina<Distrito>>(`/entregas/cadastro/distritos${query({ unidadeId, tamanho: 100 })}`),
   distrito: (id: string, unidadeId?: string) => api.get<Distrito>(`/entregas/cadastro/distritos/${id}${query({ unidadeId })}`),

@@ -36,6 +36,9 @@ const ERROS: Record<string, string> = {
   base_url_invalida: 'Endereço do Prosio inválido.',
   sem_canal: 'A unidade não tem canal de atendimento configurado.',
   atendimento_indisponivel: 'Atendimento indisponível no momento',
+  pacote_entregue: 'Este pacote já consta como entregue.',
+  orientacao_vazia: 'Escreva a orientação para o carteiro.',
+  orientacao_longa: 'A orientação passa de 300 caracteres.',
   nao_encontrado: 'Registro não encontrado.',
   'Dados inválidos': 'Confira os campos do formulário.',
 };

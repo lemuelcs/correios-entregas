@@ -172,9 +172,9 @@ Códigos S10 de referência:
 | US-024.EC-1..4 | (withdrawn; ver US-039) | — | — | — |
 | US-025 | (withdrawn) | — | — | — |
 | US-025.EC-1..2 | (withdrawn) | — | — | — |
-| US-026 | Orientação manual | — | IT-046 | — |
-| US-026.EC-1 | Encomenda entregue → bloqueado | UT-054 | IT-046 | — |
-| US-026.EC-2 | Vazia ou > 300 → recusada | UT-053 | IT-046 | — |
+| US-026 | Orientação manual | — | IT-046 | E2E-016 |
+| US-026.EC-1 | Encomenda entregue → bloqueado | UT-054 | IT-046 | E2E-016 |
+| US-026.EC-2 | Vazia ou > 300 → recusada | UT-053 | IT-046 | E2E-016 |
 | US-026.EC-3 | Registros concorrentes → a mais recente vale | — | IT-046 | — |
 | US-027 | Chatwoot incorporado com login único | UT-089 | IT-048 | E2E-009 |
 | US-027.EC-1 | Carteiro ou destinatário → negado | — | IT-048 | — |
@@ -634,3 +634,4 @@ Códigos S10 de referência:
   - login de um usuário `CARTEIRO` → a área `/carteiro`, sem os três módulos. Desde a captura do rótulo (app-carteiro-captura-rotulo) a página inicial do carteiro é o app `/carteiro/captura`, não mais o shell legado; abrir `/entregas/carregar` devolve o carteiro a `/carteiro/captura`;
   - um favorito `/unidade/despacho` aberto por supervisor → a tela antiga, com a faixa de protótipo;
   - um usuário `CARTEIRO` não vê o item SGPD v2 nem "Carregar Dados" (não tem o shell novo).
+- **E2E-016**: na lista de pacotes do distrito, "Registrar orientação" abre o diálogo (foco no texto, contador `0/300`, Esc fecha e devolve o foco). Vazia ou acima de 300 → aviso no diálogo, sem mensagem ao carteiro. Com texto válido → o diálogo fecha, a linha mostra a orientação e o Prosio falso recebe a mensagem ao carteiro. Com "Vale também para amanhã" → a linha mostra "Orientação guardada para DD/MM" e nenhuma mensagem sai hoje. Um texto de 300 caracteres com telefone → 400 `orientacao_longa` do servidor aparece no diálogo. Pacote entregue enquanto o diálogo está aberto → 409 `pacote_entregue` aparece no diálogo e a ação some da linha.
