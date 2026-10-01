@@ -1,17 +1,22 @@
 /**
- * Carregar pacotes de um distrito (US-007–US-009, US-040; ADR-017): planilha
+ * Carregar pacotes de uma rota (US-007–US-009, US-040; ADR-017): planilha
  * CSV/XLSX ou linhas coladas → prévia classificada pelo servidor (nada é
  * gravado) → correção por linha → confirmação.
+ *
+ * Só o supervisor carrega (a API recusa a Gestão): quem chega aqui pela URL com o
+ * papel de Gestão vê a explicação, e não um formulário que falharia ao enviar.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import toast from 'react-hot-toast';
 import { Upload } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth.store';
 import { useEntregasCargaStore } from '@/stores/entregas-carga.store';
+import { useEntregasContextoStore } from '@/stores/entregas-contexto.store';
 import { entregasApi } from '../entregas.api';
 import type { CartaoDistrito, LinhaPrevia } from '../entregas.types';
 import { AVISOS_PLANILHA, MOTIVOS, avisarErro, formatarEndereco, formatarWhatsapp } from '../mensagens';
-import { Botao, CLASSE_ENTRADA, CabecalhoPagina, Cartao, Carregando, CodigoDistrito, FOCO, Pilula } from '../components/ui';
+import { Botao, BotaoLink, CLASSE_ENTRADA, CLASSE_LINK, CabecalhoPagina, Cartao, Carregando, CodigoDistrito, EstadoVazio, FOCO, Pilula } from '../components/ui';
 
 type Aba = 'arquivo' | 'colar';
 
@@ -26,7 +31,7 @@ const CHIP = {
 function situacaoDaLinha(l: LinhaPrevia): { rotulo: string; nota?: string; classe: string } {
   if (l.situacao === 'invalida' && l.motivo) {
     const m = MOTIVOS[l.motivo];
-    if (l.motivo === 'ja_no_distrito' && l.detalhe) return { rotulo: `Já está no ${l.detalhe} hoje`, nota: `Remova daqui ou do ${l.detalhe}`, classe: CHIP.invalida };
+    if (l.motivo === 'ja_no_distrito' && l.detalhe) return { rotulo: `Já está na rota ${l.detalhe} hoje`, nota: `Remova daqui ou da rota ${l.detalhe}`, classe: CHIP.invalida };
     return { rotulo: m.rotulo, nota: m.nota, classe: CHIP.invalida };
   }
   if (l.situacao === 'corrigir') return { rotulo: 'WhatsApp para corrigir', nota: l.motivo ? MOTIVOS[l.motivo].nota : undefined, classe: CHIP.corrigir };
@@ -76,7 +81,30 @@ function EdicaoLinha({ linha, aoAplicar, aoCancelar, ocupado }: {
   );
 }
 
+/** Gestão: o carregamento é do supervisor. Com ou sem unidade em foco, a saída é o quadro. */
+function CargaSoDoSupervisor() {
+  const unidadeGestaoId = useEntregasContextoStore((s) => s.unidadeGestaoId);
+  return (
+    <>
+      <CabecalhoPagina titulo="Carregar pacotes" />
+      <EstadoVazio titulo={unidadeGestaoId ? 'O carregamento é feito pelo supervisor da unidade' : 'Selecione uma unidade'}>
+        <p className="m-0 max-w-[68ch] text-[15px] leading-normal text-ce-tinta-2">
+          {unidadeGestaoId
+            ? 'A Gestão acompanha as rotas e os pacotes de cada unidade, mas a planilha do dia é enviada pelo supervisor da própria unidade. Nada foi alterado.'
+            : 'Escolha a unidade em foco no menu para acompanhar as rotas dela. O envio da planilha do dia é feito pelo supervisor da própria unidade.'}
+        </p>
+        <BotaoLink variante="secundario" to="/entregas/carregar">Voltar ao quadro de rotas</BotaoLink>
+      </EstadoVazio>
+    </>
+  );
+}
+
 export function CargaDistritoPage() {
+  const papel = useAuthStore((s) => s.user?.role);
+  return papel === 'GESTAO' ? <CargaSoDoSupervisor /> : <CargaDoSupervisor />;
+}
+
+function CargaDoSupervisor() {
   const { distritoId = '' } = useParams();
   const navigate = useNavigate();
   const { previa, origem, processando, iniciar, enviarArquivo, enviarTexto, corrigirLinha, descartarLinha, confirmar, descartarPrevia } = useEntregasCargaStore();
@@ -97,9 +125,9 @@ export function CargaDistritoPage() {
       .then((q) => {
         const d = q.distritos.find((x) => x.distritoId === distritoId);
         if (vivo) setCartao(d ?? null);
-        if (!d && vivo) toast.error('Distrito não encontrado.');
+        if (!d && vivo) toast.error('Rota não encontrada.', { id: 'rota_nao_encontrada' });
       })
-      .catch((err) => avisarErro(err, 'Não foi possível carregar o distrito.'));
+      .catch((err) => avisarErro(err, 'Não foi possível carregar a rota.'));
     return () => {
       vivo = false;
     };
@@ -146,7 +174,7 @@ export function CargaDistritoPage() {
     try {
       const r = await confirmar();
       const descartes = r.descartados > 0 ? ` ${r.descartados} descartado(s).` : '';
-      toast.success(`${r.aceitos} pacote(s) carregado(s) em ${cartao?.codigo ?? 'distrito'}.${descartes}`);
+      toast.success(`${r.aceitos} pacote(s) carregado(s)${cartao ? ` na rota ${cartao.codigo}` : ''}.${descartes}`);
       navigate('/entregas/carregar');
     } catch (err) {
       avisarErro(err, 'Não foi possível gravar os pacotes.');
@@ -160,12 +188,12 @@ export function CargaDistritoPage() {
 
   return (
     <>
-      <Link to="/entregas/carregar" className={`self-start text-sm font-semibold text-ce-azul no-underline ${FOCO}`}>← Voltar ao quadro de distritos</Link>
+      <Link to="/entregas/carregar" className={`self-start text-sm no-underline ${CLASSE_LINK}`}>← Voltar ao quadro de rotas</Link>
       <CabecalhoPagina
         titulo={
           <div className="flex flex-wrap items-center gap-2.5">
             {cartao && <CodigoDistrito grande>{cartao.codigo}</CodigoDistrito>}
-            <h1 className="m-0 text-[26px] font-bold md:text-[28px]">{cartao?.nome ?? 'Distrito'}</h1>
+            <h1 className="m-0 text-[26px] font-bold md:text-[28px]">{cartao?.nome ?? 'Rota'}</h1>
           </div>
         }
         subtitulo={
@@ -174,12 +202,12 @@ export function CargaDistritoPage() {
             {cartao && (
               <>
                 {' · '}Carteiro: <strong className="text-ce-tinta">{cartao.carteiro?.nome ?? 'sem carteiro'}</strong>
-                {' · '}<Link to="/entregas/cadastro" className="text-ce-azul">trocar só hoje</Link>
+                {' · '}<Link to="/entregas/cadastro" className={`!font-normal underline ${CLASSE_LINK}`}>trocar só hoje</Link>
               </>
             )}
           </>
         }
-        acoes={cartao?.cargaId ? <Link to={`/entregas/distritos/${cartao.cargaId}`} className="text-sm font-semibold text-ce-azul">Ver pacotes já carregados ({cartao.total})</Link> : undefined}
+        acoes={cartao?.cargaId ? <Link to={`/entregas/distritos/${cartao.cargaId}`} className={`text-sm ${CLASSE_LINK}`}>Ver pacotes já carregados ({cartao.total})</Link> : undefined}
       />
 
       <Cartao className="flex flex-col gap-4 p-5">

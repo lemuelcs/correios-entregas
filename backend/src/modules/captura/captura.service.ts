@@ -118,7 +118,7 @@ export class CapturaService {
 
     if (!(await this.autorizadoNaData(carteiro, meta.distritoId, data))) {
       if (anterior) await prisma.captura.delete({ where: { id: meta.capturaId } }).catch(() => undefined);
-      throw new AppError(403, 'Distrito fora da sua designação', { code: 'distrito_nao_autorizado' });
+      throw new AppError(403, 'Rota fora da sua designação', { code: 'distrito_nao_autorizado' });
     }
 
     const base = {

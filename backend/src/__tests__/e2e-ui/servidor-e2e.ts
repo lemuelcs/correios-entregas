@@ -294,6 +294,13 @@ async function main(): Promise<void> {
     return { ok: true };
   }));
 
+  /** Grava sinalizações no pacote, como a mediação e o carteiro fariam: `{ sinais: [...] }`. */
+  controle.post('/pacotes/:id/sinais', rota(async (req) => {
+    const sinais = Array.isArray(req.body?.sinais) ? req.body.sinais.map(String) : [];
+    await prisma.pacoteDia.update({ where: { id: String(req.params.id) }, data: { sinais } });
+    return { ok: true };
+  }));
+
   /** Callback de status assinado, como o Prosio faria: `{ pacoteId, status }`. */
   controle.post('/prosio/status', rota(async (req) => {
     if (!canalAtual) throw new Error('nenhum canal no cenário');

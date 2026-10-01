@@ -16,7 +16,7 @@ export function RotasEmBrevePage() {
           paradas, ritmo, retorno projetado e taxa de entrega por carteiro.
         </p>
         <p className="m-0 text-[15px] leading-normal text-ce-tinta-2">
-          Enquanto isso, a situação de cada pacote do dia fica em Monitoramento › Carregar Dados, na lista de cada distrito.
+          Enquanto isso, a situação de cada pacote do dia fica em Monitoramento › Carregar Dados, na lista de pacotes de cada rota.
         </p>
       </Cartao>
     </>

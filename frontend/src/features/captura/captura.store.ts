@@ -62,7 +62,7 @@ const MOTIVO_RECUSA: Record<string, string> = {
   MULTIPLOS_ROTULOS: 'mais de um rótulo na foto',
   OUTRA_UNIDADE: 'é de outra unidade',
   JA_ENTREGUE: 'já foi entregue',
-  SEM_DISTRITO: 'você não tem distrito hoje',
+  SEM_DISTRITO: 'você não tem rota hoje',
   FOTO_INVALIDA: 'a foto não pôde ser lida',
 };
 
@@ -200,7 +200,7 @@ export const useCapturaStore = create<CapturaState>((set, get) => ({
     const distritoCodigo = codigoDoDistrito(get().hoje, recente?.distritoId ?? '');
     let aviso: Aviso | null = null;
     if (resultado.tipo === 'SALVO') {
-      aviso = { capturaId, tipo: 'salvo', codigo, distritoCodigo, texto: `Pacote ${codigo} salvo no ${distritoCodigo}` };
+      aviso = { capturaId, tipo: 'salvo', codigo, distritoCodigo, texto: `Pacote ${codigo} salvo na rota ${distritoCodigo}` };
     } else if (resultado.tipo === 'PARA_CONFERIR' || resultado.tipo === 'TRANSFERENCIA_PENDENTE') {
       aviso = { capturaId, tipo: 'conferir', codigo, distritoCodigo, texto: `Pacote ${codigo} foi para Para conferir` };
     } else if (resultado.tipo === 'RECUSADO') {

@@ -171,7 +171,7 @@ export class DistritoDoDiaService {
   async definirAtivo(carteiroId: string, distritoId: string): Promise<void> {
     const { data, distritos } = await this.resolver(carteiroId);
     if (!distritos.some((d) => d.distritoId === distritoId)) {
-      throw new AppError(403, 'Distrito fora da sua designação de hoje', { code: 'distrito_nao_autorizado' });
+      throw new AppError(403, 'Rota fora da sua designação de hoje', { code: 'distrito_nao_autorizado' });
     }
     await this.ativoStore.set(carteiroId, data, distritoId);
   }

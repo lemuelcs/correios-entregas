@@ -194,7 +194,7 @@ export interface DadosDistrito {
 }
 
 function codigoEmUso(): AppError {
-  return new AppError(409, 'codigo_em_uso', { campo: 'codigo', mensagem: 'Código de distrito já cadastrado nesta unidade' });
+  return new AppError(409, 'codigo_em_uso', { campo: 'codigo', mensagem: 'Código de rota já cadastrado nesta unidade' });
 }
 
 export async function criarDistrito(unidadeId: string, dados: Required<Pick<DadosDistrito, 'codigo' | 'nome'>> & DadosDistrito) {
@@ -229,7 +229,7 @@ export async function editarDistrito(distrito: Distrito, dados: DadosDistrito) {
       where: { distritoId: atual.id, data: hojeBrasilia(), status: { in: [...STATUS_EM_OPERACAO] } },
       select: { id: true },
     });
-    if (emOperacao) throw new AppError(409, 'distrito_em_operacao', { mensagem: 'Distrito em operação hoje' });
+    if (emOperacao) throw new AppError(409, 'distrito_em_operacao', { mensagem: 'Rota em operação hoje' });
   }
 
   try {
@@ -430,7 +430,7 @@ export async function editarCarteiro(carteiro: Carteiro, dados: EdicaoCarteiro) 
     if (emOperacao.length > 0) {
       throw new AppError(409, 'carteiro_em_operacao', {
         distritos: emOperacao,
-        mensagem: 'Carteiro de distrito liberado hoje; troque o carteiro do dia ou aguarde o encerramento',
+        mensagem: 'Carteiro de rota liberada hoje; troque o carteiro do dia ou aguarde o encerramento',
       });
     }
   }

@@ -75,7 +75,7 @@ export function CameraPage({ criarFonte = criarFontePadrao }: { criarFonte?: () 
 
   async function enfileirar(jpeg: Blob, lidos: BarcodesLidos, codigo: string, codigoDigitado: boolean): Promise<boolean> {
     if (!ativo || !hoje) {
-      setMensagem('Escolha o distrito de hoje antes de fotografar.');
+      setMensagem('Escolha a rota de hoje antes de fotografar.');
       return false;
     }
     try {

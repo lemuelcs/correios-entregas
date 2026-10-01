@@ -180,7 +180,7 @@ export function PacotePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div role="alertdialog" aria-modal="true" aria-labelledby="remover-titulo" className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
             <p id="remover-titulo" className="text-base font-semibold">
-              Remover o pacote {recente.codigo} da lista do {distrito?.codigo ?? 'distrito'}?
+              Remover o pacote {recente.codigo} da lista da rota{distrito?.codigo ? ` ${distrito.codigo}` : ''}?
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" autoFocus onClick={() => setConfirmarRemocao(false)} className="min-h-11 rounded-lg bg-[#1E4FA3] px-4 font-semibold text-white">

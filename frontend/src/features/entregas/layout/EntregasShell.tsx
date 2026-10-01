@@ -2,7 +2,8 @@
  * Shell da área nova (`/entregas/*`, ADR-015): menu escuro do protótipo com
  * Monitoramento (Carregar Dados, Rotas "em breve"), Atendimento, Cadastro e
  * SGPD v2. Aceita `UNIDADE` e `GESTAO`; os papéis legados voltam aos seus shells.
- * Em telas estreitas o menu recolhe num botão (US-036.EC-3).
+ * Em telas estreitas o menu recolhe num botão (US-036.EC-3) e abre como um diálogo:
+ * foco dentro dele, Tab preso, Esc fecha e o foco volta ao botão.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router';
@@ -24,8 +25,16 @@ import { useEntregasContextoStore } from '@/stores/entregas-contexto.store';
 import { useEntregasCadastroStore } from '@/stores/entregas-cadastro.store';
 import { avisarErro } from '../mensagens';
 import { FOCO } from '../components/ui';
+import { useCamadaModal } from '../components/foco';
 
 const PAPEIS = ['UNIDADE', 'GESTAO'] as const;
+
+/**
+ * Telas que a Gestão abre sem unidade em foco. O Atendimento entra aqui: com um único
+ * canal ativo o servidor abre a sessão sem unidade; com vários, ele pede a unidade e a
+ * própria tela explica.
+ */
+const SEM_UNIDADE_EM_FOCO = ['/entregas/cadastro', '/entregas/rotas', '/entregas/atendimento'];
 
 function iniciais(nome: string): string {
   const partes = nome.trim().split(/\s+/);
@@ -172,6 +181,7 @@ export function EntregasShell() {
   const { pathname } = useLocation();
   const [menuAberto, setMenuAberto] = useState(false);
   const botaoMenu = useRef<HTMLButtonElement>(null);
+  const gaveta = useRef<HTMLDivElement>(null);
   const carregarUnidades = useEntregasCadastroStore((s) => s.carregarUnidades);
   const unidadeGestaoId = useEntregasContextoStore((s) => s.unidadeGestaoId);
   const escolherUnidade = useEntregasContextoStore((s) => s.escolherUnidade);
@@ -179,16 +189,22 @@ export function EntregasShell() {
 
   useEffect(() => setMenuAberto(false), [pathname]);
 
+  // Menu em tela estreita = diálogo modal: foco no item da página atual, Tab preso, rolagem travada.
+  useCamadaModal(gaveta, menuAberto, {
+    aoEsc: () => setMenuAberto(false),
+    focoInicial: (caixa) => caixa.querySelector<HTMLElement>('a[aria-current="page"]') ?? caixa.querySelector<HTMLElement>('a[href]'),
+  });
+
+  // Alargou a janela com o menu aberto: a gaveta some (lg:hidden) e não pode continuar prendendo o foco.
   useEffect(() => {
-    if (!menuAberto) return undefined;
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setMenuAberto(false);
-        botaoMenu.current?.focus();
-      }
+    if (!menuAberto || typeof window.matchMedia !== 'function') return undefined;
+    const largo = window.matchMedia('(min-width: 1024px)');
+    const aoMudar = () => {
+      if (largo.matches) setMenuAberto(false);
     };
-    document.addEventListener('keydown', aoTeclar);
-    return () => document.removeEventListener('keydown', aoTeclar);
+    aoMudar();
+    largo.addEventListener('change', aoMudar);
+    return () => largo.removeEventListener('change', aoMudar);
   }, [menuAberto]);
 
   // Gestão: lista de unidades para escolher a unidade em foco.
@@ -227,6 +243,7 @@ export function EntregasShell() {
           onClick={() => setMenuAberto(true)}
           aria-label="Abrir menu"
           aria-expanded={menuAberto}
+          aria-haspopup="dialog"
           aria-controls="menu-entregas-movel"
           className={`inline-flex size-11 items-center justify-center rounded-lg hover:bg-ce-menu-ativo ${FOCO} focus-visible:outline-ce-amarelo`}
         >
@@ -236,14 +253,19 @@ export function EntregasShell() {
 
       {menuAberto && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <button type="button" aria-label="Fechar menu" tabIndex={-1} className="absolute inset-0 h-full w-full bg-[rgba(20,33,58,0.45)]" onClick={() => setMenuAberto(false)} />
-          <div id="menu-entregas-movel" className="relative h-full w-[280px] max-w-[85vw] overflow-y-auto shadow-xl">
+          <div aria-hidden="true" className="absolute inset-0 bg-[rgba(20,33,58,0.45)]" onClick={() => setMenuAberto(false)} />
+          <div
+            ref={gaveta}
+            id="menu-entregas-movel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            tabIndex={-1}
+            className="relative h-full w-[280px] max-w-[85vw] overflow-y-auto overscroll-contain shadow-xl"
+          >
             <button
               type="button"
-              onClick={() => {
-                setMenuAberto(false);
-                botaoMenu.current?.focus();
-              }}
+              onClick={() => setMenuAberto(false)}
               aria-label="Fechar menu"
               className={`absolute right-2 top-3 z-10 inline-flex size-11 items-center justify-center rounded-lg text-ce-menu-sub hover:text-white ${FOCO} focus-visible:outline-ce-amarelo`}
             >
@@ -255,7 +277,7 @@ export function EntregasShell() {
       )}
 
       <main className="flex min-w-0 flex-1 flex-col gap-5 px-4 pb-12 pt-5 md:px-8 md:pt-7">
-        {ehGestao && !unidadeGestaoId && pathname !== '/entregas/cadastro' && pathname !== '/entregas/rotas' ? (
+        {ehGestao && !unidadeGestaoId && !SEM_UNIDADE_EM_FOCO.includes(pathname) ? (
           <p className="m-0 text-[15px] text-ce-suave">Escolha a unidade em foco no menu para ver os dados.</p>
         ) : (
           <Outlet />
