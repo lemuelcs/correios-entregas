@@ -15,7 +15,12 @@ interface PacotesState {
   filtro: FiltroPacotes;
   carregando: boolean;
   carregar: (cargaId: string, filtro: FiltroPacotes, unidadeId?: string) => Promise<ListaPacotes>;
+  /** Esvazia a lista (a Gestão trocou a unidade em foco: os pacotes eram de outra unidade). */
+  limpar: () => void;
 }
+
+/** Número do pedido mais recente: só a resposta dele chega à tela. */
+let pedidoAtual = 0;
 
 export const useEntregasPacotesStore = create<PacotesState>((set, get) => ({
   lista: null,
@@ -23,9 +28,16 @@ export const useEntregasPacotesStore = create<PacotesState>((set, get) => ({
   filtro: { status: null, busca: '', pagina: 1 },
   carregando: false,
 
+  limpar: () => {
+    pedidoAtual += 1;
+    set({ lista: null, cargaId: null, carregando: false });
+  },
+
   carregar: async (cargaId, filtro, unidadeId) => {
     if (get().cargaId !== cargaId) set({ lista: null, cargaId });
     set({ carregando: true, filtro });
+    pedidoAtual += 1;
+    const pedido = pedidoAtual;
     try {
       const lista = await entregasApi.pacotes(cargaId, {
         status: filtro.status ?? undefined,
@@ -33,10 +45,11 @@ export const useEntregasPacotesStore = create<PacotesState>((set, get) => ({
         pagina: filtro.pagina,
         unidadeId,
       });
-      set({ lista, carregando: false });
+      // Uma resposta atrasada (outro filtro, outra rota, ou a lista esvaziada na troca de unidade) não volta à tela.
+      if (pedido === pedidoAtual) set({ lista, carregando: false });
       return lista;
     } catch (err) {
-      set({ carregando: false });
+      if (pedido === pedidoAtual) set({ carregando: false });
       throw err;
     }
   },

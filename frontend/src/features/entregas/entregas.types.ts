@@ -156,6 +156,8 @@ export interface PacoteDistrito {
     origem: string;
     valeAPartirDe: string | null;
     pontoDesativado: boolean;
+    /** Sinalizações da orientação (ex.: `nao_entregue_carteiro`, `falha_envio_carteiro`). */
+    sinais?: string[] | null;
   } | null;
   respostaCarteiro: { resposta: string; em: string | null } | null;
   /** Captura (extensão aditiva): de onde vieram os dados do pacote. */
@@ -257,6 +259,7 @@ export interface CanalProsio {
   ativo: boolean;
   unidades?: number;
   tokenEntrada?: string;
+  atualizadoEm?: string;
 }
 
 export interface UnidadeGestao {
@@ -276,6 +279,12 @@ export interface UnidadeGestao {
   canalProsio: { id: string; nome: string; tipo: TipoCanal; compartilhado: boolean; ativo: boolean } | null;
   supervisoresAtivos: number;
   semSupervisor: boolean;
+  complemento?: string | null;
+  cep?: string;
+  /** Decimal do banco: chega como texto no JSON. */
+  latitude?: number | string;
+  longitude?: number | string;
+  atualizadoEm?: string;
 }
 
 export interface Supervisor {
@@ -293,4 +302,35 @@ export interface Supervisor {
 export interface SessaoAtendimento {
   url: string;
   expiraEm: string;
+}
+
+// ——— Auditoria da interface (aditivo) ———
+
+/** Resposta de `PATCH /entregas/pacotes/:id`. */
+export interface PacoteEditado {
+  id: string;
+  codigo: string;
+  whatsapp: string | null;
+  status: StatusPacote;
+  rotulo: string;
+  descadastrado: boolean;
+  /** O pacote ganhou WhatsApp numa rota já liberada: o aviso ao destinatário sai agora. */
+  avisoSolicitado: boolean;
+  endereco: CamposEndereco;
+}
+
+/** Resposta de `PUT /entregas/cadastro/distritos/:id/escala/:data`. */
+export interface EscalaDefinida {
+  distritoId: string;
+  data: string;
+  carteiro: { id: string; nome: string | null } | null;
+  trocado: boolean;
+  avisos: string[];
+}
+
+export interface FiltroListagem {
+  unidadeId?: string;
+  busca?: string;
+  pagina?: number;
+  tamanho?: number;
 }
