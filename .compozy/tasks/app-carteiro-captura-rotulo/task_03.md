@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Extensões do supervisor no módulo entregas
 type: backend
 complexity: medium
@@ -35,12 +35,12 @@ O cadastro de distritos e a escala continuam com o monitoramento.
 </requirements>
 
 ## Subtasks
-- [ ] 3.1 Rotas de supervisor da captura montadas no módulo `entregas`, com escopo por unidade.
-- [ ] 3.2 Extensões aditivas da lista de pacotes e do quadro.
-- [ ] 3.3 Histórico e foto do pacote.
-- [ ] 3.4 Remoção de pacote pelo supervisor.
-- [ ] 3.5 Senha do carteiro, com criação do login quando ausente.
-- [ ] 3.6 Todos os testes atribuídos passando, e a suíte do monitoramento verde.
+- [x] 3.1 Rotas de supervisor da captura montadas no módulo `entregas`, com escopo por unidade.
+- [x] 3.2 Extensões aditivas da lista de pacotes e do quadro.
+- [x] 3.3 Histórico e foto do pacote.
+- [x] 3.4 Remoção de pacote pelo supervisor.
+- [x] 3.5 Senha do carteiro, com criação do login quando ausente.
+- [x] 3.6 Todos os testes atribuídos passando, e a suíte do monitoramento verde.
 
 ## Implementation Details
 
@@ -70,12 +70,12 @@ Os endpoints estão em TechSpec › API Endpoints (Supervisor). O arquivo novo �
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] IT-003 — a escala do monitoramento reflete em `/captura/hoje`
-- [ ] IT-046, IT-047, IT-048, IT-049, IT-050, IT-051, IT-112 — senha do carteiro, inclusive carteiro sem login
-- [ ] IT-077, IT-078, IT-079 — remoção pelo supervisor
-- [ ] IT-080, IT-081, IT-082, IT-083, IT-084 — lista estendida, histórico, foto e isolamento
-- [ ] IT-085, IT-086 — transferências no quadro
-- [ ] IT-087, IT-088, IT-089 — pendências e liberação
+- [x] IT-003 — a escala do monitoramento reflete em `/captura/hoje`
+- [x] IT-046, IT-047, IT-048, IT-049, IT-050, IT-051, IT-112 — senha do carteiro, inclusive carteiro sem login
+- [x] IT-077, IT-078, IT-079 — remoção pelo supervisor
+- [x] IT-080, IT-081, IT-082, IT-083, IT-084 — lista estendida, histórico, foto e isolamento
+- [x] IT-085, IT-086 — transferências no quadro
+- [x] IT-087, IT-088, IT-089 — pendências e liberação
 
 ## Success Criteria
 - Every assigned test case implemented and passing
