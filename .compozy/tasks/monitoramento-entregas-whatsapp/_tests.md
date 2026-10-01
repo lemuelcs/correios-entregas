@@ -76,7 +76,7 @@ Códigos S10 de referência:
 | US-006.EC-3 | Nome > 24 → recusado | UT-081 | IT-015 | — |
 | US-006.EC-4 | Ponto desativado após escolha → orientação mantida, marcada | UT-091 | IT-037 | — |
 | US-006.EC-5 | Ponto de outra unidade → 404 | — | IT-015 | — |
-| US-007 | Subir planilha | UT-014, UT-015 | IT-016 | E2E-006 |
+| US-007 | Subir planilha (desde o ADR-019, "Adicionar pacotes" numa rota) | UT-014, UT-015 | IT-016, IT-085 | — |
 | US-007.EC-1 | Outro formato → 415 | — | IT-016 | — |
 | US-007.EC-2 | Vazio → nenhuma encomenda | UT-024 | — | — |
 | US-007.EC-3 | Coluna obrigatória ausente / WhatsApp ausente | UT-017, UT-018 | — | — |
@@ -90,7 +90,7 @@ Códigos S10 de referência:
 | US-008.EC-2 | Linhas em branco ignoradas | UT-020 | — | — |
 | US-008.EC-3 | Espaços extras removidos | UT-022 | — | — |
 | US-008.EC-4 | Mais de 500 coladas | UT-019 | IT-017 | — |
-| US-009 | Prévia classificada e correção | UT-026–UT-032 | IT-016, IT-019 | E2E-006 |
+| US-009 | Prévia classificada e correção | UT-026–UT-032 | IT-016, IT-019 | — |
 | US-009.EC-1 | Dígito errado | UT-003 | — | — |
 | US-009.EC-2 | Minúsculas normalizadas | UT-005 | — | — |
 | US-009.EC-3 | WhatsApp normalizado; sem DDD para corrigir | UT-006, UT-007, UT-008, UT-029 | — | — |
@@ -98,7 +98,7 @@ Códigos S10 de referência:
 | US-009.EC-4 | Duplicado na planilha | UT-026 | — | — |
 | US-009.EC-5 | Já em outro distrito hoje | UT-027 | IT-021 | — |
 | US-009.EC-6 | Mesmo WhatsApp em várias encomendas | UT-032 | IT-024 | — |
-| US-009.EC-7 | Todas inválidas → confirmar desabilitado | — | — | E2E-006 |
+| US-009.EC-7 | Todas inválidas → confirmar desabilitado | — | — | (withdrawn: E2E-006) |
 | US-009.EC-8 | Fechar antes de confirmar → nada gravado | — | IT-018 | — |
 | US-009.EC-9 | Confirmações concorrentes | — | IT-020 | — |
 | US-010 | Orientação guardada reaplicada | UT-052 | IT-023 | E2E-002 |
@@ -223,15 +223,36 @@ Códigos S10 de referência:
 | US-038.EC-1 | Não liberado → "Lista pronta" | UT-034 | IT-050 | — |
 | US-038.EC-2 | 500 pacotes → paginação e filtro | — | IT-050 | — |
 | US-038.EC-3 | Outra unidade → 404 | — | IT-050 | — |
-| US-039 | Quadro de distritos | UT-033–UT-037 | IT-049 | E2E-006, E2E-012 |
-| US-039.EC-1 | Sem distritos → atalho | — | IT-049 | E2E-013 |
+| US-039 | Quadro por saída: abas, resumo, filtros e cartão da rota | UT-033–UT-037, UT-106, UT-108 | IT-049, IT-082 | E2E-012, E2E-017 |
+| US-039.AC-7 | Aba "Sem saída" só quando há carga fora de saída | UT-106 | IT-080 | — |
+| US-039.EC-1 | (withdrawn) Sem distritos → atalho. Agora: quadro pronto para importar | — | — | E2E-013 |
 | US-039.EC-2 | Sem carteiro → sinalizado | — | IT-049 | — |
 | US-039.EC-3 | Data anterior → leitura | — | IT-049 | — |
 | US-039.EC-4 | 60 distritos → filtro e busca | — | IT-049 | — |
 | US-039.EC-5 | Outra unidade → 404 | — | IT-049 | — |
-| US-040 | Pacotes sem WhatsApp e "X de Y" | UT-040 | IT-019 | E2E-006 |
+| US-040 | Pacotes sem WhatsApp e "X de Y" | UT-040 | IT-019, IT-074 | E2E-017 |
 | US-040.EC-1 | Nenhum com WhatsApp → pede confirmação | — | IT-073 | E2E-007 |
 | US-040.EC-2 | WhatsApp adicionado depois → aviso na hora | — | IT-032 | — |
+| US-041 | Importar o arquivo da saída (direto) | UT-100, UT-109, UT-110 | IT-074 | E2E-017 |
+| US-041.AC-2, EC-9 | Carteiro pela coluna do arquivo; valor não encontrado | UT-104 | IT-077 | E2E-017 |
+| US-041.AC-3 | Rota fora do Cadastro é criada | — | IT-076 | E2E-017 |
+| US-041.EC-1 | Sem horário → mensagem, nada enviado | UT-109 | IT-075 | E2E-017 |
+| US-041.EC-2, EC-3 | Sem coluna `rota`; formato e limites | UT-101, UT-102 | IT-075 | — |
+| US-041.EC-4, EC-5 | Limite de 500 por rota; rota em outra saída | — | IT-079 | E2E-017 |
+| US-041.EC-6 | Rota desativada | — | IT-076 | — |
+| US-041.EC-7, EC-8 | Saída fora de ordem; data anterior | — | IT-075 | — |
+| US-041.EC-10 | Carga sem saída adotada; pacote da foto mantido | — | IT-080 | — |
+| US-041.EC-11 | Importações simultâneas | — | IT-086 | — |
+| US-042 | "N aceitos, M descartados" e a lista das recusadas | UT-110 | IT-074 | E2E-017 |
+| US-042.EC-1 | Resumo sem nome nem telefone | UT-103 | IT-074 | E2E-017 |
+| US-042.EC-2, EC-3 | Motivos de descarte | UT-107 | IT-074 | E2E-017 |
+| US-043 | Reimportar só as rotas não liberadas | UT-109 | IT-078 | E2E-019 |
+| US-044 | Modal "Atribuir carteiros" | UT-113 | IT-084 | E2E-018 |
+| US-045 | Liberação em lote | UT-107, UT-111 | IT-083 | E2E-018 |
+| US-045.AC-4 | Diálogo da rota única | UT-112 | — | E2E-007 |
+| US-046 | Gestão: todas as unidades (leitura) e unidade para importar | UT-114 | IT-081, IT-082 | E2E-020 |
+| Texto "rota" ao carteiro | Resumo da troca fala em rota | UT-105 | — | — |
+| Compatibilidade (ADR-019) | Lista por rota e `GET /quadro` seguem valendo | — | IT-085 | — |
 | S10 (`s10.ts`) | Dígito UPU, qualquer país | UT-001–UT-005 | — | — |
 | Telefone (`telefone.ts`) | E.164 BR | UT-006–UT-010 | — | — |
 | Cripto (`cripto.ts`) | Segredos dos canais | UT-011–UT-013 | IT-001 | — |
@@ -290,6 +311,27 @@ Códigos S10 de referência:
 - **UT-023** (error): uma linha colada só com o código devolve `situacao: 'invalida', motivo: 'faltam_campos'`.
 - **UT-024** (boundary): arquivo com só o cabeçalho lança `ParserErro('nenhuma_encomenda')`.
 - **UT-025** (happy): a coluna única `endereco` vai para `enderecoTexto`; colunas separadas vão para os campos estruturados.
+
+### Arquivo da saída e importação (TechSpec: Saídas, ADR-019)
+
+- **UT-100** (happy): o arquivo da saída lê `rota` e `carteiro` pelos cabeçalhos equivalentes ("Rota", "Distrito", "código da rota"; "Carteiro", "Matrícula", "nome do carteiro"), em CSV e XLSX; a rota numérica do Excel vira texto.
+- **UT-101** (error): arquivo da saída sem a coluna `rota` lança `ParserErro('coluna_ausente', { coluna: 'rota' })`; a lista por rota continua sem exigir a coluna e sem as chaves `rota`/`carteiro`.
+- **UT-102** (boundary): 5.000 linhas passam; 5.001 lançam `limite_linhas` com `max: 5000`; a lista por rota segue em 500.
+- **UT-103** (state): `normalizarRota` devolve o código em maiúsculas; `codigoParaDescarte` só devolve o que tem cara de código (nome ou telefone numa coluna trocada viram vazio).
+- **UT-104** (state): `casarCarteiro` casa por matrícula (com ou sem máscara) ou por nome completo sem acento; nome repetido na unidade, nome parcial e desconhecido não casam.
+- **UT-105** (happy): `montarResumoCarteiro(..., { troca: true })` começa por "Você assumiu a rota hoje." e não contém "distrito".
+
+### Tela das saídas (Vitest; TechSpec: Frontend Entregas, ADR-019)
+
+- **UT-106** (state): `abasDoDia` devolve uma aba por saída importada, a próxima como "Aguardando arquivo e horário" e "Sem saída" só quando há rota fora de saída; em data passada não há próxima; na visão agregada a aba soma as unidades.
+- **UT-107** (state): `rotasLiberaveis` só leva rota carregada, com carteiro e com alguém a avisar; `motivoDoDescarte` traduz os motivos (com a rota ou a saída do detalhe).
+- **UT-108** (happy): a tela mostra as abas, o resumo da saída, os filtros com contagem e o cartão da rota (código, carteiro, "N pacotes", "Carregada"); rota sem carteiro mostra "Sem carteiro definido" e "Definir carteiro", sem "Liberar rota"; nenhuma menção a "distrito" nem a "Pendente de upload"; supervisor sem seletor de unidade.
+- **UT-109** (error): importar sem horário mostra "Confirme o horário da Saída N antes de importar." e não chama a API; escolher uma saída já importada preenche o horário e mostra o aviso de reimportação.
+- **UT-110** (happy): a importação envia `numero`, `horario` e `arquivo`, abre a aba da saída e mostra "5 aceitos, 3 descartados" com a tabela das linhas recusadas; saída sem descartes mostra "N aceitos, nenhum descartado".
+- **UT-111** (happy): "Liberar 2 rotas carregadas" abre o diálogo com os totais e "Rotas 503, 505." e envia só as cargas dessas rotas.
+- **UT-112** (happy): "Liberar rota" mantém o diálogo "Liberar rota 503 · <carteiro>?".
+- **UT-113** (happy): "Definir carteiro" abre o modal com as rotas sem carteiro (a do cartão primeiro), só carteiros ativos, e grava `{distritoId, carteiroId, definirPadrao}`.
+- **UT-114** (state): Gestão vê o seletor com "Todas as unidades"; nessa visão importar, liberar e definir carteiro ficam indisponíveis; com a unidade escolhida, importa.
 
 ### Validação de linhas (TechSpec: Carga)
 
@@ -467,6 +509,22 @@ Códigos S10 de referência:
   - carga de outra unidade → 404.
 - **IT-073**: `liberar` numa carga sem nenhum WhatsApp e sem `confirmarSemAvisos: true` → 409 `nenhum_destinatario`; com a flag → 202 com `avisosAgendados: 0`.
 
+### Saídas (ADR-019)
+
+- **IT-074**: `POST /entregas/saidas/importar` com 9 linhas (4 válidas, 1 duplicada, 1 com dígito errado, 1 com WhatsApp sem DDD, 1 sem rota, 1 sem nome) → 201 `{aceitos: 4, descartados: 5}` com `descartes` `{n, rota, codigo, motivo}`; os pacotes estão gravados; a `Saida` guarda o mesmo resumo, sem nome nem telefone.
+- **IT-075**: sem `horario` (ou inválido) → 400 `horario_obrigatorio`; sem arquivo → 400; sem a coluna `rota` → 400 `coluna_ausente`; PDF → 415; saída 2 sem a 1 → 409 `saida_fora_de_ordem`; data anterior → 409 `somente_leitura`. Nada é gravado.
+- **IT-076**: rota que não existe no Cadastro → criada como `Rota <código>`, ativa e sem carteiro (`rotasCriadas`, `rotasSemCarteiro`); rota desativada → linhas descartadas com `rota_inativa`.
+- **IT-077**: carteiro em três níveis — coluna `carteiro` casada por matrícula ou nome vira `EscalaDistrito`; sem valor fica o padrão do Cadastro; valor que não casa (carteiro de outra unidade) é devolvido em `carteirosNaoEncontrados`; rota nova sem valor fica sem carteiro.
+- **IT-078**: reimportação — na rota não liberada o pacote que continua é atualizado com o mesmo `id` (a orientação presa a ele permanece), o novo é criado, o que saiu é apagado e o que mudou de rota é movido; a rota liberada fica idêntica e as linhas dela voltam com `rota_liberada`; continua existindo uma `Saida` só, com o arquivo e o horário novos.
+- **IT-079**: rota já carregada na Saída 1, enviada na Saída 2 → `rota_em_outra_saida` com `detalhe: '1'`; rota com 502 linhas → 500 gravadas e 2 descartadas com `limite_rota`.
+- **IT-080**: carga sem saída (captura do rótulo) aparece em `GET /saidas` com `saidaNumero: null`; a importação que traz a rota adota a carga; o pacote de origem `FOTO` não é alterado; o pacote de foto que está em outra rota descarta a linha com `ja_no_distrito`.
+- **IT-081**: escopo da importação — supervisor em outra unidade → 404; Gestão sem `unidadeId` ou com `todas` → 400 `unidade_obrigatoria`; Gestão com a unidade → 201 nela; `CARTEIRO` → 403.
+- **IT-082**: `GET /entregas/saidas` — supervisor recebe só a sua unidade, com `descartes`, `proximaSaida` e as rotas com `saidaNumero`; rota do Cadastro sem carga não aparece; outra unidade ou `todas` → 404; Gestão sem `unidadeId` ou com `todas` → agregado sem `descartes`; data anterior → `somenteLeitura: true`.
+- **IT-083**: `POST /entregas/saidas/liberar` com 5 cargas → 2 liberadas (avisos `AGENDADO`, snapshot do carteiro), `sem_carteiro`, `nenhum_destinatario` e `nao_encontrado` (carga de outra unidade) por item; repetir → `jaLiberada` e nenhum job novo; Gestão → 403; lista vazia → 400.
+- **IT-084**: `PUT /entregas/saidas/carteiros` grava o carteiro do dia e, com `definirPadrao`, o padrão da rota; carteiro desativado e rota de outra unidade falham só no item; Gestão sem unidade → 400, com unidade → grava.
+- **IT-085**: depois de importar a saída, `POST /cargas/:distritoId/confirmar` soma o pacote à rota e `GET /quadro` responde no formato de antes (sem `saidaNumero`).
+- **IT-086**: duas importações simultâneas da mesma saída → as duas respondem 201, uma como reimportação; uma `Saida`, uma carga e 30 pacotes.
+
 ### Liberação e envio
 
 - **IT-024**: `liberar` numa carga com 3 pacotes com WhatsApp, 1 sem e unidade sem agência ativa → 202. Depois de drenar a fila:
@@ -611,7 +669,7 @@ Códigos S10 de referência:
 ### Interface do supervisor (Playwright)
 
 - **E2E-005**: login `UNIDADE` → a URL é `/entregas/carregar`, e o menu mostra Carregar Dados, Rotas (em breve), Atendimento, Cadastro e SGPD v2. Clicar Rotas → "Em breve". Clicar SGPD v2 → `/unidade` com a faixa "Protótipo — dados de demonstração". Clicar "Voltar aos módulos" → `/entregas/carregar`.
-- **E2E-006**:
+- **E2E-006** (withdrawn): a prévia com correção por linha deixou de ser o caminho da carga do dia (ADR-019); a importação direta é coberta pelo E2E-017. Passos antigos, para referência:
   1. No quadro, clica no distrito "Pendente de upload".
   2. Envia `aguas-claras-sul.xlsx` (40 linhas): a prévia mostra "36 válidos", "1 para corrigir" e "3 inválidos".
   3. Uma planilha só com linhas inválidas deixa "Confirmar" desabilitado.
@@ -619,19 +677,23 @@ Códigos S10 de referência:
 
   Resultado: o cartão do distrito mostra "28 de 37 pacotes com WhatsApp".
 - **E2E-007**:
-  1. "Liberar distrito" abre o diálogo com "28 destinatários" e "9 sem WhatsApp".
-  2. "Liberar e enviar avisos" deixa o cartão "Liberado".
+  1. "Liberar rota" abre o diálogo "Liberar rota D-03 · Renato Alves Costa?" com "28 destinatários" e "9 pacotes sem WhatsApp".
+  2. "Liberar e enviar avisos" deixa o cartão "Liberada".
 
-  Num distrito sem carteiro, o botão fica indisponível com "Sem carteiro". Num distrito com 0 WhatsApp, o diálogo pede confirmação explícita.
+  Numa rota sem carteiro, o cartão mostra "Sem carteiro definido" e "Definir carteiro", sem "Liberar rota". Numa rota com 0 WhatsApp, o diálogo pede confirmação explícita.
 - **E2E-008**: Cadastro › Distritos › "Novo distrito" `D-09 · Taguatinga Oeste` → aparece na tabela. As abas Carteiros e Agências e lockers criam um registro cada.
 - **E2E-009**: Atendimento → o `iframe` tem `src` igual à URL devolvida pelo backend falso. Com o backend falso respondendo 503 → a área mostra "Atendimento indisponível no momento" e o botão "Abrir em nova aba".
 - **E2E-010**: login `GESTAO` → `/entregas/cadastro`. Cria um canal Prosio (o token é exibido uma vez), uma unidade vinculada e um supervisor. Esse supervisor faz login e vê só a própria unidade.
 - **E2E-011**: viewport 390×844 → o menu lateral vira botão; ao abrir, mostra os mesmos itens; a página não tem rolagem horizontal.
 - **E2E-012**: com o quadro aberto, o teste envia um webhook `read` para um pacote → em até 35 s o cartão do distrito atualiza a contagem de "Lido" sem recarregar. O mesmo vale para a lista do distrito.
-- **E2E-013**: supervisor de unidade sem distritos → o quadro mostra "Cadastre distritos" com o link para o Cadastro.
+- **E2E-013**: supervisor de unidade sem rotas → o quadro mostra o controle "Importar arquivo da saída" e "Saída 1 ainda não foi importada". (withdrawn: "Cadastre distritos" com o link para o Cadastro — a rota nasce do arquivo, ADR-019.)
 - **E2E-014**: com o token expirado (e o refresh também), clicar em Atendimento → tela de login; depois do login, volta para `/entregas/atendimento`.
 - **E2E-015**:
   - login de um usuário `CARTEIRO` → a área `/carteiro`, sem os três módulos. Desde a captura do rótulo (app-carteiro-captura-rotulo) a página inicial do carteiro é o app `/carteiro/captura`, não mais o shell legado; abrir `/entregas/carregar` devolve o carteiro a `/carteiro/captura`;
   - um favorito `/unidade/despacho` aberto por supervisor → a tela antiga, com a faixa de protótipo;
   - um usuário `CARTEIRO` não vê o item SGPD v2 nem "Carregar Dados" (não tem o shell novo).
 - **E2E-016**: na lista de pacotes do distrito, "Registrar orientação" abre o diálogo (foco no texto, contador `0/300`, Esc fecha e devolve o foco). Vazia ou acima de 300 → aviso no diálogo, sem mensagem ao carteiro. Com texto válido → o diálogo fecha, a linha mostra a orientação e o Prosio falso recebe a mensagem ao carteiro. Com "Vale também para amanhã" → a linha mostra "Orientação guardada para DD/MM" e nenhuma mensagem sai hoje. Um texto de 300 caracteres com telefone → 400 `orientacao_longa` do servidor aparece no diálogo. Pacote entregue enquanto o diálogo está aberto → 409 `pacote_entregue` aparece no diálogo e a ação some da linha.
+- **E2E-017**: com a Saída 1 já importada, o supervisor abre a aba da Saída 2 ("ainda não foi importada"). Importar sem horário → "Confirme o horário da Saída 2 antes de importar.", nada gravado. Com o horário e `saida-2.xlsx` → a aba "Saída 2 · 14:00" abre com as rotas 509 (carteiro do arquivo) e 510 ("Sem carteiro definido"), "Rotas criadas no Cadastro: 509, 510." e o bloco "6 aceitos, 4 descartados"; "Ver linhas descartadas (4)" lista linha, rota, código e motivo, sem nome nem telefone. Depois de recarregar, o resultado continua na aba.
+- **E2E-018**: na rota sem carteiro, "Definir carteiro" abre o modal "Atribuir carteiros"; escolher o carteiro e marcar o padrão → o cartão passa a mostrar o carteiro e "Liberar rota". "Liberar 2 rotas carregadas" → diálogo "Liberar 2 rotas da Saída 2?" com os totais e "Rotas 509, 510." → as duas ficam "Liberada"; a Saída 1 não muda; o padrão da rota fica gravado no Cadastro.
+- **E2E-019**: depois de liberar a rota 509, escolher "Saída 2 (reimportar)" preenche o horário e mostra o aviso de substituição. A reimportação troca os pacotes da 510 (3 pacotes) e mantém a 509 liberada como estava (4 pacotes), com "3 aceitos, 2 descartados" e o motivo "Rota já liberada".
+- **E2E-020**: a Gestão vê o seletor de unidade; em "Todas as unidades" a aba mostra "1 unidade · 4 rotas", o cartão mostra a unidade e importar, liberar e definir carteiro ficam indisponíveis. Escolhendo outra unidade, a Gestão importa a Saída 1 dela ("7 aceitos, 3 descartados"); o agregado passa a ter 2 saídas e 7 rotas.

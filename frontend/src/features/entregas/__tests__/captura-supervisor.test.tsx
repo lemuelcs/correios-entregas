@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useEntregasCadastroStore } from '@/stores/entregas-cadastro.store';
 import { useEntregasPacotesStore } from '@/stores/entregas-pacotes.store';
 import { useEntregasQuadroStore } from '@/stores/entregas-quadro.store';
-import type { CartaoDistrito, ListaPacotes, PacoteDistrito, Quadro } from '../entregas.types';
+import type { CartaoDistrito, ListaPacotes, PacoteDistrito, QuadroSaidas } from '../entregas.types';
 import { CadastroPage } from '../pages/CadastroPage';
 import { CarregarDadosPage } from '../pages/CarregarDadosPage';
 import { DistritoPacotesPage } from '../pages/DistritoPacotesPage';
@@ -75,8 +75,21 @@ function cartao(extra: Partial<CartaoDistrito>): CartaoDistrito {
   };
 }
 
-function quadro(distritos: CartaoDistrito[]): Quadro {
-  return { data: '2026-09-30', somenteLeitura: false, semDistritos: false, distritos };
+/** Quadro das saídas (ADR-019) com as rotas na Saída 1 da unidade. */
+function quadro(distritos: CartaoDistrito[]): QuadroSaidas {
+  const unidade = { id: 'un1', nome: 'CDD Taguatinga' };
+  return {
+    data: '2026-09-30',
+    somenteLeitura: false,
+    agregado: false,
+    unidade,
+    saidas: [{
+      id: 's1', unidadeId: unidade.id, unidadeNome: unidade.nome, numero: 1, horario: '10:00', arquivoNome: 'saida-1.xlsx',
+      importadaEm: '2026-09-30T11:47:00.000Z', aceitos: 20, descartados: 0, descartes: [],
+    }],
+    proximaSaida: 2,
+    rotas: distritos.map((d) => ({ ...d, saidaNumero: 1, unidade })),
+  };
 }
 
 describe('Extensões do supervisor (captura, task_06)', () => {
@@ -208,10 +221,10 @@ describe('Extensões do supervisor (captura, task_06)', () => {
     fetchMock.mockImplementation(async () => json(200, q));
     abrirQuadro();
 
-    const saida = await screen.findByRole('list', { name: 'Transferências do D-01' });
-    expect(saida).toHaveTextContent('OY716488072BR foi para o D-03 · Patrícia Nunes · 09h40');
-    const entrada = screen.getByRole('list', { name: 'Transferências do D-03' });
-    expect(entrada).toHaveTextContent('OY716488072BR veio do D-01 · Patrícia Nunes · 09h40');
+    const saida = await screen.findByRole('list', { name: 'Transferências da rota D-01' });
+    expect(saida).toHaveTextContent('OY716488072BR foi para a rota D-03 · Patrícia Nunes · 09h40');
+    const entrada = screen.getByRole('list', { name: 'Transferências da rota D-03' });
+    expect(entrada).toHaveTextContent('OY716488072BR veio da rota D-01 · Patrícia Nunes · 09h40');
   });
 
   it('UT-124 paraConferir: 4 → "4 para conferir no app do carteiro"; 0 → nada', async () => {
@@ -221,8 +234,8 @@ describe('Extensões do supervisor (captura, task_06)', () => {
     ])));
     abrirQuadro();
 
-    const d01 = await screen.findByRole('article', { name: 'Taguatinga Norte' });
-    const d02 = screen.getByRole('article', { name: 'Ceilândia' });
+    const d01 = await screen.findByRole('article', { name: 'Rota D-01' });
+    const d02 = screen.getByRole('article', { name: 'Rota D-02' });
     expect(within(d01).getByText('4 para conferir no app do carteiro')).toBeInTheDocument();
     expect(within(d02).queryByText(/para conferir no app do carteiro/)).not.toBeInTheDocument();
     expect(within(d02).queryByText('Transferências')).not.toBeInTheDocument();

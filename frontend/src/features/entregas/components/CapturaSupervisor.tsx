@@ -55,7 +55,7 @@ function descreverEvento(e: EventoHistorico): string {
     case 'TRANSFERIDO': return `Transferido de ${String(d.de ?? '?')} para ${String(d.para ?? '?')}`;
     case 'DESFEITO': return 'Captura desfeita pelo carteiro';
     case 'WHATSAPP_ALTERADO': return 'WhatsApp alterado';
-    case 'REMOVIDO': return 'Removido do distrito';
+    case 'REMOVIDO': return 'Removido da rota';
     default: {
       const t = e.tipo.replace(/_/g, ' ').toLowerCase();
       return t.charAt(0).toUpperCase() + t.slice(1);
@@ -198,7 +198,7 @@ export function DialogoRemover({ pacote, distrito, aoFechar, aoRemover }: {
     setRemovendo(true);
     try {
       await entregasApi.removerPacote(pacote.id);
-      toast.success(`Pacote ${pacote.codigo} removido do ${distrito}.`);
+      toast.success(`Pacote ${pacote.codigo} removido da rota${distrito ? ` ${distrito}` : ''}.`);
       await aoRemover();
     } catch (err) {
       if (err instanceof ApiError && err.code === 'pacote_entregue') {
@@ -224,7 +224,7 @@ export function DialogoRemover({ pacote, distrito, aoFechar, aoRemover }: {
       }
     >
       <p className="m-0 text-[15px] leading-normal text-ce-tinta-2">
-        O pacote <strong className="font-codigo">{pacote?.codigo}</strong> sai da lista do {distrito} e do app do carteiro.
+        O pacote <strong className="font-codigo">{pacote?.codigo}</strong> sai da lista da rota{distrito ? ` ${distrito}` : ''} e do app do carteiro.
         O destinatário não recebe nova mensagem.
       </p>
     </Dialogo>
@@ -239,11 +239,11 @@ function LinhaTransferencia({ t, sentido }: { t: TransferenciaQuadro; sentido: '
     <li className="flex flex-col text-[13px] text-ce-tinta-2" data-transferencia={sentido}>
       <span>
         <span className="font-codigo font-medium text-ce-tinta">{t.codigo ?? 'sem código'}</span>
-        {sentido === 'entrada' ? ` veio do ${t.distrito}` : ` foi para o ${t.distrito}`} · {quem} · {formatarHora(t.hora)}
+        {sentido === 'entrada' ? ` veio da rota ${t.distrito}` : ` foi para a rota ${t.distrito}`} · {quem} · {formatarHora(t.hora)}
       </span>
       {sentido === 'saida' && t.origemLiberada && (
         <span className="text-ce-corrigir">
-          Distrito já liberado: o caso passou {t.carteiroAnterior?.nome ? `de ${t.carteiroAnterior.nome} ` : ''}para {quem}
+          Rota já liberada: o caso passou {t.carteiroAnterior?.nome ? `de ${t.carteiroAnterior.nome} ` : ''}para {quem}
         </span>
       )}
     </li>
@@ -266,7 +266,7 @@ export function CapturaNoCartao({ d }: { d: CartaoDistrito }) {
       {(entrada.length > 0 || saida.length > 0) && (
         <div className="flex flex-col gap-1">
           <h3 className="m-0 text-[13px] font-semibold uppercase tracking-[0.06em] text-ce-suave">Transferências</h3>
-          <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label={`Transferências do ${d.codigo}`}>
+          <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label={`Transferências da rota ${d.codigo}`}>
             {entrada.map((t, i) => <LinhaTransferencia key={`e-${t.pacoteId ?? i}-${t.hora}`} t={t} sentido="entrada" />)}
             {saida.map((t, i) => <LinhaTransferencia key={`s-${t.pacoteId ?? i}-${t.hora}`} t={t} sentido="saida" />)}
           </ul>

@@ -87,21 +87,29 @@ Cadastros que ligam cada encomenda a um carteiro:
 - **Carteiro do dia** (Supervisor): por padrão, o carteiro padrão do distrito; pode ser trocado só para hoje.
 - **Agências e lockers** (Supervisor): nome, endereço e horário; por unidade, valendo para todos os distritos (ADR-003).
 
-### F2. Carregar Dados: pacotes do distrito (Monitoramento)
+### F2. Carregar Dados: arquivo da saída (Monitoramento)
 
-- O supervisor escolhe o distrito no quadro (F6) e envia planilha CSV/XLSX ou cola linhas com código, nome, WhatsApp e endereço completo (logradouro, número, complemento, bairro, cidade, UF, CEP), mais colunas opcionais (referência, observação) (ADR-003, ADR-010).
-- Pacote sem WhatsApp é aceito e fica fora do aviso; o distrito mostra "X de Y pacotes com WhatsApp".
-- Uma prévia classifica cada linha como válida ou inválida com o motivo, permite corrigir na tela e só grava as válidas quando o supervisor confirma.
-- Listas adicionais do mesmo distrito no mesmo dia somam-se à existente.
+> Redesenhado em 2026-10-01 (ADR-019). "Rota" é o nome, na interface, do que os cadastros chamavam de "distrito".
+
+- A carga do dia é organizada por **saída** da unidade: número (1, 2, …) e **horário obrigatório**. Sem o horário, a importação não acontece: "Confirme o horário da Saída N antes de importar."
+- **Um arquivo por unidade por saída**, CSV ou XLSX, com **todas as rotas**: colunas rota, código, nome, WhatsApp e endereço completo (logradouro, número, complemento, bairro, cidade, UF, CEP), mais as opcionais carteiro (matrícula ou nome), referência e observação (ADR-019).
+- **Importação direta, sem prévia**: importar grava na hora as linhas válidas. O quadro mostra "N aceitos, M descartados" e a lista consultável das linhas recusadas (linha, rota, código e motivo), que fica gravada com a saída.
+- Pacote sem WhatsApp é aceito e fica fora do aviso; a rota mostra "X de Y pacotes com WhatsApp".
+- **Reimportar** uma saída já importada substitui os dados das rotas ainda não liberadas (a tela avisa antes); as rotas liberadas ficam intocadas e as linhas delas são recusadas com o motivo.
+- A rota do arquivo que não existe no Cadastro é criada automaticamente.
+- **Carteiro da rota**: o da coluna "carteiro" do arquivo (carteiro do dia); senão o carteiro padrão da rota no Cadastro; senão a rota fica sem carteiro e o quadro oferece o modal "Atribuir carteiros".
+- Na lista de pacotes de uma rota, "Adicionar pacotes" continua aceitando planilha ou linhas coladas com prévia e correção (o fluxo anterior, agora só para complementar uma rota).
 - Encomendas com orientação guardada de outro dia chegam marcadas com essa orientação.
+- (withdrawn) O supervisor escolhe o distrito no quadro e envia a planilha daquele distrito; uma prévia classifica cada linha antes de gravar. Substituído pelo arquivo da saída com importação direta (ADR-019).
 
 ### F3. Liberação e aviso ao destinatário
 
-- "Liberar distrito" envia, pelo canal da unidade, um aviso por encomenda: "Olá, <primeiro nome>, sua encomenda <código> já saiu para entrega. Se tiver alguma dificuldade para receber sua encomenda, nos avise."
+- "Liberar rota" envia, pelo canal da unidade, um aviso por encomenda: "Olá, <primeiro nome>, sua encomenda <código> já saiu para entrega. Se tiver alguma dificuldade para receber sua encomenda, nos avise."
 - O aviso traz as opções numa lista: "Tentar novamente amanhã", "Deixar com meu vizinho", "Deixar na agência", "Deixar no locker", "Outra opção".
 - Encomendas com orientação guardada recebem o aviso com "Vamos seguir sua orientação: <orientação>" e mantêm as opções.
 - Na liberação, o carteiro recebe o resumo das orientações já conhecidas do distrito.
-- Encomendas adicionadas a um distrito já liberado são avisadas na hora.
+- Encomendas adicionadas a uma rota já liberada são avisadas na hora.
+- **Liberação em lote**: "Liberar N rotas carregadas" libera de uma vez as rotas carregadas com carteiro da saída, depois de um diálogo com os totais e a lista das rotas; cada rota segue as mesmas regras da liberação individual e o resultado vem por rota (ADR-019).
 
 ### F4. Respostas do destinatário
 
@@ -118,19 +126,23 @@ Cadastros que ligam cada encomenda a um carteiro:
 - "Não foi possível" pede um motivo curto e alerta o supervisor no painel.
 - Orientações alteradas chegam marcadas "ATUALIZADA".
 
-### F6. Quadro de distritos e status dos pacotes (Monitoramento › Carregar Dados)
+### F6. Quadro das saídas e status dos pacotes (Monitoramento › Carregar Dados)
 
-- **Quadro do dia**: um cartão ou linha por distrito da unidade, com carteiro do dia, status do distrito e contagens.
-- **Status do distrito**, nesta ordem:
-  1. **Pendente de upload**: nenhum pacote carregado hoje.
-  2. **Dados carregados**: "X de Y pacotes com WhatsApp", pronto para liberar.
-  3. **Liberado**: avisos em envio ou agendados.
-  4. **Em entrega**: avisos enviados e o dia em andamento.
-  5. **Concluído**: todos os pacotes entregues ou com insucesso.
+- **Controle de importação** no topo do quadro: número da saída (as já importadas aparecem com "(reimportar)"), horário, área para soltar o arquivo e o botão "Importar Saída N".
+- **Uma aba por saída**: "Saída 1 · 10:00 — Importada às 08h47 · 13 rotas". A próxima saída aparece como "Aguardando arquivo e horário", com a instrução de como importar. Cargas fora de uma saída (fotos de rótulo do app do carteiro, lista carregada direto na rota) aparecem numa aba "Sem saída", só quando existem.
+- **Resumo da saída**: rotas nesta saída, pacotes, com WhatsApp, entregues e insucessos. **Filtros**: Todas, Carregada, Liberada, Em entrega, Concluída.
+- **Cartão da rota**: código da rota em destaque, o nome do carteiro como título ("Sem carteiro definido", em vermelho, quando falta) e "N pacotes".
+- **Status da rota**, nesta ordem:
+  1. **Carregada**: "X de Y pacotes com WhatsApp", pronta para liberar.
+  2. **Liberada**: avisos em envio ou agendados.
+  3. **Em entrega**: avisos enviados e o dia em andamento.
+  4. **Concluída**: todos os pacotes entregues ou com insucesso.
+  - (withdrawn) **Pendente de upload**: a rota só existe no quadro quando um arquivo a trouxe (ADR-019).
+- **Escopo**: o supervisor vê só a própria unidade, sem seletor. A Gestão tem o seletor de unidade com "Todas as unidades" (soma das unidades, só leitura) e precisa escolher uma unidade para importar.
 - **Status de cada pacote**: sem WhatsApp · aguardando liberação · enviado com sucesso · lido/recebido · interagindo (conversa em andamento ou orientação dada) · insucesso (não entregue) · entregue. São ainda sinalizados à parte: não enviado (com motivo), descadastrado, escalonamento aberto e orientação guardada para o próximo dia.
-- O quadro mostra, por distrito, a contagem de pacotes em cada status, e o botão **Liberar distrito** fica no cartão do distrito com dados carregados.
+- O quadro mostra, por rota, a contagem de pacotes em cada status; o botão **Liberar rota** fica no cartão da rota carregada com carteiro, e **Definir carteiro** (que abre o modal "Atribuir carteiros") no cartão da rota sem carteiro.
 - **Entregue** e **insucesso** vêm do rastreio (Seu Rastreio) e da confirmação do carteiro. Em divergência, o pacote é sinalizado para o supervisor.
-- Nas histórias, "painel" designa este quadro e a lista de pacotes do distrito.
+- Nas histórias, "painel" designa este quadro e a lista de pacotes da rota.
 
 ### F7. Atendimento no Chatwoot
 
@@ -171,8 +183,10 @@ F0 organiza tudo em módulos: F1–F3 e F6 formam o Cadastro; F7 e o registro ma
 - **Código**: 2 letras + 8 dígitos + dígito verificador + 2 letras, com dígito verificador por módulo 11 (pesos 8, 6, 4, 2, 3, 5, 9, 7; resto 0 → 5; resto 1 → 0; senão 11 − resto). Normalizado para maiúsculas. Qualquer sufixo de país é aceito (ADR-007).
 - **WhatsApp**: número brasileiro com DDD, normalizado para E.164 (+55…); aceita com ou sem +55, parênteses, espaços, traços e nono dígito. Um número malformado é sinalizado para correção. Se o supervisor não corrigir, o pacote entra como "sem WhatsApp".
 - **Nome**: não vazio. A mensagem usa o primeiro nome, com a primeira letra maiúscula.
-- Máximo de 500 linhas por envio por distrito.
-- Linhas inválidas nunca entram na lista; a confirmação grava só as válidas e informa "N aceitas, M descartadas".
+- Máximo de 500 linhas por rota. O arquivo da saída aceita até 5.000 linhas e 5 MB (ADR-019).
+- **Arquivo da saída**: a coluna rota é obrigatória (cabeçalhos equivalentes: "rota", "código da rota", "distrito"); a coluna carteiro é opcional ("carteiro", "matrícula", "nome do carteiro"). Linha sem rota, de rota já liberada, de rota já carregada em outra saída do dia ou de rota desativada é descartada com o motivo.
+- No arquivo da saída não há correção na tela: a linha com WhatsApp malformado é descartada com o motivo (WhatsApp vazio continua aceito como "sem WhatsApp").
+- Linhas inválidas nunca entram na lista; a importação grava só as válidas e informa "N aceitos, M descartados", com a lista das recusadas (linha, rota, código e motivo). O resumo gravado não guarda nome nem telefone.
 
 ### Envio
 
@@ -226,7 +240,7 @@ F0 organiza tudo em módulos: F1–F3 e F6 formam o Cadastro; F7 e o registro ma
 
 | Persona | Pode |
 |---|---|
-| Gestor | Cadastrar unidades e supervisores; ver as listas e as conversas de todas as unidades e a triagem. |
+| Gestor | Cadastrar unidades e supervisores; ver as listas e as conversas de todas as unidades e a triagem; importar o arquivo da saída e atribuir carteiros numa unidade escolhida (ADR-019). A liberação continua sendo do supervisor. |
 | Supervisor | Cadastrar distritos, carteiros, agências e lockers da própria unidade; subir listas, liberar distritos, registrar orientação manual; ver listas e conversas só da própria unidade. |
 | Carteiro | Receber orientações, confirmar e acionar destinatários das encomendas do seu distrito pelo WhatsApp, mediado. Sem acesso ao sistema, ao Chatwoot nem ao contato do destinatário. |
 | Destinatário | Interagir pelo WhatsApp sobre as encomendas vinculadas ao seu número. Sem acesso ao sistema, ao Chatwoot nem ao contato do carteiro. |
@@ -245,11 +259,11 @@ F0 organiza tudo em módulos: F1–F3 e F6 formam o Cadastro; F7 e o registro ma
 
 ### Fluxo do supervisor
 
-1. Entra no correios-entregas e cai em Monitoramento › Carregar Dados, no quadro de distritos do dia.
-2. Abre um distrito "Pendente de upload", envia a planilha ou cola as linhas.
-3. Revisa a prévia, corrige ou descarta linhas inválidas e confirma.
-4. Confere o carteiro do dia do distrito.
-5. Quando o carteiro sai, clica "Liberar distrito".
+1. Entra no correios-entregas e cai em Monitoramento › Carregar Dados, no quadro das saídas do dia.
+2. Escolhe o número da saída, informa o horário, seleciona o arquivo da unidade e clica "Importar Saída N".
+3. Confere "N aceitos, M descartados"; se houve descartes, abre a lista, corrige o arquivo e reimporta.
+4. Confere o carteiro de cada rota; nas que estão "Sem carteiro definido", abre "Atribuir carteiros".
+5. Quando os carteiros saem, clica "Liberar rota" ou "Liberar N rotas carregadas".
 6. Acompanha a situação de cada encomenda na lista do distrito e abre o módulo Atendimento para acompanhar as conversas e responder escalonamentos.
 7. Registra orientações manuais quando resolve um caso no Chatwoot.
 8. Quando precisa de uma tela antiga, abre "SGPD v2" no menu lateral.
@@ -321,6 +335,7 @@ F0 organiza tudo em módulos: F1–F3 e F6 formam o Cadastro; F7 e o registro ma
 - [ADR-008: Mediação entre partes do Prosio](adrs/adr-008.md) — Caso por encomenda, carteiro ↔ destinatário mediados nos dois sentidos, supervisor como operador, envelope todo automático.
 - [ADR-009: Três módulos e "SGPD v2"](adrs/adr-009.md) — Cadastro, Atendimento e Monitoramento; telas atuais atrás do item "SGPD v2".
 - [ADR-010: Módulos redefinidos](adrs/adr-010.md) — Chatwoot em iframe; Monitoramento › Carregar Dados neste PRD com quadro de distritos e endereço completo; Rotas v2 e app do carteiro em PRDs próprios.
+- [ADR-019: Carga do dia por saída](adrs/adr-019.md) — Saídas com horário, um arquivo por unidade com todas as rotas, importação direta com "N aceitos, M descartados", reimportação só das rotas não liberadas, "rota" no lugar de "distrito" e carteiro da rota em três níveis.
 
 ## Open Questions
 

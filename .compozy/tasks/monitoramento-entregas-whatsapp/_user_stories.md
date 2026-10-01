@@ -58,6 +58,12 @@ Códigos de exemplo válidos (dígito verificador correto): `AA123456785BR`, `OY
 | US-038 | Navegação               | Supervisor   | Ver o status de cada pacote no distrito |
 | US-039 | Carregar Dados          | Supervisor   | Ver o quadro de distritos do dia com status |
 | US-040 | Carregar Dados          | Supervisor   | Carregar pacotes sem WhatsApp e ver "X de Y" |
+| US-041 | Carregar Dados          | Supervisor   | Importar o arquivo da saída com todas as rotas |
+| US-042 | Carregar Dados          | Supervisor   | Ver "N aceitos, M descartados" e as linhas recusadas |
+| US-043 | Carregar Dados          | Supervisor   | Reimportar uma saída sem mexer nas rotas liberadas |
+| US-044 | Carregar Dados          | Supervisor   | Definir o carteiro das rotas sem carteiro |
+| US-045 | Carregar Dados          | Supervisor   | Liberar em lote as rotas carregadas |
+| US-046 | Carregar Dados          | Gestor       | Ver todas as unidades e escolher uma para importar |
 
 ## Cadastros da sede
 
@@ -170,11 +176,13 @@ Edge cases:
 
 ### US-007: Subir a lista do dia por planilha
 
+> Desde o ADR-019 a carga do dia entra pelo arquivo da saída (US-041). Esta história vale para "Adicionar pacotes" na lista de uma rota.
+
 **As a** Supervisor, **I want** subir uma planilha com nome, WhatsApp e código de cada encomenda e escolher o distrito, **so that** o sistema saiba quem avisar.
 
 Acceptance criteria:
 
-- AC-1: Given o quadro de distritos, when o supervisor abre um distrito e envia um arquivo CSV ou XLSX com as colunas código, nome, WhatsApp e endereço completo, then o sistema mostra a prévia com todas as linhas classificadas (US-009).
+- AC-1: Given a lista de pacotes de uma rota, when o supervisor escolhe "Adicionar pacotes" e envia um arquivo CSV ou XLSX com as colunas código, nome, WhatsApp e endereço completo, then o sistema mostra a prévia com todas as linhas classificadas (US-009).
 - AC-2: Given uma planilha com colunas em outra ordem ou com cabeçalhos equivalentes ("telefone", "celular", "objeto", "rastreio"), when enviada, then as colunas são reconhecidas.
 - AC-3: Given o supervisor confirmou uma lista para o distrito, when sobe outra planilha para o mesmo distrito e dia, then as novas linhas são somadas à lista existente.
 
@@ -710,18 +718,22 @@ Edge cases:
 
 Acceptance criteria:
 
-- AC-1: Given o dia de hoje, then o quadro lista cada distrito ativo da unidade com código, carteiro do dia, status (Pendente de upload, Dados carregados, Liberado, Em entrega, Concluído) e contagens de pacotes por status.
-- AC-2: Given um distrito "Dados carregados", then o cartão mostra "X de Y pacotes com WhatsApp" e o botão "Liberar distrito".
-- AC-3: Given um distrito "Pendente de upload", when clico nele, then abre o carregamento (US-007/US-008).
-- AC-4: Given um distrito liberado, when clico nele, then abro a lista de pacotes com status (US-038).
+> Redesenhado pelo ADR-019: o quadro é organizado por saída e fala em "rota".
+
+- AC-1: Given o dia de hoje, then o quadro tem uma aba por saída importada ("Saída 1 · 10:00 — Importada às 08h47 · 13 rotas") e a próxima saída como "Aguardando arquivo e horário"; a aba lista cada rota da saída com o código em destaque, o carteiro como título, "N pacotes", o status (Carregada, Liberada, Em entrega, Concluída) e as contagens de pacotes por status.
+- AC-2: Given uma rota "Carregada" com carteiro, then o cartão mostra "X de Y pacotes com WhatsApp" e o botão "Liberar rota".
+- AC-3: (withdrawn) Given um distrito "Pendente de upload", when clico nele, then abre o carregamento. A rota só aparece quando um arquivo a trouxe (ADR-019).
+- AC-4: Given uma rota liberada, when clico em "Ver pacotes", then abro a lista de pacotes com status (US-038).
+- AC-6: Given a saída aberta, then o resumo mostra rotas nesta saída, pacotes, com WhatsApp, entregues e insucessos, e os filtros Todas, Carregada, Liberada, Em entrega e Concluída.
+- AC-7: Given cargas fora de uma saída (fotos de rótulo, lista carregada direto na rota), then aparecem numa aba "Sem saída"; sem elas, a aba não aparece.
 - AC-5: Given mudanças de status, then o quadro reflete em até 1 minuto sem recarregar.
 
 Edge cases:
 
-- EC-1: Unidade sem distritos → o quadro mostra "Cadastre distritos" com atalho para o Cadastro.
-- EC-2: Distrito sem carteiro no dia → cartão sinalizado "Sem carteiro", liberação bloqueada.
-- EC-3: Data anterior → o quadro é consultável em modo leitura por data.
-- EC-4: 60 distritos → o quadro permite filtrar por status e buscar por código.
+- EC-1: (withdrawn) Unidade sem distritos → "Cadastre distritos". Agora o quadro mostra o controle de importação e "Saída 1 ainda não foi importada": a rota nasce do arquivo (ADR-019).
+- EC-2: Rota sem carteiro no dia → título "Sem carteiro definido", sem "Liberar rota", com "Definir carteiro" (US-044).
+- EC-3: Data anterior → o quadro é consultável em modo leitura por data, sem o controle de importação.
+- EC-4: 60 rotas → o quadro permite filtrar por status. (withdrawn: busca por código; o protótipo novo não tem o campo.)
 - EC-5: Supervisor de outra unidade → não vê o quadro.
 
 ### US-040: Carregar pacotes sem WhatsApp e ver "X de Y"
@@ -737,3 +749,115 @@ Edge cases:
 
 - EC-1: Nenhum pacote com WhatsApp → a liberação avisa "Nenhum destinatário será avisado" e pede confirmação.
 - EC-2: WhatsApp adicionado depois (edição do pacote) em distrito já liberado → o aviso é enviado na hora.
+
+### US-041: Importar o arquivo da saída com todas as rotas
+
+**As a** Supervisor, **I want** importar um arquivo só com todas as rotas da saída, informando o número e o horário dela, **so that** a carga do dia entre de uma vez, no ritmo da expedição.
+
+Acceptance criteria:
+
+- AC-1: Given o quadro do dia, when escolho "Saída 2", informo o horário, seleciono o arquivo (CSV ou XLSX com as colunas rota, código e nome) e clico "Importar Saída 2", then as linhas válidas são gravadas na hora e a aba "Saída 2 · 14:00" abre com as rotas do arquivo.
+- AC-2: Given um arquivo com a coluna carteiro (matrícula ou nome) que casa com um carteiro ativo da unidade, then ele vira o carteiro do dia da rota; sem a coluna ou sem valor, vale o carteiro padrão da rota no Cadastro.
+- AC-3: Given uma rota do arquivo que não existe no Cadastro, then ela é criada ("Rota <código>") e a tela informa quais rotas foram criadas.
+- AC-4: Given a próxima saída ainda não importada, then a aba dela mostra "Aguardando arquivo e horário" e "Saída N ainda não foi importada", com a instrução de importação.
+
+Edge cases:
+
+- EC-1: Sem horário → "Confirme o horário da Saída N antes de importar." e nada é enviado.
+- EC-2: Arquivo sem a coluna rota → recusado indicando a coluna que falta; nada é gravado.
+- EC-3: Arquivo de outro formato → "Envie CSV ou XLSX"; mais de 5.000 linhas ou de 5 MB → recusado com o limite.
+- EC-4: Rota com mais de 500 linhas → as linhas além da 500ª são descartadas com o motivo.
+- EC-5: Rota já carregada em outra saída do dia → as linhas dela são descartadas com "A rota já foi carregada na Saída N hoje".
+- EC-6: Rota desativada no Cadastro → as linhas dela são descartadas com o motivo; a rota não é recriada.
+- EC-7: Tentar importar a Saída 3 sem a 2 → recusado.
+- EC-8: Data anterior → só consulta; não importa.
+- EC-9: Carteiro do arquivo que não casa com nenhum carteiro ativo da unidade (ou nome repetido) → a rota fica com o padrão do Cadastro, ou sem carteiro, e a tela avisa qual valor não foi encontrado.
+- EC-10: Rota que já tinha carga sem saída (fotos de rótulo) → a carga passa a ser da saída; o pacote já conferido pela foto é mantido como está.
+- EC-11: Duas importações simultâneas da mesma saída → uma espera a outra; não há saída nem pacote duplicado.
+
+### US-042: Ver "N aceitos, M descartados" e as linhas recusadas
+
+**As a** Supervisor, **I want** ver logo depois de importar quantas linhas entraram e quais foram recusadas, com o motivo, **so that** um telefone errado ou um código inválido não passe despercebido.
+
+Acceptance criteria:
+
+- AC-1: Given uma saída importada com descartes, then a aba mostra em destaque "N aceitos, M descartados" e o botão "Ver linhas descartadas (M)".
+- AC-2: Given a lista aberta, then cada linha recusada mostra o número da linha no arquivo, a rota, o código e o motivo.
+- AC-3: Given a página recarregada (ou outro supervisor da unidade), then o resultado e a lista continuam lá: ficam gravados com a saída.
+- AC-4: Given uma saída sem descartes, then a aba mostra "N aceitos, nenhum descartado", sem destaque.
+
+Edge cases:
+
+- EC-1: O resumo gravado guarda só linha, rota, código e motivo: nunca o nome nem o telefone do destinatário. Uma coluna trocada (nome no lugar do código) não leva o nome para o resumo.
+- EC-2: WhatsApp malformado (sem DDD, por exemplo) → a linha é descartada com o motivo. WhatsApp vazio → aceita, "sem WhatsApp".
+- EC-3: Código com dígito verificador errado, código repetido no arquivo, linha sem rota, linha sem nome → descartadas, cada uma com seu motivo.
+- EC-4: Todas as linhas recusadas → a saída fica registrada com "0 aceitos, M descartados" e sem rotas, para a lista poder ser consultada e o arquivo reimportado.
+
+### US-043: Reimportar uma saída sem mexer nas rotas liberadas
+
+**As a** Supervisor, **I want** importar de novo o arquivo de uma saída, **so that** eu corrija a carga sem refazer o que já foi liberado.
+
+Acceptance criteria:
+
+- AC-1: Given uma saída já importada, then o número dela aparece como "Saída N (reimportar)", o horário vem preenchido e a tela avisa: "A Saída N já foi importada às HHhMM. Importar de novo substitui os dados das rotas que ainda não foram liberadas."
+- AC-2: Given a reimportação, then nas rotas ainda não liberadas o pacote que continua no arquivo é atualizado (mantém histórico e orientações), o novo é criado e o que saiu do arquivo é removido.
+- AC-3: Given uma rota já liberada, then ela fica intocada e as linhas dela no arquivo são descartadas com "Rota já liberada".
+- AC-4: Given a reimportação concluída, then o arquivo, o horário e o resultado ("N aceitos, M descartados") da saída passam a ser os da última importação.
+
+Edge cases:
+
+- EC-1: Rota não liberada que saiu do arquivo → fica sem pacote e sai da saída.
+- EC-2: Pacote que mudou de rota dentro da saída → passa para a nova rota, sem duplicar.
+- EC-3: Pacote conferido pela foto do carteiro → mantido como está.
+
+### US-044: Definir o carteiro das rotas sem carteiro
+
+**As a** Supervisor, **I want** escolher o carteiro das rotas que vieram sem carteiro, sem sair do quadro, **so that** eu possa liberá-las.
+
+Acceptance criteria:
+
+- AC-1: Given uma rota carregada sem carteiro, then o cartão mostra "Sem carteiro definido" em vermelho e o botão "Definir carteiro", com "Necessário para liberar a rota".
+- AC-2: Given "Definir carteiro" (ou "Atribuir carteiros"), then abre o modal "Atribuir carteiros" com as rotas sem carteiro da saída e, para cada uma, a lista dos carteiros ativos da unidade.
+- AC-3: Given um carteiro escolhido, when salvo, then ele vira o carteiro do dia da rota e "Liberar rota" passa a aparecer.
+- AC-4: Given a caixa "Definir também como carteiro padrão da rota" marcada, then o carteiro também vira o padrão da rota no Cadastro.
+
+Edge cases:
+
+- EC-1: Nenhum carteiro escolhido → "Salvar" desabilitado.
+- EC-2: Unidade sem carteiro ativo → o modal aponta para o Cadastro.
+- EC-3: Carteiro desativado ou de outra unidade → recusado para aquela rota; as demais são gravadas.
+
+### US-045: Liberar em lote as rotas carregadas
+
+**As a** Supervisor, **I want** liberar de uma vez todas as rotas carregadas da saída, **so that** eu não repita o diálogo rota por rota.
+
+Acceptance criteria:
+
+- AC-1: Given duas ou mais rotas carregadas com carteiro, then o quadro mostra "Liberar N rotas carregadas".
+- AC-2: Given o clique, then o diálogo "Liberar N rotas da Saída S?" mostra o total de destinatários que serão avisados, o total de pacotes sem WhatsApp e a lista dos códigos das rotas.
+- AC-3: Given a confirmação, then cada rota é liberada com as mesmas regras da liberação individual (US-011), e o resultado vem por rota.
+- AC-4: Given a liberação de uma rota só, then o diálogo próprio continua: "Liberar rota 503 · <carteiro>?".
+
+Edge cases:
+
+- EC-1: Rota sem carteiro ou sem pacote com WhatsApp → fica fora do lote (a segunda exige a confirmação explícita da US-040.EC-1, uma a uma).
+- EC-2: Uma rota falha (canal indisponível, por exemplo) → as demais são liberadas e a tela informa qual falhou e por quê.
+- EC-3: Repetir a liberação em lote → nenhum aviso é enviado de novo.
+- EC-4: Depois das 20h → os avisos do lote saem às 06:05 do dia seguinte, como na liberação individual.
+
+### US-046: Ver todas as unidades e escolher uma para importar
+
+**As a** Gestor, **I want** ver as saídas de todas as unidades juntas e escolher uma unidade quando for importar, **so that** eu acompanhe o todo e ajude uma unidade sem risco de gravar na errada.
+
+Acceptance criteria:
+
+- AC-1: Given a Gestão, then o quadro tem o seletor de unidade com "Todas as unidades" e cada unidade ativa.
+- AC-2: Given "Todas as unidades", then cada aba soma a saída de mesmo número de todas as unidades, o cartão da rota mostra a unidade, e a tela é só de consulta: sem importar, sem definir carteiro, sem liberar.
+- AC-3: Given uma unidade escolhida, then a Gestão importa a saída e atribui carteiros nessa unidade.
+- AC-4: Given o supervisor, then não há seletor: ele fica na própria unidade.
+
+Edge cases:
+
+- EC-1: Gestão tentando importar em "Todas as unidades" → recusado ("Escolha uma unidade para importar").
+- EC-2: Supervisor pedindo outra unidade → negado.
+- EC-3: A liberação (individual ou em lote) continua sendo só do supervisor da unidade.

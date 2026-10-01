@@ -160,7 +160,7 @@ export function ConferirPage() {
         ...(confirmarTransferencia ? { confirmarTransferencia: true } : {}),
       });
       if (r.tipo === 'TRANSFERENCIA_PENDENTE') {
-        setTransferir(r.distritoOrigem || pendencia?.distritoOrigem || 'outro distrito');
+        setTransferir(r.distritoOrigem || pendencia?.distritoOrigem || '');
         return;
       }
       if (r.tipo === 'RECUSADO') {
@@ -180,7 +180,7 @@ export function ConferirPage() {
         apagarRascunho(capturaId);
         setErroEnvio('Esta pendência já foi resolvida.');
       } else if (err instanceof ApiError && err.code === 'transferencia_concorrente') {
-        setErroEnvio('O pacote mudou de distrito enquanto você conferia. Volte e abra de novo.');
+        setErroEnvio('O pacote mudou de rota enquanto você conferia. Volte e abra de novo.');
       } else if (err instanceof ApiError) {
         setErroEnvio(err.message);
       } else {
@@ -193,7 +193,7 @@ export function ConferirPage() {
 
   function salvar() {
     if (pendencia?.tipo === 'TRANSFERENCIA_PENDENTE') {
-      setTransferir(pendencia.distritoOrigem ?? 'outro distrito');
+      setTransferir(pendencia.distritoOrigem ?? '');
       return;
     }
     void enviar(false);
@@ -323,7 +323,7 @@ export function ConferirPage() {
             disabled={temErro || enviando}
             className="min-h-[52px] rounded-xl bg-[#1E4FA3] text-[17px] font-bold text-white disabled:opacity-50"
           >
-            {enviando ? 'Salvando…' : `Salvar no ${distritoCodigo}`}
+            {enviando ? 'Salvando…' : `Salvar na rota ${distritoCodigo}`}
           </button>
           <button
             type="button"
@@ -344,7 +344,7 @@ export function ConferirPage() {
             className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
           >
             <p id="transferir-titulo" className="text-base font-semibold">
-              Este pacote está no {transferir} hoje. Trazer para o {distritoCodigo}?
+              Este pacote está {transferir ? `na rota ${transferir}` : 'em outra rota'} hoje. Trazer para a rota {distritoCodigo}?
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -363,7 +363,7 @@ export function ConferirPage() {
                 }}
                 className="min-h-11 rounded-lg bg-[#1E4FA3] px-4 font-semibold text-white"
               >
-                Trazer para o {distritoCodigo}
+                Trazer para a rota {distritoCodigo}
               </button>
             </div>
           </div>

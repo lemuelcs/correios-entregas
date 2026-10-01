@@ -9,13 +9,13 @@ test('E2E-008 — Cadastro: distrito, carteiro, ponto e carteiro do dia', async 
   const c = await cenarioSupervisor();
   await entrarDireto(page, c.supervisor.email, '/entregas/cadastro');
 
-  // Distritos (aba padrão do supervisor). A Gestão não aparece.
-  await expect(page.getByRole('tab', { name: 'Distritos' })).toHaveAttribute('aria-selected', 'true');
+  // Rotas (aba padrão do supervisor). A Gestão não aparece.
+  await expect(page.getByRole('tab', { name: 'Rotas', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('tab', { name: 'Unidades' })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: 'Supervisores' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Novo distrito' }).click();
-  const dDistrito = page.getByRole('dialog', { name: 'Novo distrito' });
+  await page.getByRole('button', { name: 'Nova rota' }).click();
+  const dDistrito = page.getByRole('dialog', { name: 'Nova rota' });
   await dDistrito.getByLabel('Código').fill('D-09');
   await dDistrito.getByLabel('Nome').fill('Taguatinga Oeste');
   await dDistrito.getByLabel('Carteiro padrão').selectOption({ label: 'Wesley Mota Ramos' });
@@ -27,9 +27,9 @@ test('E2E-008 — Cadastro: distrito, carteiro, ponto e carteiro do dia', async 
 
   // Carteiro do dia: D-06 (sem carteiro) recebe um carteiro só para hoje.
   const escalaD06 = page.getByLabel('D-06 · Ceilândia Sul');
-  await expect(page.getByText('Sem carteiro: o distrito não pode ser liberado').first()).toBeVisible();
+  await expect(page.getByText('Sem carteiro: a rota não pode ser liberada').first()).toBeVisible();
   await escalaD06.selectOption({ label: 'Renato Alves Costa' });
-  await expect(page.getByText('Carteiro de hoje do D-06 atualizado.')).toBeVisible();
+  await expect(page.getByText('Carteiro de hoje da rota D-06 atualizado.')).toBeVisible();
 
   // Carteiros.
   await page.getByRole('tab', { name: 'Carteiros' }).click();
@@ -38,7 +38,7 @@ test('E2E-008 — Cadastro: distrito, carteiro, ponto e carteiro do dia', async 
   await dCarteiro.getByLabel('Nome').fill('Gloria Maria Vieira');
   await dCarteiro.getByLabel('Matrícula').fill('84159902');
   await dCarteiro.getByLabel('WhatsApp').fill('(61) 98460-7712');
-  await dCarteiro.getByLabel('Distrito padrão').selectOption({ label: 'D-09 · Taguatinga Oeste' });
+  await dCarteiro.getByLabel('Rota padrão').selectOption({ label: 'D-09 · Taguatinga Oeste' });
   await dCarteiro.getByRole('button', { name: 'Salvar' }).click();
   await expect(dCarteiro).toHaveCount(0);
   const linhaGloria = page.getByRole('row', { name: /Gloria Maria Vieira/ });
@@ -58,11 +58,12 @@ test('E2E-008 — Cadastro: distrito, carteiro, ponto e carteiro do dia', async 
   await expect(page.getByRole('row', { name: /AC Taguatinga Centro/ })).toContainText('Agência');
   await expect(page.getByText('Ativos: 1/10 agências · 0/10 lockers')).toBeVisible();
 
-  // O quadro já mostra o D-09 e o D-06 com carteiro.
+  // O quadro já mostra o D-06 com carteiro.
   await page.getByRole('navigation', { name: 'Menu principal' }).getByRole('link', { name: /^Carregar Dados/ }).click();
-  await expect(cartao(page, 'D-09')).toContainText('Pendente de upload');
-  await expect(cartao(page, 'D-06')).toContainText('Carteiro: Renato Alves Costa');
-  await expect(cartao(page, 'D-06').getByRole('button', { name: 'Liberar distrito' })).toBeEnabled();
+  // (ADR-019) A rota só aparece no quadro quando um arquivo de saída a trouxe: o D-09, sem carga, não aparece.
+  await expect(cartao(page, 'D-06')).toContainText('Renato Alves Costa');
+  await expect(cartao(page, 'D-06').getByRole('button', { name: 'Liberar rota' })).toBeEnabled();
+  await expect(cartao(page, 'D-09')).toHaveCount(0);
 });
 
 test('E2E-009 — Atendimento em iframe e alternativa', async ({ page }) => {
@@ -163,7 +164,7 @@ test('E2E-010 — jornada da Gestão: canal, unidade e supervisor', async ({ pag
   await expect(page).toHaveURL(/\/entregas\/carregar$/);
   const menu = page.getByRole('navigation', { name: 'Menu principal' });
   await expect(menu).toContainText('CDD Taguatinga');
-  await expect(page.getByRole('heading', { name: 'Cadastre distritos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Saída 1 ainda não foi importada' })).toBeVisible();
   await expect(page.getByText('D-50')).toHaveCount(0);
   await menu.getByRole('link', { name: /^Cadastro/ }).click();
   await expect(page.getByRole('tab', { name: 'Unidades' })).toHaveCount(0);

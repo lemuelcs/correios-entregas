@@ -1,7 +1,8 @@
 /** Peças visuais da área Entregas (protótipo validado: Source Sans 3, pílulas, botões de 44 px). */
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
+import { useId, useRef, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import { Link, type LinkProps } from 'react-router';
 import { X } from 'lucide-react';
+import { useCamadaModal } from './foco';
 
 export const FOCO = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ce-azul';
 
@@ -25,6 +26,12 @@ export function Botao({ variante = 'primario', className = '', type = 'button', 
 export function BotaoLink({ variante = 'primario', className = '', ...props }: LinkProps & { variante?: Variante }) {
   return <Link className={classeBotao(variante, className)} {...props} />;
 }
+
+/**
+ * Link de texto com área de toque de 44 px (WCAG 2.5.8): a altura vem do `min-h-11`,
+ * sem mudar o tamanho do texto. Use em links soltos como "← Voltar…" e "Ver conversa".
+ */
+export const CLASSE_LINK = `inline-flex min-h-11 items-center gap-1 font-semibold text-ce-azul hover:text-ce-azul-escuro ${FOCO}`;
 
 export function Pilula({ classe, children, className = '' }: { classe: string; children: ReactNode; className?: string }) {
   return <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-[13px] font-semibold ${classe} ${className}`}>{children}</span>;
@@ -64,41 +71,32 @@ export function Campo({ rotulo, children, dica, erro, id }: { rotulo: string; ch
       <label htmlFor={campoId} className="text-sm font-semibold">{rotulo}</label>
       {children(campoId)}
       {dica && !erro && <span className="text-[13px] text-ce-suave">{dica}</span>}
-      {erro && <span className="text-[13px] font-semibold text-ce-erro">{erro}</span>}
+      {erro && <span id={`${campoId}-erro`} role="alert" className="text-[13px] font-semibold text-ce-erro">{erro}</span>}
     </div>
   );
 }
 
 export const CLASSE_ENTRADA = `min-h-11 w-full rounded-lg border border-ce-linha-forte bg-white px-3 text-[15px] ${FOCO}`;
 
-/** Diálogo modal acessível (foco inicial, Esc fecha, foco volta ao gatilho). */
-export function Dialogo({ titulo, aberto, aoFechar, children, rodape, largura = 'max-w-[480px]' }: {
+/**
+ * Diálogo modal acessível: foco inicial no primeiro campo, foco preso dentro da caixa,
+ * rolagem da página travada, Esc fecha e o foco volta ao gatilho.
+ * `dispensavel={false}`: sem "Fechar" e sem Esc — só os botões do rodapé fecham
+ * (para o que é mostrado uma única vez, como o token de entrada do canal).
+ * Clicar fora nunca fecha.
+ */
+export function Dialogo({ titulo, aberto, aoFechar, children, rodape, largura = 'max-w-[480px]', dispensavel = true }: {
   titulo: string;
   aberto: boolean;
   aoFechar: () => void;
   children: ReactNode;
   rodape?: ReactNode;
   largura?: string;
+  dispensavel?: boolean;
 }) {
   const tituloId = useId();
   const caixa = useRef<HTMLDivElement>(null);
-  const fechar = useRef(aoFechar);
-  fechar.current = aoFechar;
-
-  useEffect(() => {
-    if (!aberto) return undefined;
-    const anterior = document.activeElement as HTMLElement | null;
-    const primeiro = caixa.current?.querySelector<HTMLElement>('input, select, textarea, button:not([data-fechar])');
-    (primeiro ?? caixa.current)?.focus();
-    const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') fechar.current();
-    };
-    document.addEventListener('keydown', aoTeclar);
-    return () => {
-      document.removeEventListener('keydown', aoTeclar);
-      anterior?.focus?.();
-    };
-  }, [aberto]);
+  useCamadaModal(caixa, aberto, { aoEsc: dispensavel ? aoFechar : undefined });
 
   if (!aberto) return null;
   return (
@@ -109,13 +107,15 @@ export function Dialogo({ titulo, aberto, aoFechar, children, rodape, largura = 
         aria-modal="true"
         aria-labelledby={tituloId}
         tabIndex={-1}
-        className={`flex max-h-[calc(100vh-2rem)] w-full ${largura} flex-col gap-3.5 overflow-y-auto rounded-2xl bg-white p-6 shadow-[0_20px_50px_rgba(20,33,58,0.25)] font-entregas text-ce-tinta`}
+        className={`flex max-h-[calc(100vh-2rem)] w-full ${largura} flex-col gap-3.5 overflow-y-auto overscroll-contain rounded-2xl bg-white p-6 shadow-[0_20px_50px_rgba(20,33,58,0.25)] font-entregas text-ce-tinta`}
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id={tituloId} className="m-0 text-xl font-bold">{titulo}</h2>
-          <button type="button" data-fechar onClick={aoFechar} aria-label="Fechar" className={`-mr-2 -mt-2 inline-flex size-11 items-center justify-center rounded-lg text-ce-suave hover:bg-ce-linha-fraca ${FOCO}`}>
-            <X size={20} aria-hidden="true" />
-          </button>
+          {dispensavel && (
+            <button type="button" data-fechar onClick={aoFechar} aria-label="Fechar" className={`-mr-2 -mt-2 inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-ce-suave hover:bg-ce-linha-fraca ${FOCO}`}>
+              <X size={20} aria-hidden="true" />
+            </button>
+          )}
         </div>
         {children}
         {rodape && <div className="flex flex-wrap justify-end gap-2.5">{rodape}</div>}

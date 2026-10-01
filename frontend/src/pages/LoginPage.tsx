@@ -8,10 +8,10 @@ export const MENSAGEM_PRIMEIRO_ACESSO_OFFLINE = 'Sem conexão. O primeiro acesso
 
 type IdentifierType = 'cpf' | 'matricula' | 'email';
 
-const IDENTIFIER_CONFIG: Record<IdentifierType, { label: string; placeholder: string; maxLength?: number; type: string }> = {
-  cpf: { label: 'CPF', placeholder: '00000000000', maxLength: 11, type: 'text' },
-  matricula: { label: 'Matricula', placeholder: '00000000', maxLength: 8, type: 'text' },
-  email: { label: 'Email', placeholder: 'usuario@correios.local', type: 'email' },
+const IDENTIFIER_CONFIG: Record<IdentifierType, { label: string; placeholder: string; maxLength?: number; type: string; vazio: string }> = {
+  cpf: { label: 'CPF', placeholder: '00000000000', maxLength: 11, type: 'text', vazio: 'Informe o CPF.' },
+  matricula: { label: 'Matrícula', placeholder: '00000000', maxLength: 8, type: 'text', vazio: 'Informe a matrícula.' },
+  email: { label: 'Email', placeholder: 'usuario@correios.local', type: 'email', vazio: 'Informe o email.' },
 };
 
 export function LoginPage() {
@@ -81,7 +81,7 @@ export function LoginPage() {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-correios-blue">Correios Entregas</h1>
-          <p className="text-gray-500 mt-2">Sistema de Gestao de Distribuicao</p>
+          <p className="text-gray-500 mt-2">Sistema de Gestão de Distribuição</p>
         </div>
 
         <div className="flex rounded-xl bg-slate-100 p-1 mb-6">
@@ -121,7 +121,7 @@ export function LoginPage() {
               aria-describedby={camposVazios.identificador ? 'login-identificador-erro' : undefined}
             />
             {camposVazios.identificador && (
-              <p id="login-identificador-erro" className="mt-1 text-sm text-red-600">Informe {config.label === 'Email' ? 'o email' : `a ${config.label.toLowerCase()}`}.</p>
+              <p id="login-identificador-erro" className="mt-1 text-sm text-red-600">{config.vazio}</p>
             )}
           </div>
 

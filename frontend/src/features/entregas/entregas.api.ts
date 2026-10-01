@@ -9,13 +9,21 @@ import type {
   CanalProsio,
   CarteiroCadastro,
   Distrito,
+  EscalaDefinida,
+  FiltroListagem,
   LinhaPrevia,
   ListaPacotes,
+  PacoteEditado,
   Pagina,
   PontoRetirada,
   Previa,
   Quadro,
+  QuadroSaidas,
+  AtribuicaoCarteiro,
+  RespostaAtribuicao,
   RespostaLiberacao,
+  RespostaLiberacaoLote,
+  ResultadoImportacaoSaida,
   ResultadoConfirmacao,
   HistoricoPacote,
   SessaoAtendimento,
@@ -57,6 +65,21 @@ export function linhaParaEnvio(l: LinhaPrevia) {
 export const entregasApi = {
   // ——— Monitoramento › Carregar Dados ———
   quadro: (p: { data?: string; unidadeId?: string }) => api.get<Quadro>(`/entregas/quadro${query(p)}`),
+
+  // Saídas do dia (ADR-019). `unidadeId: 'todas'` (Gestão) devolve todas as unidades juntas, só leitura.
+  saidas: (p: { data?: string; unidadeId?: string }) => api.get<QuadroSaidas>(`/entregas/saidas${query(p)}`),
+  /** Importa direto (sem prévia): 400 `horario_obrigatorio` / `coluna_ausente`, 409 `saida_fora_de_ordem`. */
+  importarSaida(p: { arquivo: File; numero: number; horario: string; data?: string; unidadeId?: string }) {
+    const form = new FormData();
+    form.append('numero', String(p.numero));
+    form.append('horario', p.horario);
+    if (p.data) form.append('data', p.data);
+    form.append('arquivo', p.arquivo);
+    return api.postForm<ResultadoImportacaoSaida>(`/entregas/saidas/importar${query({ unidadeId: p.unidadeId })}`, form);
+  },
+  liberarRotas: (cargaIds: string[]) => api.post<RespostaLiberacaoLote>('/entregas/saidas/liberar', { cargaIds }),
+  atribuirCarteiros: (atribuicoes: AtribuicaoCarteiro[], p: { data?: string; unidadeId?: string } = {}) =>
+    api.put<RespostaAtribuicao>(`/entregas/saidas/carteiros${query({ unidadeId: p.unidadeId })}`, { ...(p.data ? { data: p.data } : {}), atribuicoes }),
 
   previaArquivo(distritoId: string, arquivo: File) {
     const form = new FormData();
@@ -124,4 +147,20 @@ export const entregasApi = {
   supervisores: () => api.get<Supervisor[]>('/gestao/usuarios?role=UNIDADE'),
   criarSupervisor: (dados: { nome: string; email: string; matricula: string; senha: string; unidadeId: string; telefoneCelular: string }) =>
     api.post<Supervisor>('/gestao/usuarios', { ...dados, role: 'UNIDADE' }),
+
+  // ——— Auditoria da interface (aditivo) ———
+  /** WhatsApp e/ou endereço de um pacote (só o supervisor). `avisoSolicitado` = o aviso saiu agora. */
+  editarPacote: (pacoteId: string, dados: { whatsapp?: string | null; endereco?: Partial<Record<'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf' | 'cep' | 'enderecoTexto' | 'referencia', string | null>> }) =>
+    api.patch<PacoteEditado>(`/entregas/pacotes/${pacoteId}`, dados),
+  /** Listagens paginadas do cadastro, com busca (`busca`, `pagina`, `tamanho`). */
+  distritosPagina: (f: FiltroListagem) => api.get<Pagina<Distrito>>(`/entregas/cadastro/distritos${query({ ...f })}`),
+  carteirosPagina: (f: FiltroListagem) => api.get<Pagina<CarteiroCadastro>>(`/entregas/cadastro/carteiros${query({ ...f })}`),
+  /** Troca do carteiro do dia, com os `avisos` da resposta (ex.: `carteiro_em_dois_distritos`). */
+  definirEscalaComAvisos: (distritoId: string, data: string, carteiroId: string | null) =>
+    api.put<EscalaDefinida>(`/entregas/cadastro/distritos/${distritoId}/escala/${data}`, { carteiroId }),
+  /** Edição do canal; com `regenerarTokenEntrada` a resposta traz o `tokenEntrada` novo, uma única vez. */
+  editarCanal: (id: string, dados: { nome?: string; baseUrl?: string; apiKey?: string; callbackSecret?: string; tipo?: 'WAHA' | 'WABA'; compartilhado?: boolean; ativo?: boolean; regenerarTokenEntrada?: boolean; atualizadoEm?: string }) =>
+    api.put<CanalProsio>(`/gestao/canais-prosio/${id}`, dados),
+  editarSupervisor: (id: string, dados: { nome?: string; ativo?: boolean; unidadeId?: string; telefoneCelular?: string }) =>
+    api.put<Supervisor>(`/gestao/usuarios/${id}`, dados),
 };

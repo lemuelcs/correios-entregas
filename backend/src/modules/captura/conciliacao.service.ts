@@ -226,7 +226,7 @@ export class ConciliacaoService {
           };
         }
         if (input.cargaOrigemEsperadaId && existente.cargaId !== input.cargaOrigemEsperadaId) {
-          throw new AppError(409, 'O pacote mudou de distrito enquanto a transferência era confirmada', { code: 'transferencia_concorrente' });
+          throw new AppError(409, 'O pacote mudou de rota enquanto a transferência era confirmada', { code: 'transferencia_concorrente' });
         }
         const escalaOrigem = await tx.escalaDistrito.findUnique({
           where: { distritoId_data: { distritoId: existente.carga.distritoId, data: input.data } },
@@ -359,7 +359,7 @@ export class ConciliacaoService {
 
       if (!cap.pacoteAntes) {
         if (statusCarga && cargaLiberada(statusCarga)) {
-          throw new AppError(409, 'O distrito já foi liberado: fale com o supervisor', { code: 'remocao_nao_permitida' });
+          throw new AppError(409, 'A rota já foi liberada: fale com o supervisor', { code: 'remocao_nao_permitida' });
         }
         await tx.eventoPacote.create({
           data: { pacoteId, tipo: 'DESFEITO', dados: json({ capturaId, carteiroId, codigo: pacote.codigo, removido: true, snapshot: snapshot(pacote) }) },
@@ -422,7 +422,7 @@ export class ConciliacaoService {
       if (pacote.origem === 'PLANILHA' || pacote.capturadoPorId !== carteiro.id) {
         throw remocaoNaoPermitida('Só o supervisor remove pacotes da planilha ou de outro carteiro');
       }
-      if (cargaLiberada(pacote.carga.status)) throw remocaoNaoPermitida('O distrito já foi liberado: fale com o supervisor');
+      if (cargaLiberada(pacote.carga.status)) throw remocaoNaoPermitida('A rota já foi liberada: fale com o supervisor');
     } else if (pacote.status === 'ENTREGUE') {
       throw new AppError(409, 'Pacote já entregue', { code: 'pacote_entregue' });
     }
@@ -435,7 +435,7 @@ export class ConciliacaoService {
       if (!atual) throw new AppError(404, 'Pacote não encontrado');
       const statusCarga = await statusCargaTravada(tx, atual.cargaId);
       if (porCarteiro && statusCarga && cargaLiberada(statusCarga)) {
-        throw remocaoNaoPermitida('O distrito já foi liberado: fale com o supervisor');
+        throw remocaoNaoPermitida('A rota já foi liberada: fale com o supervisor');
       }
       if (!porCarteiro && atual.status === 'ENTREGUE') throw new AppError(409, 'Pacote já entregue', { code: 'pacote_entregue' });
 

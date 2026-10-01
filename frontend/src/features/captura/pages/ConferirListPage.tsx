@@ -19,7 +19,7 @@ export interface Pendencia {
 }
 
 const MOTIVO_FALHA: Record<string, string> = {
-  distrito_nao_autorizado: 'o distrito não é mais seu hoje',
+  distrito_nao_autorizado: 'a rota não é mais sua hoje',
   foto_muito_grande: 'a foto ficou grande demais',
   foto_invalida: 'a foto não pôde ser lida',
   meta_invalido: 'dados da foto inválidos',
@@ -94,7 +94,7 @@ export function ConferirListPage() {
                     </span>
                     <span className="text-[13px] text-[#7A4E00]">
                       {p.tipo === 'TRANSFERENCIA_PENDENTE'
-                        ? `Está no ${p.distritoOrigem ?? 'outro distrito'} hoje. Trazer para o ${codigoDoDistrito(hoje, p.distritoId)}?`
+                        ? `Está ${p.distritoOrigem ? `na rota ${p.distritoOrigem}` : 'em outra rota'} hoje. Trazer para a rota ${codigoDoDistrito(hoje, p.distritoId)}?`
                         : 'Confira os dados destacados'}
                     </span>
                   </span>

@@ -15,7 +15,11 @@ import { Botao, Carregando } from '../components/ui';
 type Estado =
   | { tipo: 'carregando' }
   | { tipo: 'pronto'; url: string }
-  | { tipo: 'indisponivel'; mensagem: string };
+  | { tipo: 'indisponivel'; mensagem: string }
+  /** Gestão sem unidade em foco e mais de um canal ativo: o servidor pede a unidade. */
+  | { tipo: 'escolher_unidade' }
+  /** A unidade não tem canal de atendimento (ou ele está desativado). */
+  | { tipo: 'sem_canal'; mensagem: string };
 
 export function AtendimentoPage() {
   const user = useAuthStore((s) => s.user);
@@ -33,6 +37,14 @@ export function AtendimentoPage() {
       setEstado({ tipo: 'pronto', url: sessao.url });
     } catch (err) {
       if (ehSessaoExpirada(err)) return;
+      if (err instanceof ApiError && err.codigo === 'unidade_obrigatoria') {
+        setEstado({ tipo: 'escolher_unidade' });
+        return;
+      }
+      if (err instanceof ApiError && err.codigo === 'sem_canal') {
+        setEstado({ tipo: 'sem_canal', mensagem: mensagemDeErro(err) });
+        return;
+      }
       const indisponivel = err instanceof ApiError && err.status === 503;
       setEstado({
         tipo: 'indisponivel',
@@ -78,9 +90,11 @@ export function AtendimentoPage() {
             Chatwoot incorporado · entrou como {user?.nome} (login único)
           </span>
         </div>
-        <Botao variante="texto" onClick={() => void abrirEmNovaAba()} disabled={abrindo}>
-          Abrir em nova aba <ExternalLink size={16} aria-hidden="true" />
-        </Botao>
+        {estado.tipo !== 'escolher_unidade' && estado.tipo !== 'sem_canal' && (
+          <Botao variante="texto" onClick={() => void abrirEmNovaAba()} disabled={abrindo}>
+            Abrir em nova aba <ExternalLink size={16} aria-hidden="true" />
+          </Botao>
+        )}
       </header>
 
       {estado.tipo === 'carregando' && <Carregando texto="Abrindo o atendimento…" />}
@@ -94,6 +108,27 @@ export function AtendimentoPage() {
           allow="clipboard-write; microphone"
           referrerPolicy="no-referrer"
         />
+      )}
+
+      {estado.tipo === 'escolher_unidade' && (
+        <section role="alert" aria-label="Escolha a unidade" className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-ce-linha-forte bg-white p-8 text-center">
+          <h2 className="m-0 text-xl font-bold">Escolha a unidade em foco</h2>
+          <p className="m-0 max-w-[60ch] text-[15px] text-ce-tinta-2">
+            Há mais de um canal de WhatsApp ativo. Escolha a unidade em foco no menu para abrir o atendimento dela.
+          </p>
+        </section>
+      )}
+
+      {estado.tipo === 'sem_canal' && (
+        <section role="alert" aria-label="Sem canal de atendimento" className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-ce-linha-forte bg-white p-8 text-center">
+          <h2 className="m-0 text-xl font-bold">{ehGestao && !unidadeId ? 'Nenhum canal de WhatsApp ativo' : 'Sem canal de atendimento'}</h2>
+          <p className="m-0 max-w-[60ch] text-[15px] text-ce-tinta-2">
+            {ehGestao
+              ? 'Cadastre um canal em Cadastro › Canais de WhatsApp e vincule-o à unidade em Cadastro › Unidades.'
+              : `${estado.mensagem}. Peça à Gestão para vincular um canal de WhatsApp à unidade.`}
+          </p>
+          <Botao variante="secundario" onClick={() => void abrirSessao()}>Tentar de novo</Botao>
+        </section>
       )}
 
       {estado.tipo === 'indisponivel' && (

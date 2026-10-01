@@ -1,15 +1,20 @@
 /**
- * Pacotes do distrito no dia (US-038): status de cada pacote, orientação
+ * Pacotes da rota no dia (US-038): status de cada pacote, orientação
  * vigente, resposta do carteiro e sinalizações; filtros por status, busca e
  * paginação. Atualiza sozinho a cada 30 s (ADR-015). Cada pacote ainda não
- * entregue aceita uma orientação manual do supervisor (US-026).
+ * entregue aceita uma orientação manual do supervisor (US-026); o supervisor
+ * também corrige o WhatsApp e o endereço do pacote.
+ *
+ * (Nos identificadores, rotas e campos da API a rota ainda se chama "distrito".)
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
+import { ApiError } from '@/services/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { useEntregasContextoStore } from '@/stores/entregas-contexto.store';
 import { useEntregasPacotesStore, type FiltroPacotes } from '@/stores/entregas-pacotes.store';
-import type { PacoteDistrito, StatusPacote } from '../entregas.types';
+import { entregasApi } from '../entregas.api';
+import type { CartaoDistrito, PacoteDistrito, StatusPacote } from '../entregas.types';
 import {
   ORDEM_STATUS_PACOTE,
   STATUS_PACOTE,
@@ -18,10 +23,13 @@ import {
   formatarDataCurta,
   formatarEndereco,
   formatarHora,
+  formatarWhatsapp,
   mensagemDeErro,
 } from '../mensagens';
+import { sinaisDoPacote } from '../sinais';
 import { usePolling } from '../usePolling';
-import { Botao, BotaoLink, CLASSE_ENTRADA, Cartao, Carregando, CodigoDistrito, FOCO, FalhaCarga, Pilula } from '../components/ui';
+import { Botao, BotaoLink, CLASSE_ENTRADA, CLASSE_LINK, Cartao, Carregando, CodigoDistrito, FOCO, FalhaCarga, Pilula } from '../components/ui';
+import { DialogoEditarPacote } from '../components/DialogoEditarPacote';
 import { DialogoFoto, DialogoHistorico, DialogoRemover, OrigemDoPacote } from '../components/CapturaSupervisor';
 import { DialogoOrientacao } from '../components/DialogoOrientacao';
 
@@ -44,7 +52,7 @@ const MOTIVOS_NAO_ENVIADO: Record<string, string> = {
 
 function sinalizacoes(p: PacoteDistrito): string[] {
   const s: string[] = [];
-  if (p.naoEnviadoMotivo) s.push(MOTIVOS_NAO_ENVIADO[p.naoEnviadoMotivo] ?? `Não enviado: ${p.naoEnviadoMotivo}`);
+  if (p.naoEnviadoMotivo) s.push(MOTIVOS_NAO_ENVIADO[p.naoEnviadoMotivo] ?? 'Não enviado');
   else if (p.descadastrado) s.push('Descadastrado');
   if (p.escalonado) s.push('Escalonamento aberto');
   if (p.orientacaoVigente?.estado === 'GUARDADA') {
@@ -55,11 +63,24 @@ function sinalizacoes(p: PacoteDistrito): string[] {
   return s;
 }
 
+/** Falhas seguidas da atualização automática a partir das quais a tela se declara desatualizada. */
+const FALHAS_PARA_DESATUALIZADO = 2;
+
+const TOM_SINAL = {
+  erro: 'text-ce-erro bg-ce-erro-bg',
+  atencao: 'text-ce-corrigir bg-ce-corrigir-bg',
+} as const;
+
+/** `08:12` no fuso de Brasília. */
+function horaMinuto(iso: string | Date): string {
+  return new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).format(new Date(iso));
+}
+
 export function DistritoPacotesPage() {
   const { cargaId = '' } = useParams();
   const user = useAuthStore((s) => s.user);
   const unidadeGestaoId = useEntregasContextoStore((s) => s.unidadeGestaoId);
-  const { lista, carregar } = useEntregasPacotesStore();
+  const { lista, carregar, limpar } = useEntregasPacotesStore();
   const [filtro, setFiltro] = useState<FiltroPacotes>({ status: null, busca: '', pagina: 1 });
   const [busca, setBusca] = useState('');
   const [falha, setFalha] = useState<string | null>(null);
@@ -68,17 +89,51 @@ export function DistritoPacotesPage() {
   const [fotoDe, setFotoDe] = useState<PacoteDistrito | null>(null);
   const [removerDe, setRemoverDe] = useState<PacoteDistrito | null>(null);
   const [orientarDe, setOrientarDe] = useState<PacoteDistrito | null>(null);
-  const unidadeId = user?.role === 'GESTAO' ? unidadeGestaoId ?? undefined : undefined;
+  const [editarDe, setEditarDe] = useState<PacoteDistrito | null>(null);
+  // Atualização automática: falhas seguidas e a hora da última resposta boa.
+  const [falhasSeguidas, setFalhasSeguidas] = useState(0);
+  const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
+  // Carteiro e hora da liberação: vêm do quadro do dia (a lista de pacotes não os traz).
+  const [cartao, setCartao] = useState<CartaoDistrito | null>(null);
+  const ehGestao = user?.role === 'GESTAO';
+  const unidadeId = ehGestao ? unidadeGestaoId ?? undefined : undefined;
+
+  // A Gestão trocou a unidade em foco: os pacotes na tela eram da outra unidade.
+  const unidadeAnterior = useRef(unidadeId);
+  useEffect(() => {
+    if (unidadeAnterior.current === unidadeId) return;
+    unidadeAnterior.current = unidadeId;
+    limpar();
+    setCartao(null);
+    setFalha(null);
+    setFalhasSeguidas(0);
+    setAtualizadoEm(null);
+    setEditarDe(null);
+    setOrientarDe(null);
+    setHistoricoDe(null);
+    setFotoDe(null);
+    setRemoverDe(null);
+  }, [unidadeId, limpar]);
 
   const atualizar = useCallback(async (silencioso = false) => {
     try {
       await carregar(cargaId, filtro, unidadeId);
       setFalha(null);
+      setFalhasSeguidas(0);
+      setAtualizadoEm(new Date());
     } catch (err) {
-      if (!silencioso) setFalha(mensagemDeErro(err, 'Não foi possível carregar os pacotes.'));
-      avisarErro(err, 'Não foi possível atualizar os pacotes.');
+      if (silencioso) {
+        // A atualização automática não interrompe com avisos: a tela passa a se dizer desatualizada.
+        setFalhasSeguidas((n) => n + 1);
+        return;
+      }
+      const deOutraUnidade = ehGestao && err instanceof ApiError && err.status === 404;
+      setFalha(deOutraUnidade
+        ? 'Esta rota não é da unidade em foco. Volte ao quadro para ver as rotas da unidade escolhida.'
+        : mensagemDeErro(err, 'Não foi possível carregar os pacotes.'));
+      if (!deOutraUnidade) avisarErro(err, 'Não foi possível atualizar os pacotes.');
     }
-  }, [carregar, cargaId, filtro, unidadeId]);
+  }, [carregar, cargaId, filtro, unidadeId, ehGestao]);
 
   useEffect(() => {
     void atualizar();
@@ -94,13 +149,35 @@ export function DistritoPacotesPage() {
 
   const dados = lista && lista.cargaId === cargaId ? lista : null;
   const porStatus = dados?.resumo.porStatus ?? {};
+
+  // Cabeçalho: carteiro da rota e hora da liberação, relidos quando a rota muda de situação.
+  const dataDaLista = dados?.data ?? null;
+  const situacao = dados ? `${dados.statusCarga}:${dados.liberada}` : null;
+  useEffect(() => {
+    if (!dataDaLista) return undefined;
+    let vivo = true;
+    entregasApi.quadro({ data: dataDaLista, unidadeId })
+      .then((q) => {
+        if (vivo) setCartao(q.distritos?.find((d) => d.cargaId === cargaId) ?? null);
+      })
+      .catch(() => {
+        // Informação de apoio: sem ela o cabeçalho só fica mais curto.
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [cargaId, dataDaLista, situacao, unidadeId]);
+
+  const desatualizado = !!dados && falhasSeguidas >= FALHAS_PARA_DESATUALIZADO;
   const podeRemover = !!dados && !dados.somenteLeitura && user?.role === 'UNIDADE';
+  // `PATCH /entregas/pacotes/:id` é do supervisor; datas passadas ficam só para consulta.
+  const podeEditar = podeRemover;
   const podeOrientar = !!dados && !dados.somenteLeitura && (user?.role === 'UNIDADE' || user?.role === 'GESTAO');
   const filtros: Array<StatusPacote | null> = [null, ...ORDEM_STATUS_PACOTE.filter((s) => (porStatus[s] ?? 0) > 0 || s === filtro.status)];
 
   return (
     <>
-      <Link to="/entregas/carregar" className={`self-start text-sm font-semibold text-ce-azul no-underline ${FOCO}`}>← Voltar ao quadro de distritos</Link>
+      <Link to="/entregas/carregar" className={`self-start text-sm no-underline ${CLASSE_LINK}`}>← Voltar ao quadro de rotas</Link>
 
       {falha && !dados && <FalhaCarga mensagem={falha} aoTentar={() => void atualizar()} />}
       {!dados && !falha && <Carregando texto="Carregando os pacotes…" />}
@@ -118,6 +195,16 @@ export function DistritoPacotesPage() {
                 {formatarDataCurta(dados.data)} · {dados.resumo.total} pacotes, {dados.resumo.comWhatsapp} com WhatsApp
                 {!dados.liberada && ' · lista pronta, ainda não liberada'}
               </span>
+              {cartao && (cartao.carteiro || cartao.semCarteiro || (dados.liberada && cartao.liberadoEm)) && (
+                <span data-cabecalho-rota className="text-[15px] text-ce-suave">
+                  {cartao.carteiro
+                    ? <>Carteiro: <strong className="font-semibold text-ce-tinta">{cartao.carteiro.nome ?? 'sem nome'}</strong></>
+                    : cartao.semCarteiro ? 'Sem carteiro hoje' : null}
+                  {dados.liberada && cartao.liberadoEm && (
+                    <>{cartao.carteiro || cartao.semCarteiro ? ' · ' : ''}liberada às {horaMinuto(cartao.liberadoEm)}</>
+                  )}
+                </span>
+              )}
             </div>
             <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
               <label htmlFor="pacotes-busca" className="sr-only">Buscar por código ou nome</label>
@@ -134,6 +221,16 @@ export function DistritoPacotesPage() {
               )}
             </div>
           </header>
+
+          {desatualizado && (
+            <div role="status" data-desatualizado className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-ce-corrigir-bg bg-ce-corrigir-bg px-4 py-3 text-ce-corrigir">
+              <span className="font-semibold">
+                Desatualizado{atualizadoEm ? ` · última atualização às ${horaMinuto(atualizadoEm)}` : ''}.
+              </span>
+              <span className="text-sm">A atualização automática está falhando; os dados abaixo podem ter mudado.</span>
+              <Botao variante="secundario" className="ml-auto" onClick={() => void atualizar()}>Atualizar agora</Botao>
+            </div>
+          )}
 
           <div role="group" aria-label="Filtrar por status" className="flex flex-wrap gap-2">
             {filtros.map((s) => {
@@ -172,6 +269,7 @@ export function DistritoPacotesPage() {
                 {dados.pacotes.map((p) => {
                   const st = STATUS_PACOTE[p.status];
                   const flags = sinalizacoes(p);
+                  const sinais = sinaisDoPacote(p);
                   const conversa = p.escalonado || p.status === 'INTERAGINDO' || !!p.orientacaoVigente;
                   return (
                     <tr key={p.id} data-pacote={p.codigo} className="border-t border-ce-linha-fraca align-top">
@@ -182,10 +280,21 @@ export function DistritoPacotesPage() {
                       <td className="px-3 py-3.5">
                         <div className="font-semibold">{p.nome}</div>
                         <div className="text-[13px] text-ce-suave">{formatarEndereco(p.endereco)}</div>
+                        <div className="text-[13px] tabular-nums text-ce-suave">{p.whatsapp ? formatarWhatsapp(p.whatsapp) : 'Sem WhatsApp'}</div>
                       </td>
                       <td className="px-3 py-3.5">
                         <Pilula classe={st.classe} className="!px-2 !py-0.5">{dados.liberada ? st.rotulo : p.rotulo}</Pilula>
                         {flags.map((f) => <div key={f} className="mt-1 text-xs font-semibold text-ce-corrigir">{f}</div>)}
+                        {sinais.length > 0 && (
+                          <ul className="m-0 mt-1.5 flex list-none flex-wrap gap-1 p-0" aria-label={`Sinalizações de ${p.codigo}`}>
+                            {sinais.map((sn) => (
+                              <li key={sn.codigo} data-sinal={sn.codigo} title={sn.detalhe} className={`rounded-full px-2 py-0.5 text-xs font-semibold ${TOM_SINAL[sn.tom]}`}>
+                                {sn.rotulo}
+                                <span className="sr-only">: {sn.detalhe}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                         {p.rastreio && <div className="mt-1 text-xs text-ce-suave">Rastreio: {p.rastreio.descricao}</div>}
                       </td>
                       <td className="max-w-[280px] px-3 py-3.5">{p.orientacaoVigente?.texto ?? '—'}</td>
@@ -195,9 +304,12 @@ export function DistritoPacotesPage() {
                           : '—'}
                       </td>
                       <td className="whitespace-nowrap px-5 py-3.5 text-right">
-                        {conversa && <Link to="/entregas/atendimento" className="font-semibold text-ce-azul">Ver conversa</Link>}
-                        {((podeOrientar && p.status !== 'ENTREGUE') || p.origem) && (
+                        {conversa && <Link to="/entregas/atendimento" className={`px-2 ${CLASSE_LINK}`}>Ver conversa</Link>}
+                        {((podeOrientar && p.status !== 'ENTREGUE') || p.origem || podeEditar) && (
                           <div className="flex flex-wrap justify-end gap-x-1">
+                            {podeEditar && (
+                              <Botao variante="texto" className="!px-2" onClick={() => setEditarDe(p)} aria-label={`Editar ${p.codigo}`}>Editar</Botao>
+                            )}
                             {podeOrientar && p.status !== 'ENTREGUE' && (
                               <Botao variante="texto" className="!px-2" onClick={() => setOrientarDe(p)} aria-label={`Registrar orientação para ${p.codigo}`}>Registrar orientação</Botao>
                             )}
@@ -245,11 +357,20 @@ export function DistritoPacotesPage() {
         }}
         aoRecusar={() => void atualizar(true)}
       />
+      <DialogoEditarPacote
+        pacote={editarDe}
+        rotaLiberada={!!dados?.liberada}
+        aoFechar={() => setEditarDe(null)}
+        aoSalvar={async () => {
+          setEditarDe(null);
+          await atualizar(true);
+        }}
+      />
       <DialogoHistorico pacote={historicoDe} unidadeId={unidadeId} aoFechar={() => setHistoricoDe(null)} />
       <DialogoFoto pacote={fotoDe} unidadeId={unidadeId} aoFechar={() => setFotoDe(null)} />
       <DialogoRemover
         pacote={removerDe}
-        distrito={dados?.distrito.codigo ?? 'distrito'}
+        distrito={dados?.distrito.codigo ?? ''}
         aoFechar={() => setRemoverDe(null)}
         aoRemover={async () => {
           setRemoverDe(null);

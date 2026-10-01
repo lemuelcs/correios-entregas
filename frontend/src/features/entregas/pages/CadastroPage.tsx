@@ -1,33 +1,43 @@
 /**
  * Cadastro (US-001–US-006, ADR-009/010): abas Unidades, Supervisores e Canais
- * (só a Gestão) e Distritos, Carteiros, Agências e lockers (o supervisor grava
- * na própria unidade; a Gestão consulta a unidade em foco). Na aba Distritos,
+ * (só a Gestão) e Rotas, Carteiros, Agências e lockers (o supervisor grava
+ * na própria unidade; a Gestão consulta a unidade em foco). Na aba Rotas,
  * o carteiro do dia (troca só para hoje).
+ *
+ * Rotas, carteiros e pontos têm busca e paginação; a Gestão edita unidades,
+ * supervisores e canais (inclusive desativar o canal e gerar um novo token de entrada).
+ *
+ * (Nos identificadores, rotas e campos da API a rota ainda se chama "distrito".)
  */
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/stores/auth.store';
 import { useEntregasCadastroStore } from '@/stores/entregas-cadastro.store';
 import { useEntregasContextoStore } from '@/stores/entregas-contexto.store';
 import { entregasApi } from '../entregas.api';
-import type { CanalProsio, CarteiroCadastro, CartaoDistrito, Distrito, PontoRetirada, Quadro, TipoPonto, UnidadeGestao } from '../entregas.types';
-import { avisarErro, formatarDataCurta, formatarWhatsapp } from '../mensagens';
-import { Botao, CLASSE_ENTRADA, CabecalhoPagina, Campo, Cartao, Carregando, Dialogo, FOCO, Pilula } from '../components/ui';
+import type { CanalProsio, CarteiroCadastro, Distrito, Pagina, PontoRetirada, Quadro, Supervisor, UnidadeGestao } from '../entregas.types';
+import { avisarErro, formatarWhatsapp } from '../mensagens';
+import { Botao, CLASSE_ENTRADA, CabecalhoPagina, Cartao, Carregando, FOCO, Pilula } from '../components/ui';
+import { CarteiroDoDia, FormCarteiro, FormDistrito, FormPonto, FormSenhaCarteiro } from '../components/FormulariosCadastro';
+import { DialogoConfirmar, DialogoToken, FormCanal, FormSupervisor, FormUnidade, rotuloTipoCanal } from '../components/FormulariosGestao';
 
 type Aba = 'unidades' | 'supervisores' | 'canais' | 'distritos' | 'carteiros' | 'pontos';
 
-const ABAS: Record<Aba, { rotulo: string; acao: string; dica: string; gestao: boolean }> = {
+const ABAS: Record<Aba, { rotulo: string; acao: string; dica: string; gestao: boolean; busca?: string }> = {
   unidades: { rotulo: 'Unidades', acao: 'Nova unidade', dica: 'Cadastrado pela Gestão (sede): tipo, endereço e canal de WhatsApp de cada unidade.', gestao: true },
   supervisores: { rotulo: 'Supervisores', acao: 'Novo supervisor', dica: 'Cadastrado pela Gestão. Cada supervisor vê só a própria unidade.', gestao: true },
   canais: { rotulo: 'Canais de WhatsApp', acao: 'Novo canal', dica: 'Canais do Prosio usados pelas unidades. Os segredos nunca voltam depois de gravados.', gestao: true },
-  distritos: { rotulo: 'Distritos', acao: 'Novo distrito', dica: 'Cada distrito é uma rota com um carteiro padrão.', gestao: false },
-  carteiros: { rotulo: 'Carteiros', acao: 'Novo carteiro', dica: 'Carteiros da unidade. Recebem as orientações pelo WhatsApp, sem login.', gestao: false },
-  pontos: { rotulo: 'Agências e lockers', acao: 'Novo ponto de retirada', dica: 'Oferecidos ao destinatário em “Deixar na agência” e “Deixar no locker”. Até 10 ativos de cada tipo.', gestao: false },
+  distritos: { rotulo: 'Rotas', acao: 'Nova rota', dica: 'Cada rota tem um carteiro padrão.', gestao: false, busca: 'Buscar rota por código ou nome' },
+  carteiros: { rotulo: 'Carteiros', acao: 'Novo carteiro', dica: 'Carteiros da unidade. Recebem as orientações pelo WhatsApp, sem login.', gestao: false, busca: 'Buscar carteiro por nome ou matrícula' },
+  pontos: { rotulo: 'Agências e lockers', acao: 'Novo ponto de retirada', dica: 'Oferecidos ao destinatário em “Deixar na agência” e “Deixar no locker”. Até 10 ativos de cada tipo.', gestao: false, busca: 'Buscar agência ou locker por nome ou endereço' },
 };
 
 const ABAS_UNIDADE: Aba[] = ['distritos', 'carteiros', 'pontos'];
 const ABAS_GESTAO: Aba[] = ['unidades', 'supervisores', 'canais', 'distritos', 'carteiros', 'pontos'];
+
+/** Linhas por página nas listas com busca (rotas, carteiros, pontos). */
+export const TAMANHO_PAGINA_CADASTRO = 20;
 
 // ——— Tabela ———————————————————————————————————————————————————————
 
@@ -63,399 +73,28 @@ function Situacao({ ativo, feminino = false, extra }: { ativo: boolean; feminino
   return <span className={ativo ? '' : 'text-ce-suave'}>{texto}{extra ? ` · ${extra}` : ''}</span>;
 }
 
-/** Formulário num diálogo: `aoEnviar` grava; erro → toast, o diálogo continua aberto. */
-function DialogoFormulario({ titulo, aberto, aoFechar, aoEnviar, rotuloEnviar = 'Salvar', children }: {
-  titulo: string;
-  aberto: boolean;
-  aoFechar: () => void;
-  aoEnviar: () => Promise<void>;
-  rotuloEnviar?: string;
-  children: ReactNode;
-}) {
-  const [enviando, setEnviando] = useState(false);
-  async function enviar(e: FormEvent) {
-    e.preventDefault();
-    setEnviando(true);
-    try {
-      await aoEnviar();
-    } catch (err) {
-      avisarErro(err, 'Não foi possível salvar.');
-    } finally {
-      setEnviando(false);
-    }
-  }
+function Paginacao({ pagina, totalPaginas, total, aoMudar }: { pagina: number; totalPaginas: number; total: number; aoMudar: (p: number) => void }) {
+  if (totalPaginas <= 1) return null;
   return (
-    <Dialogo titulo={titulo} aberto={aberto} aoFechar={aoFechar} largura="max-w-[560px]">
-      <form onSubmit={(e) => void enviar(e)} className="flex flex-col gap-3.5">
-        {children}
-        <div className="flex flex-wrap justify-end gap-2.5 pt-1">
-          <Botao variante="secundario" onClick={aoFechar}>Cancelar</Botao>
-          <Botao type="submit" disabled={enviando}>{enviando ? 'Salvando…' : rotuloEnviar}</Botao>
-        </div>
-      </form>
-    </Dialogo>
-  );
-}
-
-const entrada = (props: InputHTMLAttributes<HTMLInputElement>) => (id: string) => <input id={id} className={CLASSE_ENTRADA} {...props} />;
-
-// ——— Distritos ———————————————————————————————————————————————————————
-
-function FormDistrito({ distrito, carteiros, aoFechar, aoSalvar }: { distrito: Distrito | null; carteiros: CarteiroCadastro[]; aoFechar: () => void; aoSalvar: () => Promise<void> }) {
-  const [codigo, setCodigo] = useState(distrito?.codigo ?? '');
-  const [nome, setNome] = useState(distrito?.nome ?? '');
-  const [carteiroPadraoId, setCarteiro] = useState(distrito?.carteiroPadrao?.id ?? '');
-  const [ativo, setAtivo] = useState(distrito?.ativo ?? true);
-  return (
-    <DialogoFormulario
-      titulo={distrito ? `Editar ${distrito.codigo}` : 'Novo distrito'}
-      aberto
-      aoFechar={aoFechar}
-      aoEnviar={async () => {
-        const dados = { codigo: codigo.trim(), nome: nome.trim(), carteiroPadraoId: carteiroPadraoId || null };
-        if (distrito) await entregasApi.editarDistrito(distrito.id, { ...dados, ativo, atualizadoEm: distrito.atualizadoEm });
-        else await entregasApi.criarDistrito(dados);
-        toast.success(distrito ? 'Distrito atualizado.' : `Distrito ${dados.codigo.toUpperCase()} cadastrado.`);
-        await aoSalvar();
-      }}
-    >
-      <Campo rotulo="Código">{entrada({ value: codigo, onChange: (e) => setCodigo(e.target.value), required: true, maxLength: 20, placeholder: 'D-09' })}</Campo>
-      <Campo rotulo="Nome">{entrada({ value: nome, onChange: (e) => setNome(e.target.value), required: true, maxLength: 80, placeholder: 'Taguatinga Oeste' })}</Campo>
-      <Campo rotulo="Carteiro padrão">
-        {(id) => (
-          <select id={id} value={carteiroPadraoId} onChange={(e) => setCarteiro(e.target.value)} className={CLASSE_ENTRADA}>
-            <option value="">Sem carteiro padrão</option>
-            {carteiros.filter((c) => c.ativo).map((c) => <option key={c.id} value={c.id}>{c.nome ?? c.matricula}</option>)}
-          </select>
-        )}
-      </Campo>
-      {distrito && (
-        <label className="flex min-h-11 items-center gap-2.5 text-[15px]">
-          <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} className="size-5" /> Distrito ativo
-        </label>
-      )}
-    </DialogoFormulario>
-  );
-}
-
-function CarteiroDoDia({ distritos, carteiros, quadro, aoMudar }: { distritos: Distrito[]; carteiros: CarteiroCadastro[]; quadro: Quadro | null; aoMudar: () => Promise<void> }) {
-  const [salvando, setSalvando] = useState<string | null>(null);
-  if (!quadro) return null;
-  const cartoes = new Map<string, CartaoDistrito>(quadro.distritos.map((c) => [c.distritoId, c]));
-  const ativos = distritos.filter((d) => d.ativo);
-  if (ativos.length === 0) return null;
-
-  async function trocar(d: Distrito, carteiroId: string) {
-    setSalvando(d.id);
-    try {
-      await entregasApi.definirEscala(d.id, quadro!.data, carteiroId || null);
-      toast.success(`Carteiro de hoje do ${d.codigo} atualizado.`);
-      await aoMudar();
-    } catch (err) {
-      avisarErro(err, 'Não foi possível trocar o carteiro do dia.');
-    } finally {
-      setSalvando(null);
-    }
-  }
-
-  return (
-    <Cartao aria-labelledby="carteiro-dia-titulo" className="flex flex-col gap-3.5 p-5">
-      <h2 id="carteiro-dia-titulo" className="m-0 text-lg font-bold">Carteiro do dia · {formatarDataCurta(quadro.data)}</h2>
-      <p className="m-0 text-sm text-ce-suave">A troca vale só para hoje. Amanhã volta o carteiro padrão do distrito.</p>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))] gap-3">
-        {ativos.map((d) => {
-          const cartao = cartoes.get(d.id);
-          const doDia = cartao?.carteiro?.id ?? '';
-          const padrao = d.carteiroPadrao?.ativo ? d.carteiroPadrao : null;
-          const valor = doDia && doDia !== padrao?.id ? doDia : '';
-          const semCarteiro = cartao?.semCarteiro ?? !padrao;
-          const liberado = cartao ? cartao.status !== 'PENDENTE_UPLOAD' && cartao.status !== 'DADOS_CARREGADOS' : false;
-          const id = `escala-${d.id}`;
-          return (
-            <div key={d.id} className="flex flex-col gap-1.5">
-              <label htmlFor={id} className="text-sm font-semibold">{d.codigo} · {d.nome}</label>
-              <select
-                id={id}
-                value={valor}
-                disabled={salvando === d.id}
-                onChange={(e) => void trocar(d, e.target.value)}
-                className={`${CLASSE_ENTRADA} ${semCarteiro ? 'border-[#e0a400] bg-[#fffbef]' : ''}`}
-              >
-                <option value="">{padrao ? `${padrao.nome} (padrão)` : 'Escolha o carteiro de hoje'}</option>
-                {carteiros.filter((c) => c.ativo && c.id !== padrao?.id).map((c) => <option key={c.id} value={c.id}>{c.nome ?? c.matricula}</option>)}
-              </select>
-              {semCarteiro && <span className="text-[13px] text-[#8a5a00]">Sem carteiro: o distrito não pode ser liberado</span>}
-              {liberado && <span className="text-[13px] text-ce-suave">Já liberado: o novo carteiro recebe o resumo das orientações.</span>}
-            </div>
-          );
-        })}
+    <nav aria-label="Paginação" className="flex flex-wrap items-center justify-between gap-3">
+      <span className="text-sm text-ce-suave">Página {pagina} de {totalPaginas} · {total} {total === 1 ? 'registro' : 'registros'}</span>
+      <div className="flex gap-2">
+        <Botao variante="secundario" disabled={pagina <= 1} onClick={() => aoMudar(pagina - 1)}>Anterior</Botao>
+        <Botao variante="secundario" disabled={pagina >= totalPaginas} onClick={() => aoMudar(pagina + 1)}>Próxima</Botao>
       </div>
-    </Cartao>
+    </nav>
   );
 }
 
-// ——— Carteiros ———————————————————————————————————————————————————————
+const semAcento = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-function FormCarteiro({ carteiro, distritos, aoFechar, aoSalvar }: { carteiro: CarteiroCadastro | null; distritos: Distrito[]; aoFechar: () => void; aoSalvar: () => Promise<void> }) {
-  const [nome, setNome] = useState(carteiro?.nome ?? '');
-  const [matricula, setMatricula] = useState(carteiro?.matricula ?? '');
-  const [whatsapp, setWhatsapp] = useState(carteiro ? formatarWhatsapp(carteiro.whatsapp).replace('—', '') : '');
-  const [distritoPadraoId, setDistrito] = useState(carteiro?.distritosPadrao[0]?.id ?? '');
-  const [ativo, setAtivo] = useState(carteiro?.ativo ?? true);
-  return (
-    <DialogoFormulario
-      titulo={carteiro ? `Editar ${carteiro.nome ?? carteiro.matricula}` : 'Novo carteiro'}
-      aberto
-      aoFechar={aoFechar}
-      aoEnviar={async () => {
-        const dados = { nome: nome.trim(), matricula: matricula.trim(), whatsapp: whatsapp.trim(), distritoPadraoId: distritoPadraoId || null };
-        if (carteiro) await entregasApi.editarCarteiro(carteiro.id, { ...dados, ativo, atualizadoEm: carteiro.atualizadoEm });
-        else await entregasApi.criarCarteiro(dados);
-        toast.success(carteiro ? 'Carteiro atualizado.' : 'Carteiro cadastrado.');
-        await aoSalvar();
-      }}
-    >
-      <Campo rotulo="Nome">{entrada({ value: nome, onChange: (e) => setNome(e.target.value), required: true, minLength: 2, maxLength: 120 })}</Campo>
-      <Campo rotulo="Matrícula" dica="8 dígitos, com ou sem pontos">{entrada({ value: matricula, onChange: (e) => setMatricula(e.target.value), required: true, maxLength: 20 })}</Campo>
-      <Campo rotulo="WhatsApp" dica="Com DDD, ex.: (61) 99155-3301">{entrada({ value: whatsapp, onChange: (e) => setWhatsapp(e.target.value), required: true, inputMode: 'tel' })}</Campo>
-      <Campo rotulo="Distrito padrão">
-        {(id) => (
-          <select id={id} value={distritoPadraoId} onChange={(e) => setDistrito(e.target.value)} className={CLASSE_ENTRADA}>
-            <option value="">— (volante)</option>
-            {distritos.filter((d) => d.ativo).map((d) => <option key={d.id} value={d.id}>{d.codigo} · {d.nome}</option>)}
-          </select>
-        )}
-      </Campo>
-      {carteiro && (
-        <label className="flex min-h-11 items-center gap-2.5 text-[15px]">
-          <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} className="size-5" /> Carteiro ativo
-        </label>
-      )}
-    </DialogoFormulario>
-  );
-}
-
-/** Senha temporária do app de captura (ADR-004): o carteiro troca no primeiro acesso. */
-function FormSenhaCarteiro({ carteiro, aoFechar, aoSalvar }: { carteiro: CarteiroCadastro; aoFechar: () => void; aoSalvar: () => Promise<void> }) {
-  const [senha, setSenha] = useState('');
-  const nome = carteiro.nome ?? carteiro.matricula;
-  return (
-    <DialogoFormulario
-      titulo={`Definir senha · ${nome}`}
-      aberto
-      aoFechar={aoFechar}
-      rotuloEnviar="Definir senha"
-      aoEnviar={async () => {
-        await entregasApi.definirSenhaCarteiro(carteiro.id, senha);
-        toast.success(`Senha de ${nome} definida. Passe-a ao carteiro: ele cria a própria senha no primeiro acesso.`);
-        await aoSalvar();
-      }}
-    >
-      <p className="m-0 text-[15px] leading-normal text-ce-tinta-2">
-        O carteiro entra no app de captura com a matrícula <strong className="font-codigo">{carteiro.matricula}</strong> e esta senha.
-        {carteiro.possuiLogin && ' A senha atual deixa de valer e o aparelho dele pede um novo login.'}
-      </p>
-      <Campo rotulo="Senha temporária" dica="De 8 a 72 caracteres.">
-        {entrada({ value: senha, onChange: (e) => setSenha(e.target.value), required: true, minLength: 8, maxLength: 72, autoComplete: 'off', spellCheck: false })}
-      </Campo>
-    </DialogoFormulario>
-  );
-}
-
-// ——— Pontos de retirada ——————————————————————————————————————————————
-
-function FormPonto({ ponto, aoFechar, aoSalvar }: { ponto: PontoRetirada | null; aoFechar: () => void; aoSalvar: () => Promise<void> }) {
-  const [tipo, setTipo] = useState<TipoPonto>(ponto?.tipo ?? 'AGENCIA');
-  const [nome, setNome] = useState(ponto?.nome ?? '');
-  const [endereco, setEndereco] = useState(ponto?.endereco ?? '');
-  const [horario, setHorario] = useState(ponto?.horario ?? '');
-  const [ativo, setAtivo] = useState(ponto?.ativo ?? true);
-  return (
-    <DialogoFormulario
-      titulo={ponto ? `Editar ${ponto.nome}` : 'Novo ponto de retirada'}
-      aberto
-      aoFechar={aoFechar}
-      aoEnviar={async () => {
-        const dados = { tipo, nome: nome.trim(), endereco: endereco.trim(), horario: horario.trim() };
-        if (ponto) await entregasApi.editarPonto(ponto.id, { ...dados, ativo, atualizadoEm: ponto.atualizadoEm });
-        else await entregasApi.criarPonto(dados);
-        toast.success(ponto ? 'Ponto atualizado.' : 'Ponto de retirada cadastrado.');
-        await aoSalvar();
-      }}
-    >
-      <Campo rotulo="Tipo">
-        {(id) => (
-          <select id={id} value={tipo} onChange={(e) => setTipo(e.target.value as TipoPonto)} className={CLASSE_ENTRADA}>
-            <option value="AGENCIA">Agência</option>
-            <option value="LOCKER">Locker</option>
-          </select>
-        )}
-      </Campo>
-      <Campo rotulo="Nome (até 24 caracteres)" dica={`${nome.length}/24 · aparece na lista do WhatsApp`}>
-        {entrada({ value: nome, onChange: (e) => setNome(e.target.value), required: true, maxLength: 24 })}
-      </Campo>
-      <Campo rotulo="Endereço">{entrada({ value: endereco, onChange: (e) => setEndereco(e.target.value), required: true, minLength: 3, maxLength: 200 })}</Campo>
-      <Campo rotulo="Horário">{entrada({ value: horario, onChange: (e) => setHorario(e.target.value), required: true, minLength: 2, maxLength: 120, placeholder: 'Seg–sex 9h–17h' })}</Campo>
-      {ponto && (
-        <label className="flex min-h-11 items-center gap-2.5 text-[15px]">
-          <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} className="size-5" /> Ponto ativo
-        </label>
-      )}
-    </DialogoFormulario>
-  );
-}
-
-// ——— Gestão: canais, unidades e supervisores ——————————————————————————
-
-function FormCanal({ aoFechar, aoCriar }: { aoFechar: () => void; aoCriar: (c: CanalProsio) => Promise<void> }) {
-  const [nome, setNome] = useState('');
-  const [baseUrl, setBaseUrl] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [callbackSecret, setSegredo] = useState('');
-  const [tipo, setTipo] = useState<'WAHA' | 'WABA'>('WAHA');
-  const [compartilhado, setCompartilhado] = useState(false);
-  return (
-    <DialogoFormulario
-      titulo="Novo canal de WhatsApp"
-      aberto
-      aoFechar={aoFechar}
-      rotuloEnviar="Criar canal"
-      aoEnviar={async () => {
-        const canal = await entregasApi.criarCanal({ nome: nome.trim(), baseUrl: baseUrl.trim(), apiKey, callbackSecret, tipo, compartilhado });
-        await aoCriar(canal);
-      }}
-    >
-      <Campo rotulo="Nome">{entrada({ value: nome, onChange: (e) => setNome(e.target.value), required: true, minLength: 2, maxLength: 80 })}</Campo>
-      <Campo rotulo="Endereço do Prosio" dica="Ex.: https://prosio.com.br">{entrada({ value: baseUrl, onChange: (e) => setBaseUrl(e.target.value), required: true, type: 'url' })}</Campo>
-      <Campo rotulo="Chave de API do Prosio">{entrada({ value: apiKey, onChange: (e) => setApiKey(e.target.value), required: true, minLength: 8, type: 'password', autoComplete: 'off' })}</Campo>
-      <Campo rotulo="Segredo dos callbacks" dica="Mínimo de 16 caracteres">{entrada({ value: callbackSecret, onChange: (e) => setSegredo(e.target.value), required: true, minLength: 16, type: 'password', autoComplete: 'off' })}</Campo>
-      <Campo rotulo="Tipo do número">
-        {(id) => (
-          <select id={id} value={tipo} onChange={(e) => setTipo(e.target.value as 'WAHA' | 'WABA')} className={CLASSE_ENTRADA}>
-            <option value="WAHA">Número atual (WAHA)</option>
-            <option value="WABA">Número oficial (WABA)</option>
-          </select>
-        )}
-      </Campo>
-      <label className="flex min-h-11 items-center gap-2.5 text-[15px]">
-        <input type="checkbox" checked={compartilhado} onChange={(e) => setCompartilhado(e.target.checked)} className="size-5" />
-        Canal compartilhado entre unidades
-      </label>
-    </DialogoFormulario>
-  );
-}
-
-function FormUnidade({ unidade, canais, aoFechar, aoSalvar }: { unidade: UnidadeGestao | null; canais: CanalProsio[]; aoFechar: () => void; aoSalvar: (u: UnidadeGestao) => Promise<void> }) {
-  const [v, setV] = useState({
-    codigo: '', nome: unidade?.nome ?? '', tipo: (unidade?.tipo ?? 'CDD') as string, logradouro: '', numero: '', bairro: '', cidade: '', uf: 'DF', cep: '',
-    latitude: '', longitude: '',
-    canalProsioId: unidade?.canalProsioId ?? '', prosioUnidadeRef: unidade?.prosioUnidadeRef ?? '', mediacaoAtiva: unidade?.mediacaoAtiva ?? false,
-  });
-  const muda = (k: keyof typeof v) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setV((a) => ({ ...a, [k]: e.target instanceof HTMLInputElement && e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
-  const canal = canais.find((c) => c.id === v.canalProsioId);
-  const camposCanal = {
-    canalProsioId: v.canalProsioId || null,
-    canal: canal?.tipo ?? null,
-    prosioUnidadeRef: canal?.compartilhado ? v.prosioUnidadeRef.trim() || null : null,
-    mediacaoAtiva: v.mediacaoAtiva,
-  };
-  return (
-    <DialogoFormulario
-      titulo={unidade ? `Editar ${unidade.nome}` : 'Nova unidade'}
-      aberto
-      aoFechar={aoFechar}
-      aoEnviar={async () => {
-        const salva = unidade
-          ? await entregasApi.editarUnidade(unidade.id, { nome: v.nome.trim(), tipo: v.tipo, ...camposCanal })
-          : await entregasApi.criarUnidade({
-            codigo: v.codigo.trim(), nome: v.nome.trim(), tipo: v.tipo,
-            logradouro: v.logradouro.trim(), numero: v.numero.trim(), bairro: v.bairro.trim(), cidade: v.cidade.trim(),
-            uf: v.uf.trim().toUpperCase(), cep: v.cep.replace(/\D/g, ''),
-            latitude: Number(v.latitude.replace(',', '.')), longitude: Number(v.longitude.replace(',', '.')),
-            ...camposCanal,
-          });
-        toast.success(unidade ? 'Unidade atualizada.' : `Unidade ${salva.nome} cadastrada.`);
-        await aoSalvar(salva);
-      }}
-    >
-      {!unidade && <Campo rotulo="Código da unidade">{entrada({ value: v.codigo, onChange: muda('codigo'), required: true, minLength: 3 })}</Campo>}
-      <Campo rotulo="Nome">{entrada({ value: v.nome, onChange: muda('nome'), required: true, minLength: 3 })}</Campo>
-      <Campo rotulo="Tipo">
-        {(id) => (
-          <select id={id} value={v.tipo} onChange={muda('tipo')} className={CLASSE_ENTRADA}>
-            <option value="CDD">CDD</option>
-            <option value="CEE">CEE</option>
-          </select>
-        )}
-      </Campo>
-      {!unidade && (
-        <>
-          <Campo rotulo="Logradouro">{entrada({ value: v.logradouro, onChange: muda('logradouro'), required: true, minLength: 3 })}</Campo>
-          <div className="grid grid-cols-2 gap-3">
-            <Campo rotulo="Número">{entrada({ value: v.numero, onChange: muda('numero'), required: true })}</Campo>
-            <Campo rotulo="Bairro">{entrada({ value: v.bairro, onChange: muda('bairro'), required: true, minLength: 2 })}</Campo>
-            <Campo rotulo="Cidade">{entrada({ value: v.cidade, onChange: muda('cidade'), required: true, minLength: 2 })}</Campo>
-            <Campo rotulo="UF">{entrada({ value: v.uf, onChange: muda('uf'), required: true, minLength: 2, maxLength: 2 })}</Campo>
-            <Campo rotulo="CEP">{entrada({ value: v.cep, onChange: muda('cep'), required: true, inputMode: 'numeric', placeholder: '72110120' })}</Campo>
-            <span />
-            <Campo rotulo="Latitude">{entrada({ value: v.latitude, onChange: muda('latitude'), required: true, inputMode: 'decimal', placeholder: '-15.8335' })}</Campo>
-            <Campo rotulo="Longitude">{entrada({ value: v.longitude, onChange: muda('longitude'), required: true, inputMode: 'decimal', placeholder: '-48.0566' })}</Campo>
-          </div>
-        </>
-      )}
-      <Campo rotulo="Canal de WhatsApp">
-        {(id) => (
-          <select id={id} value={v.canalProsioId} onChange={muda('canalProsioId')} className={CLASSE_ENTRADA}>
-            <option value="">Sem canal</option>
-            {canais.filter((c) => c.ativo).map((c) => (
-              <option key={c.id} value={c.id}>{c.nome} · {c.tipo === 'WABA' ? 'número oficial' : 'número atual'}{c.compartilhado ? ' · compartilhado' : ''}</option>
-            ))}
-          </select>
-        )}
-      </Campo>
-      {canal?.compartilhado && (
-        <Campo rotulo="Referência da unidade no canal" dica="Identifica a caixa da unidade no Prosio">
-          {entrada({ value: v.prosioUnidadeRef, onChange: muda('prosioUnidadeRef'), required: true, maxLength: 64 })}
-        </Campo>
-      )}
-      <label className="flex min-h-11 items-center gap-2.5 text-[15px]">
-        <input type="checkbox" checked={v.mediacaoAtiva} onChange={muda('mediacaoAtiva')} className="size-5" />
-        Mediação carteiro ↔ destinatário ativa
-      </label>
-    </DialogoFormulario>
-  );
-}
-
-function FormSupervisor({ unidades, aoFechar, aoSalvar }: { unidades: UnidadeGestao[]; aoFechar: () => void; aoSalvar: () => Promise<void> }) {
-  const [v, setV] = useState({ nome: '', email: '', matricula: '', telefoneCelular: '', unidadeId: unidades[0]?.id ?? '', senha: '' });
-  const muda = (k: keyof typeof v) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setV((a) => ({ ...a, [k]: e.target.value }));
-  return (
-    <DialogoFormulario
-      titulo="Novo supervisor"
-      aberto
-      aoFechar={aoFechar}
-      aoEnviar={async () => {
-        await entregasApi.criarSupervisor({ ...v, nome: v.nome.trim(), email: v.email.trim() });
-        toast.success(`Supervisor ${v.nome.trim()} cadastrado.`);
-        await aoSalvar();
-      }}
-    >
-      <Campo rotulo="Nome">{entrada({ value: v.nome, onChange: muda('nome'), required: true, minLength: 3 })}</Campo>
-      <Campo rotulo="E-mail de acesso">{entrada({ value: v.email, onChange: muda('email'), required: true, type: 'email' })}</Campo>
-      <Campo rotulo="Matrícula" dica="8 dígitos, com ou sem pontos">{entrada({ value: v.matricula, onChange: muda('matricula'), required: true })}</Campo>
-      <Campo rotulo="WhatsApp" dica="Com DDD, ex.: (61) 99301-2210">{entrada({ value: v.telefoneCelular, onChange: muda('telefoneCelular'), required: true, inputMode: 'tel' })}</Campo>
-      <Campo rotulo="Unidade">
-        {(id) => (
-          <select id={id} value={v.unidadeId} onChange={muda('unidadeId')} required className={CLASSE_ENTRADA}>
-            <option value="">Escolha a unidade</option>
-            {unidades.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
-        )}
-      </Campo>
-      <Campo rotulo="Senha inicial" dica="Mínimo de 6 caracteres">{entrada({ value: v.senha, onChange: muda('senha'), required: true, minLength: 6, type: 'password', autoComplete: 'new-password' })}</Campo>
-    </DialogoFormulario>
-  );
+/** Pontos de retirada: a API devolve todos; a busca e as páginas são feitas aqui. */
+export function paginarPontos(pontos: PontoRetirada[], busca: string, pagina: number, tamanho = TAMANHO_PAGINA_CADASTRO): Pagina<PontoRetirada> {
+  const termo = semAcento(busca.trim());
+  const filtrados = termo ? pontos.filter((p) => semAcento(`${p.nome} ${p.endereco}`).includes(termo)) : pontos;
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanho));
+  const atual = Math.min(Math.max(1, pagina), totalPaginas);
+  return { itens: filtrados.slice((atual - 1) * tamanho, atual * tamanho), total: filtrados.length, pagina: atual, tamanho, totalPaginas };
 }
 
 // ——— Página ———————————————————————————————————————————————————————
@@ -466,8 +105,10 @@ type Edicao =
   | { tipo: 'senha'; item: CarteiroCadastro }
   | { tipo: 'ponto'; item: PontoRetirada | null }
   | { tipo: 'unidade'; item: UnidadeGestao | null }
-  | { tipo: 'supervisor' }
-  | { tipo: 'canal' }
+  | { tipo: 'supervisor'; item: Supervisor | null }
+  | { tipo: 'canal'; item: CanalProsio | null }
+  | { tipo: 'token'; item: CanalProsio }
+  | { tipo: 'situacao-canal'; item: CanalProsio }
   | null;
 
 export function CadastroPage() {
@@ -482,20 +123,56 @@ export function CadastroPage() {
   const pedida = params.get('aba') as Aba | null;
   const aba: Aba = pedida && abas.includes(pedida) ? pedida : abas[0];
   const [edicao, setEdicao] = useState<Edicao>(null);
-  const [token, setToken] = useState<CanalProsio | null>(null);
+  const [token, setToken] = useState<{ canal: CanalProsio; novo: boolean } | null>(null);
   const [quadro, setQuadro] = useState<Quadro | null>(null);
+  // Listas com busca e páginas (rotas e carteiros vêm paginados do servidor).
+  const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState({ busca: '', pagina: 1 });
+  const [paginaDistritos, setPaginaDistritos] = useState<Pagina<Distrito> | null>(null);
+  const [paginaCarteiros, setPaginaCarteiros] = useState<Pagina<CarteiroCadastro> | null>(null);
+  const pedido = useRef(0);
 
   const unidadeId = ehGestao ? unidadeGestaoId ?? undefined : undefined;
   const operacional = !ABAS[aba].gestao;
   const podeEditar = !ehGestao || ABAS[aba].gestao;
   const unidadeFoco = ehGestao ? cad.unidades?.find((u) => u.id === unidadeGestaoId) : null;
 
+  // Outra aba ou outra unidade: a busca recomeça e as listas da unidade anterior saem da tela.
+  useEffect(() => {
+    setBusca('');
+    setFiltro((f) => (f.busca === '' && f.pagina === 1 ? f : { busca: '', pagina: 1 }));
+    setPaginaDistritos(null);
+    setPaginaCarteiros(null);
+    setQuadro(null);
+  }, [aba, unidadeId]);
+
+  // Busca aplicada com uma pequena espera, sem uma chamada por tecla.
+  useEffect(() => {
+    const t = window.setTimeout(() => setFiltro((f) => (f.busca === busca.trim() ? f : { busca: busca.trim(), pagina: 1 })), 350);
+    return () => window.clearTimeout(t);
+  }, [busca]);
+
   const recarregar = useCallback(async () => {
+    pedido.current += 1;
+    const meu = pedido.current;
+    const listagem = { unidadeId, busca: filtro.busca || undefined, pagina: filtro.pagina, tamanho: TAMANHO_PAGINA_CADASTRO };
     try {
       if (operacional) {
         if (ehGestao && !unidadeId) return;
-        await Promise.all([cad.carregarDistritos(unidadeId), cad.carregarCarteiros(unidadeId), aba === 'pontos' ? cad.carregarPontos(unidadeId) : null]);
-        if (aba === 'distritos' && !ehGestao) setQuadro(await entregasApi.quadro({}));
+        const [, , , pagina] = await Promise.all([
+          cad.carregarDistritos(unidadeId),
+          cad.carregarCarteiros(unidadeId),
+          aba === 'pontos' ? cad.carregarPontos(unidadeId) : null,
+          aba === 'distritos' ? entregasApi.distritosPagina(listagem) : aba === 'carteiros' ? entregasApi.carteirosPagina(listagem) : null,
+        ]);
+        // Só a resposta do pedido mais recente chega à tela (busca digitada depressa, troca de unidade).
+        if (meu !== pedido.current) return;
+        if (aba === 'distritos') setPaginaDistritos(pagina as Pagina<Distrito>);
+        if (aba === 'carteiros') setPaginaCarteiros(pagina as Pagina<CarteiroCadastro>);
+        if (aba === 'distritos' && !ehGestao) {
+          const q = await entregasApi.quadro({});
+          if (meu === pedido.current) setQuadro(q);
+        }
       } else if (aba === 'canais') {
         await cad.carregarCanais();
       } else if (aba === 'unidades') {
@@ -504,13 +181,17 @@ export function CadastroPage() {
         await Promise.all([cad.carregarSupervisores(), cad.carregarUnidades()]);
       }
     } catch (err) {
-      avisarErro(err, 'Não foi possível carregar o cadastro.');
+      if (meu === pedido.current) avisarErro(err, 'Não foi possível carregar o cadastro.');
     }
     // `cad` é o store inteiro; as funções dele são estáveis.
-  }, [aba, operacional, ehGestao, unidadeId]);
+  }, [aba, operacional, ehGestao, unidadeId, filtro]);
 
+  // Troca de aba ou de unidade: as listas da unidade anterior não ficam na tela enquanto as novas chegam.
   useEffect(() => {
     if (operacional) cad.limparUnidade();
+  }, [aba, operacional, unidadeId]);
+
+  useEffect(() => {
     void recarregar();
   }, [recarregar]);
 
@@ -520,24 +201,31 @@ export function CadastroPage() {
     await recarregar();
   };
 
+  const pontosPagina = useMemo(
+    () => (cad.pontos ? paginarPontos(cad.pontos, filtro.busca, filtro.pagina) : null),
+    [cad.pontos, filtro],
+  );
+  const paginaAtual: Pagina<unknown> | null = aba === 'distritos' ? paginaDistritos : aba === 'carteiros' ? paginaCarteiros : aba === 'pontos' ? pontosPagina : null;
+
   const linhas = useMemo(() => {
-    const editar = (rotulo: string, fn: () => void) => (
-      <Botao variante="texto" onClick={fn} aria-label={rotulo}>Editar</Botao>
+    const acao = (rotulo: string, nomeAcessivel: string, fn: () => void, perigo = false) => (
+      <Botao variante="texto" className={`!px-2 ${perigo ? '!text-ce-erro' : ''}`} onClick={fn} aria-label={nomeAcessivel}>{rotulo}</Botao>
     );
+    const editar = (rotulo: string, fn: () => void) => acao('Editar', rotulo, fn);
     switch (aba) {
       case 'distritos':
-        return cad.distritos?.map((d) => ({
+        return paginaDistritos?.itens.map((d) => ({
           id: d.id,
           celulas: [
             <span className="font-codigo font-medium">{d.codigo}</span>,
             d.nome,
             d.carteiroPadrao?.nome ?? '—',
-            <Situacao ativo={d.ativo} extra={!d.carteiroPadrao ? 'sem carteiro padrão' : undefined} />,
+            <Situacao ativo={d.ativo} feminino extra={!d.carteiroPadrao ? 'sem carteiro padrão' : undefined} />,
             podeEditar ? editar(`Editar ${d.codigo}`, () => setEdicao({ tipo: 'distrito', item: d })) : null,
           ],
         })) ?? null;
       case 'carteiros':
-        return cad.carteiros?.map((c) => ({
+        return paginaCarteiros?.itens.map((c) => ({
           id: c.id,
           celulas: [
             c.nome ?? '—',
@@ -548,13 +236,13 @@ export function CadastroPage() {
             podeEditar ? (
               <div className="flex flex-wrap gap-x-1">
                 {editar(`Editar ${c.nome ?? c.matricula}`, () => setEdicao({ tipo: 'carteiro', item: c }))}
-                <Botao variante="texto" onClick={() => setEdicao({ tipo: 'senha', item: c })} aria-label={`Definir senha de ${c.nome ?? c.matricula}`}>Definir senha</Botao>
+                {acao('Definir senha', `Definir senha de ${c.nome ?? c.matricula}`, () => setEdicao({ tipo: 'senha', item: c }))}
               </div>
             ) : null,
           ],
         })) ?? null;
       case 'pontos':
-        return cad.pontos?.map((p) => ({
+        return pontosPagina?.itens.map((p) => ({
           id: p.id,
           celulas: [
             p.nome,
@@ -569,10 +257,10 @@ export function CadastroPage() {
         return cad.unidades?.map((u) => ({
           id: u.id,
           celulas: [
-            u.nome,
-            u.tipo,
+            <span>{u.nome}{!u.ativa && <span className="text-ce-suave"> · desativada</span>}</span>,
+            u.tipo === 'HIBRIDA' ? 'Híbrida' : u.tipo,
             `${u.logradouro} ${u.numero} · ${u.bairro} · ${u.uf}`,
-            u.canalProsio ? `${u.canalProsio.tipo === 'WABA' ? 'Número oficial (WABA)' : 'Número atual (WAHA)'} · ${u.canalProsio.nome}` : '—',
+            u.canalProsio ? `${rotuloTipoCanal(u.canalProsio.tipo)} · ${u.canalProsio.nome}${u.canalProsio.ativo ? '' : ' (desativado)'}` : '—',
             u.semSupervisor ? '0 · sem supervisor' : String(u.supervisoresAtivos),
             editar(`Editar ${u.nome}`, () => setEdicao({ tipo: 'unidade', item: u })),
           ],
@@ -580,25 +268,44 @@ export function CadastroPage() {
       case 'supervisores':
         return cad.supervisores?.map((s) => ({
           id: s.id,
-          celulas: [s.nome, s.matricula ?? '—', <span className="tabular-nums">{formatarWhatsapp(s.telefoneCelular)}</span>, s.unidade?.nome ?? '—', <Situacao ativo={s.ativo} />],
+          celulas: [
+            s.nome,
+            s.matricula ?? '—',
+            <span className="tabular-nums">{formatarWhatsapp(s.telefoneCelular)}</span>,
+            s.unidade?.nome ?? '—',
+            <Situacao ativo={s.ativo} />,
+            editar(`Editar ${s.nome}`, () => setEdicao({ tipo: 'supervisor', item: s })),
+          ],
         })) ?? null;
       case 'canais':
         return cad.canais?.map((c) => ({
           id: c.id,
-          celulas: [c.nome, c.baseUrl, c.tipo === 'WABA' ? 'Número oficial (WABA)' : 'Número atual (WAHA)', c.compartilhado ? 'Sim' : 'Não', String(c.unidades ?? 0), <Situacao ativo={c.ativo} />],
+          celulas: [
+            c.nome,
+            c.baseUrl,
+            rotuloTipoCanal(c.tipo),
+            c.compartilhado ? 'Sim' : 'Não',
+            String(c.unidades ?? 0),
+            <Situacao ativo={c.ativo} />,
+            <div className="flex flex-wrap gap-x-1">
+              {editar(`Editar ${c.nome}`, () => setEdicao({ tipo: 'canal', item: c }))}
+              {acao('Gerar novo token', `Gerar novo token de ${c.nome}`, () => setEdicao({ tipo: 'token', item: c }))}
+              {acao(c.ativo ? 'Desativar' : 'Reativar', `${c.ativo ? 'Desativar' : 'Reativar'} ${c.nome}`, () => setEdicao({ tipo: 'situacao-canal', item: c }), c.ativo)}
+            </div>,
+          ],
         })) ?? null;
       default:
         return null;
     }
-  }, [aba, cad.distritos, cad.carteiros, cad.pontos, cad.unidades, cad.supervisores, cad.canais, podeEditar]);
+  }, [aba, paginaDistritos, paginaCarteiros, pontosPagina, cad.unidades, cad.supervisores, cad.canais, podeEditar]);
 
   const colunas: Record<Aba, string[]> = {
     distritos: ['Código', 'Nome', 'Carteiro padrão', 'Situação', ''],
-    carteiros: ['Nome', 'Matrícula', 'WhatsApp', 'Distrito padrão', 'Situação', ''],
+    carteiros: ['Nome', 'Matrícula', 'WhatsApp', 'Rota padrão', 'Situação', ''],
     pontos: ['Nome', 'Tipo', 'Endereço', 'Horário', 'Situação', ''],
     unidades: ['Unidade', 'Tipo', 'Endereço', 'Canal de WhatsApp', 'Supervisores', ''],
-    supervisores: ['Nome', 'Matrícula', 'WhatsApp', 'Unidade', 'Situação'],
-    canais: ['Nome', 'Endereço do Prosio', 'Tipo', 'Compartilhado', 'Unidades', 'Situação'],
+    supervisores: ['Nome', 'Matrícula', 'WhatsApp', 'Unidade', 'Situação', ''],
+    canais: ['Nome', 'Endereço do Prosio', 'Tipo', 'Compartilhado', 'Unidades', 'Situação', ''],
   };
 
   function novo() {
@@ -606,12 +313,14 @@ export function CadastroPage() {
     else if (aba === 'carteiros') setEdicao({ tipo: 'carteiro', item: null });
     else if (aba === 'pontos') setEdicao({ tipo: 'ponto', item: null });
     else if (aba === 'unidades') setEdicao({ tipo: 'unidade', item: null });
-    else if (aba === 'supervisores') setEdicao({ tipo: 'supervisor' });
-    else setEdicao({ tipo: 'canal' });
+    else if (aba === 'supervisores') setEdicao({ tipo: 'supervisor', item: null });
+    else setEdicao({ tipo: 'canal', item: null });
   }
 
   const unidadeNome = ehGestao ? unidadeFoco?.nome : user?.unidade?.nome ?? unidadeNomeSalvo;
   const dica = operacional && unidadeNome ? `${unidadeNome} · ${ABAS[aba].dica}` : ABAS[aba].dica;
+  const rotuloBusca = ABAS[aba].busca;
+  const vazio = filtro.busca ? `Nada encontrado para “${filtro.busca}”.` : 'Nada cadastrado ainda.';
 
   return (
     <>
@@ -641,10 +350,34 @@ export function CadastroPage() {
       ) : (
         <div role="tabpanel" aria-label={ABAS[aba].rotulo} className="flex flex-col gap-5">
           {operacional && ehGestao && <Pilula classe="bg-ce-linha-fraca text-ce-tinta-2" className="self-start">Somente consulta · o supervisor da unidade faz as alterações</Pilula>}
-          {aba === 'pontos' && cad.pontos && (
-            <p className="m-0 text-sm text-ce-suave">Ativos: {cad.ativosPorTipo.AGENCIA}/10 agências · {cad.ativosPorTipo.LOCKER}/10 lockers</p>
+          {rotuloBusca && (
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="w-full sm:w-80">
+                <label htmlFor="cadastro-busca" className="sr-only">{rotuloBusca}</label>
+                <input
+                  id="cadastro-busca"
+                  type="search"
+                  placeholder={rotuloBusca}
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  maxLength={80}
+                  className={CLASSE_ENTRADA}
+                />
+              </div>
+              {aba === 'pontos' && cad.pontos && (
+                <p className="m-0 text-sm text-ce-suave">Ativos: {cad.ativosPorTipo.AGENCIA}/10 agências · {cad.ativosPorTipo.LOCKER}/10 lockers</p>
+              )}
+            </div>
           )}
-          <Tabela colunas={colunas[aba]} linhas={linhas} rotulo={ABAS[aba].rotulo} vazio="Nada cadastrado ainda." />
+          <Tabela colunas={colunas[aba]} linhas={linhas} rotulo={ABAS[aba].rotulo} vazio={vazio} />
+          {paginaAtual && (
+            <Paginacao
+              pagina={paginaAtual.pagina}
+              totalPaginas={paginaAtual.totalPaginas}
+              total={paginaAtual.total}
+              aoMudar={(p) => setFiltro((f) => ({ ...f, pagina: p }))}
+            />
+          )}
           {aba === 'distritos' && !ehGestao && cad.distritos && cad.carteiros && (
             <CarteiroDoDia distritos={cad.distritos} carteiros={cad.carteiros} quadro={quadro} aoMudar={recarregar} />
           )}
@@ -657,13 +390,59 @@ export function CadastroPage() {
       {edicao?.tipo === 'ponto' && <FormPonto ponto={edicao.item} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
       {edicao?.tipo === 'canal' && (
         <FormCanal
+          canal={edicao.item}
           aoFechar={fechar}
-          aoCriar={async (canal) => {
+          aoSalvar={async (canal) => {
             setEdicao(null);
-            setToken(canal);
+            if (canal.tokenEntrada) setToken({ canal, novo: false });
             await recarregar();
           }}
         />
+      )}
+      {edicao?.tipo === 'token' && (
+        <DialogoConfirmar
+          titulo={`Gerar novo token de ${edicao.item.nome}?`}
+          rotulo="Gerar novo token"
+          perigo
+          aoFechar={fechar}
+          aoConfirmar={async () => {
+            const canal = await entregasApi.editarCanal(edicao.item.id, { regenerarTokenEntrada: true });
+            setEdicao(null);
+            setToken({ canal, novo: true });
+            await recarregar();
+          }}
+        >
+          <p className="m-0">O token atual deixa de valer na hora. As ações de botão do Prosio deste canal param de chegar até você configurar o novo token lá.</p>
+          <p className="m-0">O novo token aparece uma única vez, na próxima tela.</p>
+        </DialogoConfirmar>
+      )}
+      {edicao?.tipo === 'situacao-canal' && (
+        <DialogoConfirmar
+          titulo={`${edicao.item.ativo ? 'Desativar' : 'Reativar'} ${edicao.item.nome}?`}
+          rotulo={edicao.item.ativo ? 'Desativar canal' : 'Reativar canal'}
+          perigo={edicao.item.ativo}
+          aoFechar={fechar}
+          aoConflito={(atual) => {
+            setEdicao({ tipo: 'situacao-canal', item: atual as CanalProsio });
+            void recarregar();
+          }}
+          aoConfirmar={async () => {
+            const c = edicao.item;
+            await entregasApi.editarCanal(c.id, { ativo: !c.ativo, ...(c.atualizadoEm ? { atualizadoEm: c.atualizadoEm } : {}) });
+            toast.success(c.ativo ? `Canal ${c.nome} desativado.` : `Canal ${c.nome} reativado.`);
+            await salvarERecarregar();
+          }}
+        >
+          {edicao.item.ativo ? (
+            <p className="m-0">
+              {(edicao.item.unidades ?? 0) > 0
+                ? `${edicao.item.unidades === 1 ? '1 unidade usa' : `${edicao.item.unidades} unidades usam`} este canal. Desativado, os avisos aos destinatários e o atendimento dessas unidades param.`
+                : 'Nenhuma unidade usa este canal. Ele deixa de aparecer para novas unidades.'}
+            </p>
+          ) : (
+            <p className="m-0">O canal volta a enviar avisos e a abrir o atendimento das unidades vinculadas.</p>
+          )}
+        </DialogoConfirmar>
       )}
       {edicao?.tipo === 'unidade' && (
         <FormUnidade
@@ -676,21 +455,9 @@ export function CadastroPage() {
           }}
         />
       )}
-      {edicao?.tipo === 'supervisor' && <FormSupervisor unidades={cad.unidades ?? []} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
+      {edicao?.tipo === 'supervisor' && <FormSupervisor supervisor={edicao.item} unidades={cad.unidades ?? []} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
 
-      <Dialogo
-        titulo="Canal criado"
-        aberto={!!token}
-        aoFechar={() => setToken(null)}
-        rodape={<Botao onClick={() => setToken(null)}>Já copiei o token</Botao>}
-      >
-        <p className="m-0 text-[15px] text-ce-tinta-2">
-          Token de entrada do canal <strong>{token?.nome}</strong>. Configure-o nas integrações do Prosio.{' '}
-          <strong>Ele é exibido só esta vez.</strong>
-        </p>
-        <label htmlFor="token-entrada" className="text-sm font-semibold">Token de entrada</label>
-        <input id="token-entrada" readOnly value={token?.tokenEntrada ?? ''} onFocus={(e) => e.target.select()} className={`${CLASSE_ENTRADA} font-codigo text-[13px]`} />
-      </Dialogo>
+      <DialogoToken canal={token?.canal ?? null} novo={!!token?.novo} aoFechar={() => setToken(null)} />
     </>
   );
 }

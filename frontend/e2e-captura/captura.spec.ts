@@ -25,8 +25,8 @@ test.describe('Captura do rótulo', () => {
     await expect(page.getByTestId('camera-titulo')).toHaveText('D-03 · pacote 1');
     await fotografar(page, 2);
 
-    const aviso = page.getByRole('status').filter({ hasText: 'Pacote OY716488072BR salvo no D-03' });
-    await expect(aviso).toHaveText('Pacote OY716488072BR salvo no D-03 · desfazer');
+    const aviso = page.getByRole('status').filter({ hasText: 'Pacote OY716488072BR salvo na rota D-03' });
+    await expect(aviso).toHaveText('Pacote OY716488072BR salvo na rota D-03 · desfazer');
 
     await page.getByRole('button', { name: 'Concluir' }).click();
     const item = page.getByRole('link', { name: /OY716488072BR · ALINE RODRIGUES/ });
@@ -59,7 +59,7 @@ test.describe('Captura do rótulo', () => {
 
     await rua.fill('Rua Sete');
     await page.getByLabel('Número').fill('120');
-    await page.getByRole('button', { name: 'Salvar no D-03' }).click();
+    await page.getByRole('button', { name: 'Salvar na rota D-03' }).click();
 
     await expect(page.getByText('Nenhum pacote para conferir.')).toBeVisible();
     await page.getByRole('button', { name: 'Voltar ao início' }).click();

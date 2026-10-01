@@ -66,6 +66,104 @@ export interface RespostaLiberacao {
   jaLiberada?: boolean;
 }
 
+// ——— Saídas do dia (ADR-019) ———
+
+/** Motivos de descarte de uma linha do arquivo da saída. */
+export type MotivoSaida =
+  | Motivo
+  | 'sem_rota'
+  | 'rota_invalida'
+  | 'rota_inativa'
+  | 'rota_liberada'
+  | 'rota_em_outra_saida'
+  | 'limite_rota';
+
+/** Linha do arquivo que não entrou: só linha, rota, código e motivo (sem nome nem telefone). */
+export interface DescarteSaida {
+  n: number;
+  rota: string | null;
+  codigo: string;
+  motivo: MotivoSaida;
+  detalhe?: string | null;
+}
+
+export interface SaidaDoDia {
+  id: string;
+  unidadeId: string;
+  unidadeNome: string;
+  numero: number;
+  /** `HH:MM`. */
+  horario: string;
+  arquivoNome: string;
+  importadaEm: string;
+  aceitos: number;
+  descartados: number;
+  /** Ausente na visão de todas as unidades. */
+  descartes?: DescarteSaida[];
+}
+
+/** Cartão de uma rota no dia. `saidaNumero: null` = carga fora de uma saída (aba "Sem saída"). */
+export interface CartaoRota extends CartaoDistrito {
+  saidaNumero: number | null;
+  unidade: { id: string; nome: string };
+}
+
+/** `GET /entregas/saidas`. */
+export interface QuadroSaidas {
+  data: string;
+  somenteLeitura: boolean;
+  /** Todas as unidades juntas (Gestão): só leitura. */
+  agregado: boolean;
+  unidade: { id: string; nome: string } | null;
+  saidas: SaidaDoDia[];
+  proximaSaida: number;
+  rotas: CartaoRota[];
+}
+
+/** `POST /entregas/saidas/importar`. */
+export interface ResultadoImportacaoSaida {
+  saida: SaidaDoDia;
+  reimportacao: boolean;
+  aceitos: number;
+  descartados: number;
+  descartes: DescarteSaida[];
+  rotas: number;
+  rotasCriadas: string[];
+  rotasSemCarteiro: string[];
+  rotasLiberadas: string[];
+  carteirosNaoEncontrados: Array<{ rota: string; valor: string }>;
+  avisos: AvisoPlanilha[];
+}
+
+export type ResultadoLiberacaoRota =
+  | ({ rota: string | null; cargaId: string; ok: true } & RespostaLiberacao)
+  | { rota: string | null; cargaId: string; ok: false; erro: string };
+
+/** `POST /entregas/saidas/liberar`. */
+export interface RespostaLiberacaoLote {
+  resultados: ResultadoLiberacaoRota[];
+  liberadas: number;
+  falhas: number;
+  avisosAgendados: number;
+  agendadoPara?: string;
+}
+
+export interface AtribuicaoCarteiro {
+  distritoId: string;
+  carteiroId: string;
+  definirPadrao?: boolean;
+}
+
+/** `PUT /entregas/saidas/carteiros`. */
+export interface RespostaAtribuicao {
+  resultados: Array<
+    | { distritoId: string; rota: string | null; ok: true; carteiro: { id: string; nome: string | null } | null }
+    | { distritoId: string; rota: string | null; ok: false; erro: string }
+  >;
+  atribuidas: number;
+  falhas: number;
+}
+
 // ——— Carga ———
 
 export type Situacao = 'valida' | 'sem_whatsapp' | 'corrigir' | 'invalida';
@@ -156,6 +254,8 @@ export interface PacoteDistrito {
     origem: string;
     valeAPartirDe: string | null;
     pontoDesativado: boolean;
+    /** Sinalizações da orientação (ex.: `nao_entregue_carteiro`, `falha_envio_carteiro`). */
+    sinais?: string[] | null;
   } | null;
   respostaCarteiro: { resposta: string; em: string | null } | null;
   /** Captura (extensão aditiva): de onde vieram os dados do pacote. */
@@ -257,6 +357,7 @@ export interface CanalProsio {
   ativo: boolean;
   unidades?: number;
   tokenEntrada?: string;
+  atualizadoEm?: string;
 }
 
 export interface UnidadeGestao {
@@ -276,6 +377,12 @@ export interface UnidadeGestao {
   canalProsio: { id: string; nome: string; tipo: TipoCanal; compartilhado: boolean; ativo: boolean } | null;
   supervisoresAtivos: number;
   semSupervisor: boolean;
+  complemento?: string | null;
+  cep?: string;
+  /** Decimal do banco: chega como texto no JSON. */
+  latitude?: number | string;
+  longitude?: number | string;
+  atualizadoEm?: string;
 }
 
 export interface Supervisor {
@@ -293,4 +400,35 @@ export interface Supervisor {
 export interface SessaoAtendimento {
   url: string;
   expiraEm: string;
+}
+
+// ——— Auditoria da interface (aditivo) ———
+
+/** Resposta de `PATCH /entregas/pacotes/:id`. */
+export interface PacoteEditado {
+  id: string;
+  codigo: string;
+  whatsapp: string | null;
+  status: StatusPacote;
+  rotulo: string;
+  descadastrado: boolean;
+  /** O pacote ganhou WhatsApp numa rota já liberada: o aviso ao destinatário sai agora. */
+  avisoSolicitado: boolean;
+  endereco: CamposEndereco;
+}
+
+/** Resposta de `PUT /entregas/cadastro/distritos/:id/escala/:data`. */
+export interface EscalaDefinida {
+  distritoId: string;
+  data: string;
+  carteiro: { id: string; nome: string | null } | null;
+  trocado: boolean;
+  avisos: string[];
+}
+
+export interface FiltroListagem {
+  unidadeId?: string;
+  busca?: string;
+  pagina?: number;
+  tamanho?: number;
 }

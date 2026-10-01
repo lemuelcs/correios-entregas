@@ -71,9 +71,9 @@ export function CapturaHomePage() {
         )}
         <AvisoEspaco />
 
-        {!hoje && carregando && <p className="text-[15px] text-[#5B6474]">Carregando o distrito de hoje…</p>}
+        {!hoje && carregando && <p className="text-[15px] text-[#5B6474]">Carregando a rota de hoje…</p>}
         {!hoje && !carregando && !online && (
-          <p className="text-[15px] text-[#5B6474]">Abra o app com internet para ver o distrito de hoje.</p>
+          <p className="text-[15px] text-[#5B6474]">Abra o app com internet para ver a rota de hoje.</p>
         )}
         {!hoje && !carregando && online && erroHoje && (
           <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-[15px] text-red-800">
@@ -83,14 +83,14 @@ export function CapturaHomePage() {
 
         {semDistrito && (
           <p role="alert" className="rounded-xl border border-[#E0A400] bg-[#FFFBEF] px-4 py-3 text-[15px] font-semibold text-[#7A4E00]">
-            Você não tem distrito hoje. Fale com o supervisor.
+            Você não tem rota hoje. Fale com o supervisor.
           </p>
         )}
 
         {hoje && hoje.distritos.length > 1 && (
           <div className="flex flex-col gap-1.5">
             <label htmlFor="distrito-hoje" className="text-sm font-semibold">
-              Distrito em que os pacotes entram
+              Rota em que os pacotes entram
             </label>
             <select
               id="distrito-hoje"
@@ -99,7 +99,7 @@ export function CapturaHomePage() {
               className="min-h-12 rounded-lg border border-[#D5DAE2] bg-white px-3 text-[15px]"
             >
               <option value="" disabled>
-                Escolha o distrito
+                Escolha a rota
               </option>
               {hoje.distritos.map((d) => (
                 <option key={d.distritoId} value={d.distritoId}>

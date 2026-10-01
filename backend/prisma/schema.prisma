@@ -283,6 +283,7 @@ model Unidade {
 
   distritos      Distrito[]
   pontosRetirada PontoRetirada[]
+  saidas         Saida[]
 
   @@index([canalProsioId])
   @@map("unidades")
@@ -319,6 +320,7 @@ model Usuario {
   eventos       ObjetoEvento[]
 
   cargasLiberadas    CargaDistrito[] @relation("CargaLiberadaPor")
+  saidasImportadas   Saida[]         @relation("SaidaImportadaPor")
   orientacoesCriadas Orientacao[]    @relation("OrientacaoCriadaPor")
 
   @@map("usuarios")
@@ -802,9 +804,36 @@ model EscalaDistrito {
   @@map("escalas_distrito")
 }
 
+// Saída do dia (ADR-019): um arquivo por unidade por saída, com todas as rotas.
+// `descartes` guarda só linha/rota/código/motivo (sem nome nem telefone).
+model Saida {
+  id             String   @id @default(uuid())
+  unidadeId      String
+  data           DateTime @db.Date
+  numero         Int
+  horario        String   @db.Char(5) // HH:MM (Brasília)
+  arquivoNome    String
+  importadaEm    DateTime
+  importadaPorId String?
+  aceitos        Int      @default(0)
+  descartados    Int      @default(0)
+  descartes      Json     @default("[]")
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @default(now()) @updatedAt
+
+  unidade      Unidade         @relation(fields: [unidadeId], references: [id])
+  importadaPor Usuario?        @relation("SaidaImportadaPor", fields: [importadaPorId], references: [id], onDelete: SetNull)
+  cargas       CargaDistrito[]
+
+  @@unique([unidadeId, data, numero])
+  @@map("saidas")
+}
+
 model CargaDistrito {
   id            String      @id @default(uuid())
   distritoId    String
+  // Saída que trouxe a rota (ADR-019); null = carga criada fora de uma saída (captura do rótulo, lista por rota).
+  saidaId       String?
   data          DateTime    @db.Date
   status        StatusCarga @default(CARREGADO)
   carteiroId    String? // snapshot na liberação
@@ -816,9 +845,11 @@ model CargaDistrito {
   distrito    Distrito    @relation(fields: [distritoId], references: [id])
   carteiro    Carteiro?   @relation(fields: [carteiroId], references: [id])
   liberadoPor Usuario?    @relation("CargaLiberadaPor", fields: [liberadoPorId], references: [id])
+  saida       Saida?      @relation(fields: [saidaId], references: [id], onDelete: SetNull)
   pacotes     PacoteDia[]
 
   @@unique([distritoId, data])
+  @@index([saidaId])
   @@map("cargas_distrito")
 }
 
