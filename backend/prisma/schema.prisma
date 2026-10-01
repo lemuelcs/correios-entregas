@@ -850,6 +850,8 @@ model PacoteDia {
   codigoDigitado    Boolean      @default(false)
   capturadoPorId    String? // Carteiro.id da última captura
   telefoneOutro     String? // fixo lido do rótulo (não é WhatsApp)
+  // Sinalizações ao supervisor (ex.: divergencia, nao_entregue_carteiro, retido_consentimento).
+  sinais            String[]     @default([])
   criadoEm          DateTime     @default(now())
   atualizadoEm      DateTime     @default(now()) @updatedAt
 
@@ -897,6 +899,8 @@ model Orientacao {
   respondidoEm     DateTime?
   valeAPartirDe    DateTime?        @db.Date
   criadaEm         DateTime         @default(now())
+  // Sinalizações da orientação (ex.: nao_entregue_carteiro, falha_envio_carteiro).
+  sinais           String[]         @default([])
 
   pacote        PacoteDia?     @relation(fields: [pacoteId], references: [id], onDelete: SetNull)
   pontoRetirada PontoRetirada? @relation(fields: [pontoRetiradaId], references: [id])

@@ -4,6 +4,7 @@ import { seController } from './se.controller';
 import { unidadesGestaoController } from './unidades-gestao.controller';
 import { usuariosGestaoController } from './usuarios-gestao.controller';
 import { configGlobalController } from './config-global.controller';
+import { canaisProsioController } from './canais-prosio.controller';
 
 const router = Router();
 
@@ -22,6 +23,12 @@ router.get('/unidades', (req, res, next) => unidadesGestaoController.list(req, r
 router.post('/unidades', (req, res, next) => unidadesGestaoController.create(req, res, next));
 router.get('/unidades/:id', (req, res, next) => unidadesGestaoController.getById(req, res, next));
 router.put('/unidades/:id', (req, res, next) => unidadesGestaoController.update(req, res, next));
+
+// ── Canais Prosio (entregas mediadas, ADR-012) ───────────────────────────────
+router.get('/canais-prosio', (req, res, next) => canaisProsioController.list(req, res, next));
+router.post('/canais-prosio', (req, res, next) => canaisProsioController.create(req, res, next));
+router.get('/canais-prosio/:id', (req, res, next) => canaisProsioController.getById(req, res, next));
+router.put('/canais-prosio/:id', (req, res, next) => canaisProsioController.update(req, res, next));
 
 // ── Usuarios ─────────────────────────────────────────────────────────────────
 router.get('/usuarios', (req, res, next) => usuariosGestaoController.list(req, res, next));

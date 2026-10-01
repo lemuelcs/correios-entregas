@@ -31,3 +31,57 @@ export async function aoAdicionarPacotesEmCargaLiberada(pacoteIds: string[]): Pr
     logger.error({ erro: err instanceof Error ? err.message : String(err), pacotes: pacoteIds.length }, 'entregas: falha no gancho de pacotes em carga liberada');
   }
 }
+
+// ——— Troca do carteiro do dia (task_03 → task_06) ——————————————————————————
+
+/**
+ * `notificarTrocaCarteiro(distritoId, data, carteiroNovoId)` é chamado DEPOIS
+ * do commit quando o carteiro do dia muda num distrito cuja carga da `data` já
+ * foi liberada (US-005.AC-3). A task_06 registra o reenvio do resumo das
+ * orientações pendentes ao novo carteiro. A implementação padrão não faz nada.
+ */
+export type GanchoTrocaCarteiro = (distritoId: string, data: Date, carteiroNovoId: string) => Promise<void>;
+
+const trocaSemEfeito: GanchoTrocaCarteiro = async () => {};
+let implementacaoTroca: GanchoTrocaCarteiro = trocaSemEfeito;
+
+/** Troca a implementação (task_06). Passe `null` para voltar ao padrão sem efeito. */
+export function registrarGanchoTrocaCarteiro(fn: GanchoTrocaCarteiro | null): void {
+  implementacaoTroca = fn ?? trocaSemEfeito;
+}
+
+/** Avisa a troca do carteiro do dia num distrito liberado. Nunca lança (só registra a falha). */
+export async function notificarTrocaCarteiro(distritoId: string, data: Date, carteiroNovoId: string): Promise<void> {
+  try {
+    await implementacaoTroca(distritoId, data, carteiroNovoId);
+  } catch (err) {
+    logger.error({ erro: err instanceof Error ? err.message : String(err), distritoId }, 'entregas: falha no gancho de troca de carteiro');
+  }
+}
+
+// ——— Reenvio por limite do canal (task_05 → task_06) ————————————————————
+
+/**
+ * `aoFalharPorLimiteDoCanal(pacoteId)` é chamado pelo webhook de status
+ * (task_05) quando o Prosio recusa o aviso por limite do canal
+ * (`failureReason` de aquecimento/cota; `avancarStatusPacote` → `reenfileirar`).
+ * A task_06 registra o reenfileiramento (30 min depois, até as 20h) no
+ * AvisoWorker. A implementação padrão não faz nada.
+ */
+export type GanchoLimiteCanal = (pacoteId: string) => Promise<void>;
+
+const limiteSemEfeito: GanchoLimiteCanal = async () => {};
+let implementacaoLimite: GanchoLimiteCanal = limiteSemEfeito;
+
+export function registrarGanchoLimiteCanal(fn: GanchoLimiteCanal | null): void {
+  implementacaoLimite = fn ?? limiteSemEfeito;
+}
+
+/** Nunca lança: o status já foi gravado; uma falha aqui só é registrada. */
+export async function aoFalharPorLimiteDoCanal(pacoteId: string): Promise<void> {
+  try {
+    await implementacaoLimite(pacoteId);
+  } catch (err) {
+    logger.error({ erro: err instanceof Error ? err.message : String(err), pacoteId }, 'entregas: falha no gancho de limite do canal');
+  }
+}
