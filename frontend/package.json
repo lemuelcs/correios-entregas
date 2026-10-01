@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:e2e": "VITE_E2E=1 vite build --outDir dist-e2e",
     "preview": "vite preview",
     "lint": "eslint src/",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e:captura": "npm run build:e2e && playwright test -c playwright.captura.config.ts"
   },
   "dependencies": {
     "idb": "^8.0.3",
@@ -22,6 +24,7 @@
     "zxing-wasm": "^3.1.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@tailwindcss/vite": "^4.3.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",

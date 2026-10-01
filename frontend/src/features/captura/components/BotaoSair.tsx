@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuthStore } from '@/stores/auth.store';
 import { obterCaptureQueue, type CaptureQueue } from '../captureQueue';
+import { CHAVE_HOJE } from '../captura.store';
 
 export function mensagemSaidaComFila(n: number): string {
   return n === 1
@@ -20,6 +21,7 @@ export function BotaoSair({ fila = obterCaptureQueue(), className }: { fila?: Ca
 
   async function sair() {
     await fila.limpar();
+    localStorage.removeItem(CHAVE_HOJE);
     logout();
     navigate('/login', { replace: true });
   }
