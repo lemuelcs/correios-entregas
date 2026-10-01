@@ -6,6 +6,11 @@
  * - UNIDADE → `papel: 'agente'`; em canal compartilhado, com a
  *   `prosioUnidadeRef` da unidade (P3: o Prosio põe o agente só nessa caixa).
  * - Outros papéis → 403.
+ *
+ * `ATENDIMENTO_DOMINIO` (ex.: `correiosdev.com`): quando definida, vai como
+ * `dominio` no pedido, e o Prosio devolve a URL do Chatwoot no domínio que aceita
+ * ser embutido por este site. Sem ela, o Prosio usa o endereço padrão dele
+ * (`chat.prosio.com.br`), que recusa o iframe fora dos domínios dele.
  */
 import type { Prisma, Role } from '@prisma/client';
 import { prisma } from '../../shared/utils/prisma';
@@ -39,6 +44,17 @@ export function perfilAtendimento(role: Role, unidade: UnidadeAtendimento | null
     return unidade?.canal?.compartilhado && ref ? { papel: 'agente', unidadeRef: ref } : { papel: 'agente' };
   }
   throw new AppError(403, 'Acesso negado');
+}
+
+/**
+ * Domínio pedido ao Prosio para a sessão, a partir de `ATENDIMENTO_DOMINIO`.
+ * Aceita o valor com esquema, barra final ou maiúsculas (`https://CorreiosDev.com/`)
+ * e devolve só o host; vazio ou ausente → `undefined` (o pedido segue sem `dominio`).
+ */
+export function dominioAtendimento(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const bruto = (env.ATENDIMENTO_DOMINIO ?? '').trim().toLowerCase();
+  const host = bruto.replace(/^[a-z][a-z0-9+.-]*:\/\//, '').replace(/[/?#].*$/, '');
+  return host || undefined;
 }
 
 export interface UsuarioSessao {
@@ -98,6 +114,7 @@ export async function abrirSessaoAtendimento(
   const u = await prisma.usuario.findUnique({ where: { id: usuario.sub }, select: { id: true, nome: true, email: true } });
   if (!u) throw new AppError(401, 'Não autenticado');
 
+  const dominio = dominioAtendimento();
   const log = { usuarioId: u.id, unidadeId: unidade?.id ?? pedido.unidadeId ?? null, canalId: canal.id, papel: perfil.papel };
   try {
     const sessao = await cliente.criarSessaoAtendimento(resolverCanal(canal), {
@@ -106,9 +123,10 @@ export async function abrirSessaoAtendimento(
       // O Chatwoot exige e-mail; supervisor que entra por matrícula ganha um sintético estável.
       email: u.email ?? `usuario-${u.id}@usuarios.correios-entregas.local`,
       papel: perfil.papel,
+      ...(dominio ? { dominio } : {}),
       ...(perfil.unidadeRef ? { unidadeRef: perfil.unidadeRef } : {}),
     });
-    logger.info({ ...log, unidadeRef: perfil.unidadeRef ?? null }, 'entregas.atendimento.sessao');
+    logger.info({ ...log, unidadeRef: perfil.unidadeRef ?? null, dominio: dominio ?? null }, 'entregas.atendimento.sessao');
     return sessao;
   } catch (err) {
     if (err instanceof ProsioError) {

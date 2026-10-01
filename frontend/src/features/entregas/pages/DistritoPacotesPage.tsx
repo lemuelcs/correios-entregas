@@ -1,7 +1,8 @@
 /**
  * Pacotes do distrito no dia (US-038): status de cada pacote, orientação
  * vigente, resposta do carteiro e sinalizações; filtros por status, busca e
- * paginação. Atualiza sozinho a cada 30 s (ADR-015).
+ * paginação. Atualiza sozinho a cada 30 s (ADR-015). Cada pacote ainda não
+ * entregue aceita uma orientação manual do supervisor (US-026).
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
@@ -22,6 +23,7 @@ import {
 import { usePolling } from '../usePolling';
 import { Botao, BotaoLink, CLASSE_ENTRADA, Cartao, Carregando, CodigoDistrito, FOCO, FalhaCarga, Pilula } from '../components/ui';
 import { DialogoFoto, DialogoHistorico, DialogoRemover, OrigemDoPacote } from '../components/CapturaSupervisor';
+import { DialogoOrientacao } from '../components/DialogoOrientacao';
 
 const RESPOSTAS_CARTEIRO: Record<string, string> = {
   VI: 'Vi',
@@ -65,6 +67,7 @@ export function DistritoPacotesPage() {
   const [historicoDe, setHistoricoDe] = useState<PacoteDistrito | null>(null);
   const [fotoDe, setFotoDe] = useState<PacoteDistrito | null>(null);
   const [removerDe, setRemoverDe] = useState<PacoteDistrito | null>(null);
+  const [orientarDe, setOrientarDe] = useState<PacoteDistrito | null>(null);
   const unidadeId = user?.role === 'GESTAO' ? unidadeGestaoId ?? undefined : undefined;
 
   const atualizar = useCallback(async (silencioso = false) => {
@@ -92,6 +95,7 @@ export function DistritoPacotesPage() {
   const dados = lista && lista.cargaId === cargaId ? lista : null;
   const porStatus = dados?.resumo.porStatus ?? {};
   const podeRemover = !!dados && !dados.somenteLeitura && user?.role === 'UNIDADE';
+  const podeOrientar = !!dados && !dados.somenteLeitura && (user?.role === 'UNIDADE' || user?.role === 'GESTAO');
   const filtros: Array<StatusPacote | null> = [null, ...ORDEM_STATUS_PACOTE.filter((s) => (porStatus[s] ?? 0) > 0 || s === filtro.status)];
 
   return (
@@ -192,13 +196,18 @@ export function DistritoPacotesPage() {
                       </td>
                       <td className="whitespace-nowrap px-5 py-3.5 text-right">
                         {conversa && <Link to="/entregas/atendimento" className="font-semibold text-ce-azul">Ver conversa</Link>}
-                        {p.origem && (
+                        {((podeOrientar && p.status !== 'ENTREGUE') || p.origem) && (
                           <div className="flex flex-wrap justify-end gap-x-1">
-                            <Botao variante="texto" className="!px-2" onClick={() => setHistoricoDe(p)} aria-label={`Histórico de ${p.codigo}`}>Histórico</Botao>
-                            {p.origem !== 'PLANILHA' && (
+                            {podeOrientar && p.status !== 'ENTREGUE' && (
+                              <Botao variante="texto" className="!px-2" onClick={() => setOrientarDe(p)} aria-label={`Registrar orientação para ${p.codigo}`}>Registrar orientação</Botao>
+                            )}
+                            {p.origem && (
+                              <Botao variante="texto" className="!px-2" onClick={() => setHistoricoDe(p)} aria-label={`Histórico de ${p.codigo}`}>Histórico</Botao>
+                            )}
+                            {p.origem && p.origem !== 'PLANILHA' && (
                               <Botao variante="texto" className="!px-2" onClick={() => setFotoDe(p)} aria-label={`Foto do rótulo de ${p.codigo}`}>Foto</Botao>
                             )}
-                            {podeRemover && p.status !== 'ENTREGUE' && (
+                            {p.origem && podeRemover && p.status !== 'ENTREGUE' && (
                               <Botao variante="texto" className="!px-2 !text-ce-erro" onClick={() => setRemoverDe(p)} aria-label={`Remover ${p.codigo}`}>Remover</Botao>
                             )}
                           </div>
@@ -226,6 +235,16 @@ export function DistritoPacotesPage() {
         </>
       )}
 
+      <DialogoOrientacao
+        pacote={orientarDe}
+        unidadeId={unidadeId}
+        aoFechar={() => setOrientarDe(null)}
+        aoRegistrar={async () => {
+          setOrientarDe(null);
+          await atualizar(true);
+        }}
+        aoRecusar={() => void atualizar(true)}
+      />
       <DialogoHistorico pacote={historicoDe} unidadeId={unidadeId} aoFechar={() => setHistoricoDe(null)} />
       <DialogoFoto pacote={fotoDe} unidadeId={unidadeId} aoFechar={() => setFotoDe(null)} />
       <DialogoRemover

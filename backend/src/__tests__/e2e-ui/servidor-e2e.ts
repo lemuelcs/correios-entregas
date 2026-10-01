@@ -222,6 +222,18 @@ async function main(): Promise<void> {
   /** URLs de sessão que o Prosio falso devolveu, na ordem. */
   controle.get('/prosio/sessoes', rota(async () => prosio.sessoes().map((s) => (s.resposta?.corpo as { url?: string } | undefined)?.url ?? null)));
 
+  /** Mensagens que o Prosio falso recebeu (`POST /api/v1/messages`), na ordem: `{ to, body, reference }`. */
+  controle.get('/prosio/mensagens', rota(async () => prosio.mensagens().map((m) => {
+    const corpo = (m.corpo ?? {}) as { to?: string; body?: string; reference?: string };
+    return { to: corpo.to ?? null, body: corpo.body ?? null, reference: corpo.reference ?? null };
+  })));
+
+  /** Marca o pacote como entregue por fora da tela (como o rastreio faria). */
+  controle.post('/pacotes/:id/entregue', rota(async (req) => {
+    await prisma.pacoteDia.update({ where: { id: String(req.params.id) }, data: { status: 'ENTREGUE' } });
+    return { ok: true };
+  }));
+
   /** Callback de status assinado, como o Prosio faria: `{ pacoteId, status }`. */
   controle.post('/prosio/status', rota(async (req) => {
     if (!canalAtual) throw new Error('nenhum canal no cenário');

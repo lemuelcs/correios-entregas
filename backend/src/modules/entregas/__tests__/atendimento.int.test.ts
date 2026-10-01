@@ -67,6 +67,39 @@ describe('IT-048 POST /entregas/atendimento/sessao', () => {
     expect(s1.unidadeRef).toBeUndefined();
   });
 
+  describe('ATENDIMENTO_DOMINIO', () => {
+    const anterior = process.env.ATENDIMENTO_DOMINIO;
+    afterEach(() => {
+      if (anterior === undefined) delete process.env.ATENDIMENTO_DOMINIO;
+      else process.env.ATENDIMENTO_DOMINIO = anterior;
+    });
+
+    async function supervisorComCanal() {
+      const canal = await criarCanal({ baseUrl: prosio.url });
+      const unidade = await criarUnidade({ canalProsioId: canal.canal.id });
+      return criarSupervisor({ unidadeId: unidade.id });
+    }
+
+    it('definida → o pedido ao Prosio leva `dominio`', async () => {
+      process.env.ATENDIMENTO_DOMINIO = 'correiosdev.com';
+      const sup = await supervisorComCanal();
+      expect((await sessao(authHeader(sup))).status).toBe(200);
+      expect(prosio.sessoes()).toHaveLength(1);
+      expect(prosio.sessoes()[0].corpo).toMatchObject({ dominio: 'correiosdev.com', usuario: { papel: 'agente' } });
+    });
+
+    it('ausente ou vazia → o pedido segue sem `dominio`', async () => {
+      const sup = await supervisorComCanal();
+      delete process.env.ATENDIMENTO_DOMINIO;
+      expect((await sessao(authHeader(sup))).status).toBe(200);
+      process.env.ATENDIMENTO_DOMINIO = '  ';
+      expect((await sessao(authHeader(sup))).status).toBe(200);
+      const corpos = prosio.sessoes().map((s) => s.corpo);
+      expect(corpos).toHaveLength(2);
+      for (const corpo of corpos) expect(corpo).not.toHaveProperty('dominio');
+    });
+  });
+
   it('usuário CARTEIRO → 403', async () => {
     const unidade = await criarUnidade();
     const carteiro = await prisma.usuario.create({

@@ -135,6 +135,10 @@ services:
       # só no .env da raiz (gitignored); vazio aqui sobrescreve o backend/.env.
       ENTREGAS_CRYPTO_KEY: ${CORREIOS_ENTREGAS_CRYPTO_KEY:-}
       SEU_RASTREIO_TOKEN: ${CORREIOS_SEU_RASTREIO_TOKEN:-}
+      # Domínio do iframe do Chatwoot na tela Atendimento (ex.: correiosdev.com):
+      # vai como `dominio` na sessão pedida ao Prosio. Vazio = URL padrão do
+      # Prosio (chat.prosio.com.br), que recusa ser embutida.
+      ATENDIMENTO_DOMINIO: ${CORREIOS_ATENDIMENTO_DOMINIO:-}
       # Banco dedicado dos testes de integração (nome precisa terminar em _test).
       TEST_DATABASE_URL: ${CORREIOS_TEST_DATABASE_URL:-}
       # Captura do rótulo (app do carteiro): fotos no volume `correios_fotos`,
