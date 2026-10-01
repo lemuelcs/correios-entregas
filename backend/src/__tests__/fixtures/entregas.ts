@@ -24,7 +24,8 @@ import { cifrar } from '../../shared/utils/cripto';
 import { calculateS10CheckDigit } from '../../shared/utils/s10';
 
 let seq = 0;
-const lote = randomBytes(2).toString('hex');
+// Maiúsculo: matrículas são gravadas normalizadas (o login converte para maiúsculas).
+const lote = randomBytes(2).toString('hex').toUpperCase();
 
 /** Sequencial único no processo, para campos `@unique`. */
 export function proximo(): number {
