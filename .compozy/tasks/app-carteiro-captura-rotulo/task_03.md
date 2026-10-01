@@ -75,7 +75,7 @@ Cases assigned from `_tests.md`, the test contract — read each ID's full defin
 - [x] IT-077, IT-078, IT-079 — remoção pelo supervisor
 - [x] IT-080, IT-081, IT-082, IT-083, IT-084 — lista estendida, histórico, foto e isolamento
 - [x] IT-085, IT-086 — transferências no quadro
-- [x] IT-087, IT-088, IT-089 — pendências e liberação
+- [x] IT-087, IT-088, IT-089 — pendências e liberação (IT-088 escrito, mas fica em `skip` até a rota `POST /cargas/:cargaId/liberar` — task_06 do monitoramento — existir; ativa sozinho)
 
 ## Success Criteria
 - Every assigned test case implemented and passing
