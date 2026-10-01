@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Role } from '@prisma/client';
 import { prisma } from '../utils/prisma';
+import { AppError } from './error-handler.middleware';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production-32chars';
 
@@ -9,6 +10,7 @@ interface JwtPayload {
   sub: string;
   role: Role;
   unidadeId?: string;
+  senhaTemporaria?: boolean;
 }
 
 // ——— Estado do usuário (US-002.EC-3 e EC-5) ——————————————————————————————
@@ -76,7 +78,13 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
         return;
       }
       // Papel e unidade vêm do banco: um supervisor movido passa a ver só a unidade nova.
-      req.user = { sub: payload.sub, role: estado.role, unidadeId: estado.unidadeId ?? undefined };
+      // O claim `senhaTemporaria` segue do token: `requireSenhaDefinitiva` depende dele.
+      req.user = {
+        sub: payload.sub,
+        role: estado.role,
+        unidadeId: estado.unidadeId ?? undefined,
+        senhaTemporaria: payload.senhaTemporaria,
+      };
       next();
     },
     (err: unknown) => next(err),
@@ -95,4 +103,32 @@ export function requireRole(...roles: Role[]) {
     }
     next();
   };
+}
+
+/**
+ * Bloqueia as rotas do app enquanto a senha for temporária (403
+ * `troca_de_senha_obrigatoria`). O claim vem do login; se ele diz "temporária",
+ * confere o banco, para que o mesmo token passe logo depois de `POST /auth/trocar-senha`.
+ * Usar depois de `authenticate`.
+ */
+export async function requireSenhaDefinitiva(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.user) {
+      next(new AppError(401, 'Não autenticado'));
+      return;
+    }
+    if (req.user.senhaTemporaria) {
+      const usuario = await prisma.usuario.findUnique({
+        where: { id: req.user.sub },
+        select: { senhaTemporaria: true },
+      });
+      if (!usuario || usuario.senhaTemporaria) {
+        next(new AppError(403, 'Troque a senha temporária para continuar', { code: 'troca_de_senha_obrigatoria' }));
+        return;
+      }
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
 }

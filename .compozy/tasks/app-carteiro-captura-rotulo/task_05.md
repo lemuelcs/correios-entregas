@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 title: Telas da captura e E2E
 type: frontend
 complexity: high
@@ -34,19 +34,19 @@ Fecha também as três jornadas E2E com Playwright e o job na CI. Segue o protó
 - MUST implementar `PacotePage` (editar; Remover só quando permitido; senão "Para remover, fale com o supervisor").
 - MUST ter alvos de toque ≥44 px, contraste AA e campos com `<label>`.
 - MUST suportar, só em build de teste, `?e2eImage=<fixture>` no `CameraPage` para substituir o `getUserMedia`.
-- MUST criar a suíte Playwright das três jornadas e o job na CI (backend com `CAPTURA_AI_PROVIDER=fake`, banco `_test` semeado).
+- MUST acrescentar as três jornadas da captura à suíte Playwright do monitoramento (job `e2e-ui`, task_07 de lá), com backend em `CAPTURA_AI_PROVIDER=fake` e banco `_test` semeado; se o job ainda não existir, criá-lo nos mesmos moldes.
 </requirements>
 
 ## Subtasks
-- [ ] 5.1 Rotas e layout de tela cheia da captura.
-- [ ] 5.2 Início do distrito do dia.
-- [ ] 5.3 Câmera, digitação de código e enfileiramento.
-- [ ] 5.4 Aviso de salvo com desfazer.
-- [ ] 5.5 Lista Para conferir e tela de conferência, inclusive transferência.
-- [ ] 5.6 Edição e remoção de pacote.
-- [ ] 5.7 Acessibilidade conforme o PRD.
-- [ ] 5.8 Suíte Playwright e job na CI.
-- [ ] 5.9 Todos os testes atribuídos passando.
+- [x] 5.1 Rotas e layout de tela cheia da captura.
+- [x] 5.2 Início do distrito do dia.
+- [x] 5.3 Câmera, digitação de código e enfileiramento.
+- [x] 5.4 Aviso de salvo com desfazer.
+- [x] 5.5 Lista Para conferir e tela de conferência, inclusive transferência.
+- [x] 5.6 Edição e remoção de pacote.
+- [x] 5.7 Acessibilidade conforme o PRD.
+- [x] 5.8 Suíte Playwright e job na CI.
+- [x] 5.9 Todos os testes atribuídos passando.
 
 ## Implementation Details
 
@@ -80,13 +80,13 @@ As páginas ficam em `frontend/src/features/captura/pages/` e o estado em `front
 
 Cases assigned from `_tests.md`, the test contract — read each ID's full definition there before writing tests.
 
-- [ ] UT-091, UT-092, UT-093, UT-094, UT-095, UT-096, UT-097, UT-098, UT-099, UT-100 — conferência
-- [ ] UT-101, UT-102, UT-103, UT-104, UT-105 — início e aviso de salvo
-- [ ] UT-106, UT-107, UT-108, UT-109, UT-110 — câmera
-- [ ] UT-120 — `PacotePage`
-- [ ] E2E-001 — captura na triagem, com login e troca de senha
-- [ ] E2E-002 — conferência
-- [ ] E2E-003 — sem sinal para online
+- [x] UT-091, UT-092, UT-093, UT-094, UT-095, UT-096, UT-097, UT-098, UT-099, UT-100 — conferência
+- [x] UT-101, UT-102, UT-103, UT-104, UT-105 — início e aviso de salvo
+- [x] UT-106, UT-107, UT-108, UT-109, UT-110 — câmera
+- [x] UT-120 — `PacotePage`
+- [x] E2E-001 — captura na triagem, com login e troca de senha
+- [x] E2E-002 — conferência
+- [x] E2E-003 — sem sinal para online
 
 ## Success Criteria
 - Every assigned test case implemented and passing

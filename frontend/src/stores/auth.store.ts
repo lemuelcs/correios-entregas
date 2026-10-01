@@ -6,7 +6,7 @@ interface Unidade {
   nome: string;
 }
 
-interface User {
+export interface User {
   id: string;
   nome: string;
   cpf?: string;
@@ -14,6 +14,8 @@ interface User {
   role: 'GESTAO' | 'UNIDADE' | 'CARTEIRO' | 'DESTINATARIO';
   unidadeId?: string;
   unidade?: Unidade | null;
+  /** Senha inicial definida pelo supervisor: o carteiro precisa trocá-la antes de usar o app. */
+  senhaTemporaria?: boolean;
 }
 
 interface AuthState {

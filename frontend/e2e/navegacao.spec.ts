@@ -105,13 +105,14 @@ test('E2E-015 — papéis legados e favoritos antigos', async ({ page }) => {
   const legado = await controle<{ carteiro: { email: string; senha: string } }>('/cenarios/carteiro', {});
   const c = await cenarioSupervisor();
 
-  // Carteiro legado: shell antigo, sem os três módulos nem o SGPD v2.
+  // Carteiro: fica na área /carteiro (desde a captura do rótulo, a página inicial é o app
+  // /carteiro/captura), sem os três módulos nem o SGPD v2.
   await entrarPelaTela(page, legado.carteiro.email, legado.carteiro.senha);
-  await expect(page).toHaveURL(/\/carteiro$/);
+  await expect(page).toHaveURL(/\/carteiro\/captura$/);
   await expect(page.getByRole('navigation', { name: 'Menu principal' })).toHaveCount(0);
   await expect(page.getByText('SGPD v2')).toHaveCount(0);
   await page.goto('/entregas/carregar');
-  await expect(page).toHaveURL(/\/carteiro$/);
+  await expect(page).toHaveURL(/\/carteiro\/captura$/);
   await expect(page.getByText('SGPD v2')).toHaveCount(0);
   await expect(page.getByText('Carregar Dados')).toHaveCount(0);
 

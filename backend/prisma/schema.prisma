@@ -202,6 +202,23 @@ enum OrigemOrientacao {
   SUPERVISOR
 }
 
+// Captura do rótulo (app do carteiro).
+enum OrigemPacote {
+  PLANILHA
+  FOTO
+  PLANILHA_FOTO
+}
+
+enum ResultadoCapturaTipo {
+  PROCESSANDO
+  SALVO
+  PARA_CONFERIR
+  TRANSFERENCIA_PENDENTE
+  RECUSADO
+  DESCARTADO
+  DESFEITO
+}
+
 // ——— MODELS ———————————————————————————————————————————————————
 
 model SuperintendenciaEstadual {
@@ -272,25 +289,29 @@ model Unidade {
 }
 
 model Usuario {
-  id                        String   @id @default(uuid())
+  id                        String    @id @default(uuid())
   unidadeId                 String?
-  cpf                       String?  @unique
-  email                     String?  @unique
-  matricula                 String?  @unique
+  cpf                       String?   @unique
+  email                     String?   @unique
+  matricula                 String?   @unique
   senha                     String
   nome                      String
   role                      Role
   telefoneCelular           String?
   telefoneComercial         String?
   endResidencialCidade      String?
-  endResidencialUf          String?  @db.Char(2)
-  endResidencialCep         String?  @db.Char(8)
+  endResidencialUf          String?   @db.Char(2)
+  endResidencialCep         String?   @db.Char(8)
   endResidencialLogradouro  String?
   endResidencialNumero      String?
   endResidencialComplemento String?
-  ativo                     Boolean  @default(true)
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  ativo                     Boolean   @default(true)
+  // Senha do carteiro (captura): troca obrigatória e bloqueio por tentativas.
+  senhaTemporaria           Boolean   @default(false)
+  tentativasFalhas          Int       @default(0)
+  bloqueadoAte              DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 
   unidade       Unidade?       @relation(fields: [unidadeId], references: [id])
   carteiro      Carteiro?
@@ -824,6 +845,11 @@ model PacoteDia {
   mediacaoCaseId    String?
   rastreioDescricao String?
   rastreioEm        DateTime?
+  // Captura do rótulo.
+  origem            OrigemPacote @default(PLANILHA)
+  codigoDigitado    Boolean      @default(false)
+  capturadoPorId    String? // Carteiro.id da última captura
+  telefoneOutro     String? // fixo lido do rótulo (não é WhatsApp)
   // Sinalizações ao supervisor (ex.: divergencia, nao_entregue_carteiro, retido_consentimento).
   sinais            String[]     @default([])
   criadoEm          DateTime     @default(now())
@@ -888,12 +914,13 @@ model Orientacao {
 
 model EventoPacote {
   id       String   @id @default(uuid())
-  pacoteId String
+  // Opcional: a remoção física do PacoteDia preserva o histórico (o evento REMOVIDO guarda o snapshot).
+  pacoteId String?
   tipo     String
   dados    Json
   criadoEm DateTime @default(now())
 
-  pacote PacoteDia @relation(fields: [pacoteId], references: [id], onDelete: Cascade)
+  pacote PacoteDia? @relation(fields: [pacoteId], references: [id], onDelete: SetNull)
 
   @@index([pacoteId, criadoEm])
   @@map("eventos_pacote")
@@ -904,6 +931,33 @@ model DescadastroWhatsapp {
   em           DateTime @default(now())
 
   @@map("descadastros_whatsapp")
+}
+
+// Uma foto de rótulo enviada pelo app do carteiro; id = capturaId gerado no aparelho (idempotência).
+model Captura {
+  id              String               @id
+  carteiroId      String
+  distritoId      String
+  data            DateTime             @db.Date
+  cargaId         String?
+  codigo          String?
+  resultado       ResultadoCapturaTipo
+  recusa          String?
+  pacoteId        String?
+  campos          Json? // CamposLidos
+  pacoteAntes     Json? // snapshot para desfazer
+  cargaOrigemId   String? // se TRANSFERENCIA_PENDENTE
+  fotoKey         String?
+  fotoExcluidaEm  DateTime?
+  llmInputTokens  Int?
+  llmOutputTokens Int?
+  capturadoEm     DateTime
+  recebidoEm      DateTime             @default(now())
+  processadoEm    DateTime?
+
+  @@index([carteiroId, resultado])
+  @@index([cargaId, resultado])
+  @@map("capturas")
 }
 
 // Idempotência do webhook do Prosio.

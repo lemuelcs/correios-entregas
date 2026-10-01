@@ -12,6 +12,8 @@ import { EntregasShell } from './features/entregas/layout/EntregasShell';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
+import { CriarSenhaPage } from './pages/CriarSenhaPage';
+import { CapturaApp } from './features/captura/pages/CapturaApp';
 import { CarteiroHomePage } from './features/carteiro/pages/CarteiroHomePage';
 import { ColetaPage } from './features/carteiro/pages/ColetaPage';
 import { RotaPage } from './features/carteiro/pages/RotaPage';
@@ -119,6 +121,10 @@ createRoot(document.getElementById('root')!).render(
           <Route path="comunicacao-legado" element={<ComunicacaoPage />} />
           <Route path="*" element={<Navigate to="/unidade" replace />} />
         </Route>
+
+        {/* App do carteiro (captura): tela cheia, fora do CarteiroShell legado */}
+        <Route path="/carteiro/criar-senha" element={<CriarSenhaPage />} />
+        <Route path="/carteiro/captura/*" element={<CapturaApp />} />
 
         {/* Carteiro */}
         <Route path="/carteiro" element={<CarteiroShell />}>

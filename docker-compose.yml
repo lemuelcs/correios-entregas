@@ -137,11 +137,24 @@ services:
       SEU_RASTREIO_TOKEN: ${CORREIOS_SEU_RASTREIO_TOKEN:-}
       # Banco dedicado dos testes de integração (nome precisa terminar em _test).
       TEST_DATABASE_URL: ${CORREIOS_TEST_DATABASE_URL:-}
+      # Captura do rótulo (app do carteiro): fotos no volume `correios_fotos`,
+      # extração com Gemini (chave só no .env da raiz; vazia = tudo cai em
+      # "Para conferir") e retenção das fotos (dias após o dia do pacote; máximo
+      # absoluto contado da captura).
+      FOTOS_DIR: /data/fotos
+      CAPTURA_AI_PROVIDER: ${CORREIOS_CAPTURA_AI_PROVIDER:-google}
+      CAPTURA_AI_MODEL: ${CORREIOS_CAPTURA_AI_MODEL:-gemini-3.1-flash-lite}
+      CAPTURA_AI_API_KEY: ${CORREIOS_CAPTURA_AI_API_KEY:-}
+      FOTO_RETENCAO_DIAS_APOS_FIM: ${CORREIOS_FOTO_RETENCAO_DIAS_APOS_FIM:-30}
+      FOTO_RETENCAO_MAX_DIAS: ${CORREIOS_FOTO_RETENCAO_MAX_DIAS:-90}
       APP_URL: http://backend:3002
       PORT: 3002
       FRONTEND_URL: http://localhost:5181
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      # Fotos dos rótulos (ADR-010); excluídas pelo job diário `foto-retencao`.
+      - correios_fotos:/data/fotos
     # SEM bind mount do código (removido em 2026-07-28 junto com a troca para o
     # Dockerfile de produção): `./backend:/app/backend` montava a árvore do host
     # por cima de `/app/backend` da imagem, o que apagaria o `dist/` compilado
@@ -291,6 +304,7 @@ services:
 volumes:
   osrm-data:
   correios_redis_data:
+  correios_fotos:
 
 networks:
   default:

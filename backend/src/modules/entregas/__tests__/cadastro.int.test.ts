@@ -134,6 +134,21 @@ describe('Distritos', () => {
 });
 
 describe('Carteiros', () => {
+  it('IT-113 (captura) matrícula sem máscara com tamanho ≠ 8 → 400 matricula_invalida, na criação e na edição', async () => {
+    const a = await cenario();
+    const url = '/api/v1/entregas/cadastro/carteiros';
+    for (const matricula of ['8301552', '8.301.552-01', 'ABC']) {
+      const r = await post(url, a.auth, { nome: 'Rui', matricula, whatsapp: '(61) 98876-1190' });
+      expect(r.status).toBe(400);
+      expect(r.body.error).toBe('matricula_invalida');
+    }
+    const ok = await post(url, a.auth, { nome: 'Rui', matricula: '8.301.552-7', whatsapp: '(61) 98876-1190' });
+    expect(ok.status).toBe(201);
+    const edicao = await put(`${url}/${ok.body.id}`, a.auth, { matricula: '1234567' });
+    expect(edicao.status).toBe(400);
+    expect(edicao.body.error).toBe('matricula_invalida');
+  });
+
   it('IT-011 WhatsApp inválido → 400; matrícula repetida → 409; WhatsApp repetido → 409; outra unidade → 409 detalhe unidade', async () => {
     const a = await cenario();
     const b = await cenario();

@@ -1,0 +1,206 @@
+[
+  {
+    "arquivo": "rotulo-completo.jpg",
+    "descricao": "Code 128 do objeto, código do CEP e DataMatrix SIGEP com número 17, complemento CASA e telefone.",
+    "esperado": {
+      "objeto": "OY716488072BR",
+      "cepLinear": "72115040",
+      "dataMatrixRaw": "72115040000177000290000001051OY716488072BR2500000000000067599079032200100017CASA                00000061993401287-00.000000-00.000000|                              ",
+      "multiplos": false
+    },
+    "rotulos": [
+      {
+        "codigo": "OY716488072BR",
+        "dataMatrix": "72115040000177000290000001051OY716488072BR2500000000000067599079032200100017CASA                00000061993401287-00.000000-00.000000|                              ",
+        "destinatario": {
+          "nome": "ALINE RODRIGUES",
+          "logradouro": "QNC 4",
+          "numero": "17",
+          "complemento": "CASA",
+          "bairro": "Taguatinga Norte",
+          "cep": "72115040",
+          "cidade": "Brasilia",
+          "uf": "DF",
+          "telefoneImpresso": "(61) 99340-1287"
+        }
+      }
+    ]
+  },
+  {
+    "arquivo": "rotulo-sem-datamatrix.jpg",
+    "descricao": "Só os dois Code 128 (objeto e CEP), sem DataMatrix.",
+    "esperado": {
+      "objeto": "AA123456785BR",
+      "cepLinear": "71919360",
+      "dataMatrixRaw": null,
+      "multiplos": false
+    },
+    "rotulos": [
+      {
+        "codigo": "AA123456785BR",
+        "dataMatrix": null,
+        "destinatario": {
+          "nome": "JOSE CARLOS PEREIRA",
+          "logradouro": "Rua 25 Norte",
+          "numero": "5",
+          "complemento": "APTO 1203",
+          "bairro": "Aguas Claras",
+          "cep": "71919360",
+          "cidade": "Brasilia",
+          "uf": "DF",
+          "telefoneImpresso": "(61) 98765-4321"
+        }
+      }
+    ]
+  },
+  {
+    "arquivo": "rotulo-dm-sem-telefone.jpg",
+    "descricao": "DataMatrix com o telefone zerado (000000000000); nenhum telefone impresso.",
+    "esperado": {
+      "objeto": "OY716488109BR",
+      "cepLinear": "72115040",
+      "dataMatrixRaw": "72115040000177000290000001051OY716488109BR2500000000000067599079032200100017CASA                00000000000000000-00.000000-00.000000|                              ",
+      "multiplos": false
+    },
+    "rotulos": [
+      {
+        "codigo": "OY716488109BR",
+        "dataMatrix": "72115040000177000290000001051OY716488109BR2500000000000067599079032200100017CASA                00000000000000000-00.000000-00.000000|                              ",
+        "destinatario": {
+          "nome": "MARCOS VINICIUS LIMA",
+          "logradouro": "QNC 4",
+          "numero": "17",
+          "complemento": "CASA",
+          "bairro": "Taguatinga Norte",
+          "cep": "72115040",
+          "cidade": "Brasilia",
+          "uf": "DF",
+          "telefoneImpresso": null
+        }
+      }
+    ]
+  },
+  {
+    "arquivo": "rotulo-codigo-danificado.jpg",
+    "descricao": "Code 128 do objeto riscado (ilegível) e sem DataMatrix; o código do CEP continua legível.",
+    "esperado": {
+      "objeto": null,
+      "cepLinear": "71919360",
+      "dataMatrixRaw": null,
+      "multiplos": false
+    },
+    "rotulos": [
+      {
+        "codigo": "AA123456785BR",
+        "dataMatrix": null,
+        "destinatario": {
+          "nome": "JOSE CARLOS PEREIRA",
+          "logradouro": "Rua 25 Norte",
+          "numero": "5",
+          "complemento": "APTO 1203",
+          "bairro": "Aguas Claras",
+          "cep": "71919360",
+          "cidade": "Brasilia",
+          "uf": "DF",
+          "telefoneImpresso": "(61) 98765-4321"
+        }
+      }
+    ]
+  },
+  {
+    "arquivo": "rotulo-dois.jpg",
+    "descricao": "Dois rótulos na mesma foto (completo e sem DataMatrix), lado a lado.",
+    "esperado": {
+      "objeto": null,
+      "cepLinear": null,
+      "dataMatrixRaw": null,
+      "multiplos": true
+    },
+    "rotulos": [
+      {
+        "codigo": "OY716488072BR",
+        "dataMatrix": "72115040000177000290000001051OY716488072BR2500000000000067599079032200100017CASA                00000061993401287-00.000000-00.000000|                              ",
+        "destinatario": {
+          "nome": "ALINE RODRIGUES",
+          "logradouro": "QNC 4",
+          "numero": "17",
+          "complemento": "CASA",
+          "bairro": "Taguatinga Norte",
+          "cep": "72115040",
+          "cidade": "Brasilia",
+          "uf": "DF",
+          "telefoneImpresso": "(61) 99340-1287"
+        }
+      },
+      {
+        "codigo": "AA123456785BR",
+        "dataMatrix": null,
+        "destinatario": {
+          "nome": "JOSE CARLOS PEREIRA",
+          "logradouro": "Rua 25 Norte",
+          "numero": "5",
+          "complemento": "APTO 1203",
+          "bairro": "Aguas Claras",
+          "cep": "71919360",
+          "cidade": "Brasilia",
+          "uf": "DF",
+          "telefoneImpresso": "(61) 98765-4321"
+        }
+      }
+    ]
+  },
+  {
+    "arquivo": "rotulo-escuro.jpg",
+    "descricao": "O rótulo completo fotografado no escuro: contraste mínimo e ruído forte, nenhum código decodificável.",
+    "esperado": {
+      "objeto": null,
+      "cepLinear": null,
+      "dataMatrixRaw": null,
+      "multiplos": false
+    },
+    "rotulos": [
+      {
+        "codigo": "OY716488072BR",
+        "dataMatrix": "72115040000177000290000001051OY716488072BR2500000000000067599079032200100017CASA                00000061993401287-00.000000-00.000000|                              ",
+        "destinatario": {
+          "nome": "ALINE RODRIGUES",
+          "logradouro": "QNC 4",
+          "numero": "17",
+          "complemento": "CASA",
+          "bairro": "Taguatinga Norte",
+          "cep": "72115040",
+          "cidade": "Brasilia",
+          "uf": "DF",
+          "telefoneImpresso": "(61) 99340-1287"
+        }
+      }
+    ]
+  },
+  {
+    "arquivo": "rotulo-cep-unico.jpg",
+    "descricao": "CEP 73800000 (Formosa/GO, cidade de CEP único: o CEP não resolve o logradouro).",
+    "esperado": {
+      "objeto": "OY716488293BR",
+      "cepLinear": "73800000",
+      "dataMatrixRaw": "73800000001207000290000001251OY716488293BR2500000000000067599079032200100120                    00000061991112222-00.000000-00.000000|                              ",
+      "multiplos": false
+    },
+    "rotulos": [
+      {
+        "codigo": "OY716488293BR",
+        "dataMatrix": "73800000001207000290000001251OY716488293BR2500000000000067599079032200100120                    00000061991112222-00.000000-00.000000|                              ",
+        "destinatario": {
+          "nome": "HELENA SOUZA",
+          "logradouro": "Rua Sete",
+          "numero": "120",
+          "complemento": null,
+          "bairro": "Centro",
+          "cep": "73800000",
+          "cidade": "Formosa",
+          "uf": "GO",
+          "telefoneImpresso": "(61) 99111-2222"
+        }
+      }
+    ]
+  }
+]

@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useAuthStore } from '../stores/auth.store';
-import { api, urlDeLogin } from '../services/api';
+import { ApiError, api, urlDeLogin } from '../services/api';
 import type { Role, User } from '../types/api.types';
 
-/** Página inicial de cada papel. Supervisor e Gestão entram pelos três módulos (ADR-015). */
+/**
+ * Página inicial de cada papel. Supervisor e Gestão entram pelos três módulos (ADR-015);
+ * o carteiro entra no app de captura do rótulo.
+ */
 export const HOME_BY_ROLE: Record<Role, string> = {
   GESTAO: '/entregas/cadastro',
   UNIDADE: '/entregas/carregar',
-  CARTEIRO: '/carteiro',
+  CARTEIRO: '/carteiro/captura',
   DESTINATARIO: '/destinatario',
 };
 
@@ -62,7 +65,9 @@ export function useAuthGuard(requiredRole?: Role | Role[]) {
           const u = ('user' in data && data.user) ? data.user : data as User;
           useAuthStore.setState({ user: u });
         })
-        .catch(() => {
+        .catch((err: unknown) => {
+          // Sem rede (app do carteiro aberto offline): mantém a sessão e a fila.
+          if (!(err instanceof ApiError)) return;
           // Token is invalid/expired — redirect to login
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');

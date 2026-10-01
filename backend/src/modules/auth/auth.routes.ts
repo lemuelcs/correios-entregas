@@ -8,6 +8,7 @@ const router = Router();
 router.post('/login', authRateLimit, (req, res, next) => authController.login(req, res, next));
 router.post('/refresh', (req, res, next) => authController.refresh(req, res, next));
 router.post('/logout', (req, res, next) => authController.logout(req, res, next));
+router.post('/trocar-senha', authenticate, authRateLimit, (req, res, next) => authController.trocarSenha(req, res, next));
 router.get('/me', authenticate, (req, res, next) => authController.me(req, res, next));
 
 export { router as authRoutes };
