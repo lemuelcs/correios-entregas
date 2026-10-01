@@ -16,6 +16,9 @@ import { registrarRotasAtendimento, registrarRotasCadastro } from './cadastro.ro
 import { registrarRotasOrientacao } from './orientacao.routes';
 import { parserWebhookProsio, registrarRotasProsio, ROTA_WEBHOOK_PROSIO } from './prosio-entrada.routes';
 
+// Captura do rótulo (ADR-014 da captura): supervisão em `/captura`.
+import { registrarRotasCapturaSupervisao } from '../captura/captura-supervisao.routes';
+
 // task_06 (liberação/orientação/Prosio): import { registrarRotas… } from './….routes';
 
 const rotasPublicas = Router();
@@ -34,6 +37,8 @@ registrarRotasCadastro(rotasAutenticadas);
 registrarRotasAtendimento(rotasAutenticadas);
 
 registrarRotasOrientacao(rotasAutenticadas); // task_05: orientação manual (US-026)
+
+registrarRotasCapturaSupervisao(rotasAutenticadas); // captura: histórico, foto, remoção e senha do carteiro
 
 // task_06: registrarRotas…(rotasAutenticadas);
 
