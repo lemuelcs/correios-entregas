@@ -212,7 +212,7 @@ Códigos S10 de referência:
 | US-035.EC-1 | Nova tentativa → caso novo | UT-097 | IT-057 | — |
 | US-035.EC-2 | Janela de cortesia | Prosio (R3): fora deste repositório | — | — |
 | US-036 | Entrar pelos três módulos | — | — | E2E-005, E2E-010 |
-| US-036.EC-1 | Papéis legados → shell legado | — | — | E2E-015 |
+| US-036.EC-1 | Papéis legados → área própria (`CARTEIRO` → `/carteiro/captura`) | — | — | E2E-015 |
 | US-036.EC-2 | Sessão expirada → volta ao módulo | — | — | E2E-014 |
 | US-036.EC-3 | Tela estreita → menu recolhido | — | — | E2E-011 |
 | US-037 | SGPD v2 | — | — | E2E-005 |
@@ -631,6 +631,6 @@ Códigos S10 de referência:
 - **E2E-013**: supervisor de unidade sem distritos → o quadro mostra "Cadastre distritos" com o link para o Cadastro.
 - **E2E-014**: com o token expirado (e o refresh também), clicar em Atendimento → tela de login; depois do login, volta para `/entregas/atendimento`.
 - **E2E-015**:
-  - login de um usuário `CARTEIRO` legado → o shell legado `/carteiro`, sem os três módulos;
+  - login de um usuário `CARTEIRO` → a área `/carteiro`, sem os três módulos. Desde a captura do rótulo (app-carteiro-captura-rotulo) a página inicial do carteiro é o app `/carteiro/captura`, não mais o shell legado; abrir `/entregas/carregar` devolve o carteiro a `/carteiro/captura`;
   - um favorito `/unidade/despacho` aberto por supervisor → a tela antiga, com a faixa de protótipo;
-  - um usuário `CARTEIRO` não vê o item SGPD v2 (não tem o shell novo).
+  - um usuário `CARTEIRO` não vê o item SGPD v2 nem "Carregar Dados" (não tem o shell novo).
