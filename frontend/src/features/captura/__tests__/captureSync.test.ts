@@ -60,7 +60,11 @@ describe('captureSync', () => {
     });
     const sync = new CaptureSync({ fila, enviar });
     sync.start();
-    await vi.waitFor(async () => expect(enviar).toHaveBeenCalledTimes(2)); // a rodada inicial do start
+    // A rodada inicial do start termina quando a fila esvazia (o `concluida` do 2º envio
+    // apaga o item). Esperar só pela 2ª chamada deixava o `marcar` em voo apagar o item
+    // reenfileirado logo abaixo (falha intermitente).
+    await vi.waitFor(async () => expect(await fila.listar()).toEqual([]));
+    expect(enviar).toHaveBeenCalledTimes(2);
     enviar.mockClear();
     ordem.length = 0;
 
@@ -135,9 +139,10 @@ describe('captureSync', () => {
     expect(enviar).toHaveBeenCalledTimes(1);
 
     sync.start();
-    await vi.waitFor(() => expect(enviar).toHaveBeenCalledTimes(2)); // rodada do start
+    // rodada do start: espera o `concluida` gravado, não só a chamada do envio
+    await vi.waitFor(async () => expect(await fila.listar()).toEqual([]));
     sync.stop();
-    expect(await fila.listar()).toEqual([]);
+    expect(enviar).toHaveBeenCalledTimes(2);
 
     // e o tique de 30 s também dispara uma rodada
     await fila.add(novaCaptura());
