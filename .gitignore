@@ -9,3 +9,8 @@ uploads/
 .DS_Store
 *.tsbuildinfo
 infra/osrm-data/
+
+# Playwright (frontend/e2e)
+test-results/
+playwright-report/
+blob-report/

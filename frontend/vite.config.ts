@@ -6,6 +6,8 @@ import path from 'path';
 const apiTarget = process.env.VITE_API_TARGET || 'http://localhost:3001';
 const whatsappApiTarget = process.env.VITE_WHATSAPP_API_TARGET || 'http://localhost';
 const whatsappGatewayPrefix = process.env.VITE_WHATSAPP_API_GATEWAY_PREFIX || '/services/whatsapp';
+// Testes de interface (Playwright): sem HMR pelo domínio público de dev.
+const e2e = process.env.VITE_E2E === '1';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -19,7 +21,7 @@ export default defineConfig({
     port: 5180,
     strictPort: true,
     allowedHosts: ['.delivyodev.com', 'correios.delivyodev.com', '.correiosdev.com'],
-    hmr: {
+    hmr: e2e ? false : {
       protocol: 'wss',
       host: 'correios.delivyodev.com',
       clientPort: 443,
