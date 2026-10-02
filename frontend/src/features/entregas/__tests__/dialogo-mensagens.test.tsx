@@ -146,6 +146,7 @@ describe('sinais', () => {
       expect(s.detalhe.length).toBeGreaterThan(10);
     }
     expect(descreverSinal('caso_recusado:opt_out')).toMatchObject({ rotulo: 'Mediação recusada', tom: 'erro' });
+    expect(descreverSinal('whatsapp_invalido')).toMatchObject({ rotulo: 'WhatsApp inválido', tom: 'atencao' });
     expect(descreverSinal('caso_recusado:opt_out').detalhe).toContain('pediu para não receber');
     expect(descreverSinal('caso_recusado:motivo_novo').detalhe).toContain('motivo novo');
     expect(descreverSinal('sinal_futuro').rotulo).toBe('Sinal futuro');

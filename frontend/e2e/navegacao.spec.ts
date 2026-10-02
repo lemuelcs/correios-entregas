@@ -7,7 +7,7 @@ test.beforeEach(async () => {
 
 test('E2E-005 — menu, Rotas em breve, SGPD v2 e volta', async ({ page }) => {
   const c = await cenarioSupervisor();
-  await entrarPelaTela(page, c.supervisor.email, c.supervisor.senha);
+  await entrarPelaTela(page, c.supervisor.matricula, c.supervisor.senha);
   await expect(page).toHaveURL(/\/entregas\/carregar$/);
 
   const menu = page.getByRole('navigation', { name: 'Menu principal' });
@@ -84,7 +84,7 @@ test('E2E-013 — unidade sem rotas: quadro pronto para importar a Saída 1 (ADR
 
 test('E2E-014 — sessão expirada volta ao módulo depois do login', async ({ page }) => {
   const c = await cenarioSupervisor();
-  await entrarPelaTela(page, c.supervisor.email, c.supervisor.senha);
+  await entrarPelaTela(page, c.supervisor.matricula, c.supervisor.senha);
   await expect(page).toHaveURL(/\/entregas\/carregar$/);
   await expect(page.getByRole('heading', { name: 'Carregar Dados' })).toBeVisible();
 
@@ -97,18 +97,18 @@ test('E2E-014 — sessão expirada volta ao módulo depois do login', async ({ p
   await page.getByRole('navigation', { name: 'Menu principal' }).getByRole('link', { name: /^Atendimento/ }).click();
   await expect(page).toHaveURL(/\/login\?voltar=%2Fentregas%2Fatendimento$/);
 
-  await entrarPelaTela(page, c.supervisor.email, c.supervisor.senha);
+  await entrarPelaTela(page, c.supervisor.matricula, c.supervisor.senha);
   await expect(page).toHaveURL(/\/entregas\/atendimento$/);
   await expect(page.locator('iframe[title^="Chatwoot"]')).toBeVisible();
 });
 
 test('E2E-015 — papéis legados e favoritos antigos', async ({ page }) => {
-  const legado = await controle<{ carteiro: { email: string; senha: string } }>('/cenarios/carteiro', {});
+  const legado = await controle<{ carteiro: { email: string; matricula: string; senha: string } }>('/cenarios/carteiro', {});
   const c = await cenarioSupervisor();
 
   // Carteiro: fica na área /carteiro (desde a captura do rótulo, a página inicial é o app
   // /carteiro/captura), sem os três módulos nem o SGPD v2.
-  await entrarPelaTela(page, legado.carteiro.email, legado.carteiro.senha);
+  await entrarPelaTela(page, legado.carteiro.matricula, legado.carteiro.senha);
   await expect(page).toHaveURL(/\/carteiro\/captura$/);
   await expect(page.getByRole('navigation', { name: 'Menu principal' })).toHaveCount(0);
   await expect(page.getByText('SGPD v2')).toHaveCount(0);

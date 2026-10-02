@@ -93,7 +93,7 @@ describe('entregas — saídas do dia', () => {
   });
 
   describe('importação direta', () => {
-    it('IT-074 grava as linhas válidas sem prévia e devolve "N aceitos, M descartados" com a lista das recusadas', async () => {
+    it('IT-074 grava as linhas válidas sem prévia e devolve "N aceitos, M descartados" com a lista das recusadas; WhatsApp malformado entra sem WhatsApp, sinalizado', async () => {
       const c = await cenario();
       const carteiro = await criarCarteiro({ unidadeId: c.unidade.id });
       await criarDistrito({ unidadeId: c.unidade.id, codigo: '501', carteiroPadraoId: carteiro.id });
@@ -106,31 +106,54 @@ describe('entregas — saídas do dia', () => {
         linha('502', { codigo: repetido }), // 5
         linha('502', { codigo: repetido, nome: 'Duplicada da Silva' }), // 6: duplicada
         linha('501', { codigo: 'AB123456789BR' }), // 7: dígito
-        linha('501', { whatsapp: '98876-1102', nome: 'Sem DDD de Souza' }), // 8: WhatsApp sem DDD
+        linha('501', { whatsapp: '98876-1102', nome: 'Sem DDD de Souza' }), // 8: WhatsApp sem DDD → aceita, sem WhatsApp
         linha('', { nome: 'Sem Rota Pereira' }), // 9: sem rota
         linha('502', { nome: '' }), // 10: faltam campos
       ];
 
       const res = await importar(c, csv(linhas), { nome: 'saida-1_30-09.csv' });
       expect(res.status).toBe(201);
-      expect(res.body).toEqual(expect.objectContaining({ aceitos: 4, descartados: 5, reimportacao: false, rotas: 2, rotasCriadas: [], rotasSemCarteiro: [] }));
-      expect(res.body.saida).toEqual(expect.objectContaining({ numero: 1, horario: '10:00', arquivoNome: 'saida-1_30-09.csv', aceitos: 4, descartados: 5 }));
+      expect(res.body).toEqual(expect.objectContaining({ aceitos: 5, descartados: 4, whatsappInvalidos: 1, reimportacao: false, rotas: 2, rotasCriadas: [], rotasSemCarteiro: [] }));
+      expect(res.body.saida).toEqual(expect.objectContaining({ numero: 1, horario: '10:00', arquivoNome: 'saida-1_30-09.csv', aceitos: 5, descartados: 4 }));
       expect(res.body.descartes).toEqual([
         { n: 6, rota: '502', codigo: repetido, motivo: 'duplicado_planilha' },
         { n: 7, rota: '501', codigo: 'AB123456789BR', motivo: 'digito_invalido' },
-        { n: 8, rota: '501', codigo: linhas[6].codigo, motivo: 'sem_ddd' },
         { n: 9, rota: null, codigo: linhas[7].codigo, motivo: 'sem_rota' },
         { n: 10, rota: '502', codigo: linhas[8].codigo, motivo: 'faltam_campos' },
       ]);
 
       // Gravado de fato, com o status de cada pacote.
       const p501 = await pacotesDaRota(c.unidade.id, '501');
-      expect(p501.map((p) => p.status).sort()).toEqual(['AGUARDANDO_LIBERACAO', 'SEM_WHATSAPP']);
+      expect(p501.map((p) => p.status).sort()).toEqual(['AGUARDANDO_LIBERACAO', 'SEM_WHATSAPP', 'SEM_WHATSAPP']);
+      // O pacote do número malformado ficou sem WhatsApp e com o sinal; o de WhatsApp vazio, sem sinal.
+      const malformado = p501.find((p) => p.nome === 'Sem DDD de Souza')!;
+      expect(malformado).toEqual(expect.objectContaining({ whatsappE164: null, status: 'SEM_WHATSAPP', sinais: ['whatsapp_invalido'] }));
+      expect(p501.filter((p) => p.sinais.includes('whatsapp_invalido'))).toHaveLength(1);
+
+      // Reimportar com o número corrigido tira o sinal e devolve o pacote à fila do aviso.
+      const corrigidas = linhas.map((l, i) => (i === 6 ? { ...l, whatsapp: '(61) 98876-1102' } : l));
+      const de_novo = await importar(c, csv(corrigidas), { nome: 'saida-1_30-09.csv' });
+      expect(de_novo.body).toEqual(expect.objectContaining({ reimportacao: true, aceitos: 5, descartados: 4, whatsappInvalidos: 0 }));
+      const depois = (await pacotesDaRota(c.unidade.id, '501')).find((p) => p.id === malformado.id)!;
+      expect(depois).toEqual(expect.objectContaining({ status: 'AGUARDANDO_LIBERACAO', sinais: [] }));
+      expect(depois.whatsappE164).toContain('61988761102');
+
+      // O arquivo original de volta: o mesmo pacote perde o número e ganha o sinal de novo (sem repetir).
+      await importar(c, csv(linhas), { nome: 'saida-1_30-09.csv' });
+      const voltou = await prisma.pacoteDia.findUniqueOrThrow({ where: { id: malformado.id } });
+      expect(voltou).toEqual(expect.objectContaining({ whatsappE164: null, status: 'SEM_WHATSAPP', sinais: ['whatsapp_invalido'] }));
+
+      // O supervisor corrige pela lista da rota: o sinal some.
+      const edicao = await request(app).patch(`/api/v1/entregas/pacotes/${malformado.id}`).set('Connection', 'close').set(c.auth).send({ whatsapp: '(61) 98876-1102' });
+      expect(edicao.status).toBe(200);
+      const editado = await prisma.pacoteDia.findUniqueOrThrow({ where: { id: malformado.id } });
+      expect(editado).toEqual(expect.objectContaining({ status: 'AGUARDANDO_LIBERACAO', sinais: [] }));
+      await importar(c, csv(linhas), { nome: 'saida-1_30-09.csv' });
       expect(await pacotesDaRota(c.unidade.id, '502')).toHaveLength(2);
 
       // O resumo persistido não guarda nome nem telefone.
       const saida = await prisma.saida.findFirstOrThrow({ where: { unidadeId: c.unidade.id, data: hoje, numero: 1 } });
-      expect(saida).toEqual(expect.objectContaining({ aceitos: 4, descartados: 5, importadaPorId: c.supervisor.id }));
+      expect(saida).toEqual(expect.objectContaining({ aceitos: 5, descartados: 4, importadaPorId: c.supervisor.id }));
       const bruto = JSON.stringify(saida.descartes);
       expect(saida.descartes).toEqual(res.body.descartes);
       for (const proibido of ['Duplicada', 'Sem DDD', 'Sem Rota', '98876']) expect(bruto).not.toContain(proibido);

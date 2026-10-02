@@ -31,7 +31,7 @@ async function importarSaida(page: Page, arquivo: string, horario: string | null
 
 // E2E-006 (prévia, correção por linha e "Confirmar") foi retirado: a importação é direta (ADR-019).
 
-test('E2E-017 — importação direta da Saída 2: horário obrigatório, "6 aceitos, 4 descartados" e a lista das linhas recusadas', async ({ page }) => {
+test('E2E-017 — importação direta da Saída 2: horário obrigatório, "7 aceitos, 3 descartados", WhatsApp inválido entra sem WhatsApp e a lista das linhas recusadas', async ({ page }) => {
   const c = await cenarioSupervisor('carregado');
   await entrarDireto(page, c.supervisor.email, '/entregas/carregar');
 
@@ -62,7 +62,7 @@ test('E2E-017 — importação direta da Saída 2: horário obrigatório, "6 ace
   await expect(page.getByText('saida-2.xlsx')).toBeVisible();
   const resumo = page.getByRole('region', { name: 'Resumo da saída' });
   await expect(resumo).toContainText('2rotas nesta saída');
-  await expect(resumo).toContainText('6pacotes');
+  await expect(resumo).toContainText('7pacotes');
   await expect(resumo).toContainText('5com WhatsApp');
 
   // Rota nova com o carteiro do arquivo; rota nova sem carteiro.
@@ -72,22 +72,24 @@ test('E2E-017 — importação direta da Saída 2: horário obrigatório, "6 ace
   await expect(r509).toContainText('3 de 4 pacotes com WhatsApp');
   const r510 = cartao(page, '510');
   await expect(r510.getByRole('heading', { name: 'Sem carteiro definido' })).toBeVisible();
+  // O WhatsApp malformado não descarta a linha: o pacote entra na rota, sem WhatsApp.
+  await expect(r510).toContainText('2 de 3 pacotes com WhatsApp');
+  await expect(page.getByText('1 pacote entrou sem WhatsApp: o número do arquivo é inválido.')).toBeVisible();
   await expect(r510.getByRole('button', { name: 'Liberar rota' })).toHaveCount(0);
   await expect(page.getByText('Rotas criadas no Cadastro: 509, 510.')).toBeVisible();
 
   // O resultado fica em destaque, com a lista consultável.
   const resultado = page.getByRole('region', { name: 'Resultado da importação' });
-  await expect(resultado).toContainText('6 aceitos, 4 descartados');
-  await resultado.getByRole('button', { name: 'Ver linhas descartadas (4)' }).click();
+  await expect(resultado).toContainText('7 aceitos, 3 descartados');
+  await resultado.getByRole('button', { name: 'Ver linhas descartadas (3)' }).click();
   const linhas = resultado.locator('tbody tr');
-  await expect(linhas).toHaveCount(4);
+  await expect(linhas).toHaveCount(3);
   await expect(linhas.nth(0).locator('td').nth(0)).toHaveText('8');
   await expect(linhas.nth(0).locator('td').nth(1)).toHaveText('D-03');
   await expect(linhas.nth(0)).toContainText('A rota já foi carregada na Saída 1 hoje');
   await expect(linhas.nth(1)).toContainText('AB123456789BR');
   await expect(linhas.nth(1)).toContainText('Dígito verificador do código não confere');
-  await expect(linhas.nth(2)).toContainText('WhatsApp sem DDD');
-  await expect(linhas.nth(3)).toContainText('Linha sem rota');
+  await expect(linhas.nth(2)).toContainText('Linha sem rota');
   // Nome e telefone das linhas recusadas não aparecem.
   await expect(resultado).not.toContainText('Beatriz');
   await expect(resultado).not.toContainText('98876');
@@ -95,11 +97,11 @@ test('E2E-017 — importação direta da Saída 2: horário obrigatório, "6 ace
   // Depois de recarregar, o resultado continua lá (está gravado com a saída).
   await page.reload();
   await abaSaida(page, /Saída 2/).click();
-  await expect(page.getByRole('region', { name: 'Resultado da importação' })).toContainText('6 aceitos, 4 descartados');
+  await expect(page.getByRole('region', { name: 'Resultado da importação' })).toContainText('7 aceitos, 3 descartados');
   await expect(abaSaida(page, /Saída 3/)).toContainText('Aguardando arquivo e horário');
 
   const servidor = await saidasNoServidor(page);
-  expect(servidor.saidas.map((s) => [s.numero, s.aceitos, s.descartados])).toEqual([[1, 46, 0], [2, 6, 4]]);
+  expect(servidor.saidas.map((s) => [s.numero, s.aceitos, s.descartados])).toEqual([[1, 46, 0], [2, 7, 3]]);
   // A D-03 continua só na Saída 1, com os 37 pacotes dela.
   expect(servidor.rotas.find((r) => r.codigo === 'D-03')).toEqual(expect.objectContaining({ saidaNumero: 1, total: 37 }));
 });
@@ -134,7 +136,7 @@ test('E2E-018 — "Definir carteiro" abre o modal "Atribuir carteiros"; depois, 
   await page.getByRole('button', { name: 'Liberar 2 rotas carregadas' }).click();
   const dialogo = page.getByRole('dialog', { name: 'Liberar 2 rotas da Saída 2?' });
   await expect(dialogo).toContainText('5 destinatários');
-  await expect(dialogo).toContainText('1 pacotes sem WhatsApp');
+  await expect(dialogo).toContainText('2 pacotes sem WhatsApp');
   await expect(dialogo).toContainText('Rotas 509, 510.');
   await dialogo.getByRole('button', { name: 'Liberar e enviar avisos' }).click();
   await expect(dialogo).toHaveCount(0);
@@ -227,7 +229,7 @@ test('E2E-020 — Gestão: "Todas as unidades" é só leitura; para importar, es
   await expect(page.getByRole('heading', { name: 'Saída 1 ainda não foi importada' })).toBeVisible();
   await importarSaida(page, 'saida-2.xlsx', '09:30', 1);
   await expect(abaSaida(page, /Saída 1 · 09:30/)).toContainText('3 rotas');
-  await expect(page.getByRole('region', { name: 'Resultado da importação' })).toContainText('7 aceitos, 3 descartados');
+  await expect(page.getByRole('region', { name: 'Resultado da importação' })).toContainText('8 aceitos, 2 descartados');
   // A liberação continua sendo do supervisor da unidade.
   await expect(page.getByRole('button', { name: 'Liberar rota' })).toHaveCount(0);
 

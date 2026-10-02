@@ -224,7 +224,7 @@ describe('Carregar Dados por saída', () => {
         atual = quadro({ saidas: [saida(1), s2], proximaSaida: 3, rotas: [...quadro().rotas, rota('509', { saidaNumero: 2, total: 5, comWhatsapp: 5 })] });
         return json(201, {
           saida: s2, reimportacao: false, aceitos: 5, descartados: 3, descartes, rotas: 1,
-          rotasCriadas: ['509'], rotasSemCarteiro: [], rotasLiberadas: [], carteirosNaoEncontrados: [{ rota: '509', valor: 'Fulano de Tal' }], avisos: [],
+          rotasCriadas: ['509'], rotasSemCarteiro: [], rotasLiberadas: [], carteirosNaoEncontrados: [{ rota: '509', valor: 'Fulano de Tal' }], whatsappInvalidos: 2, avisos: [],
         });
       }
       if (metodo === 'GET' && url.includes('/entregas/saidas')) return json(200, atual);
@@ -255,6 +255,8 @@ describe('Carregar Dados por saída', () => {
     ]);
     expect(screen.getByText(/criada no Cadastro/)).toHaveTextContent('Rota criada no Cadastro: 509.');
     expect(screen.getByText(/Fulano de Tal/)).toHaveTextContent('não foi encontrado entre os carteiros ativos');
+    // WhatsApp malformado não descarta: o aviso diz quantos pacotes entraram sem WhatsApp.
+    expect(screen.getByText(/porque o número do arquivo é inválido/)).toHaveTextContent('2 pacotes entraram sem WhatsApp');
 
     // O formulário volta para a próxima saída, sem horário nem arquivo.
     expect(screen.getByLabelText('Número da saída')).toHaveValue('3');

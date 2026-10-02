@@ -36,7 +36,6 @@ function renderizar(inicial: string | { pathname: string; state?: unknown }, ext
 
 async function entrarComMatricula(matricula: string, senha: string) {
   const user = userEvent.setup();
-  await user.click(screen.getByRole('button', { name: 'Matrícula' }));
   if (matricula) await user.type(screen.getByLabelText('Matrícula'), matricula);
   if (senha) await user.type(screen.getByLabelText('Senha'), senha);
   await user.click(screen.getByRole('button', { name: 'Entrar' }));
@@ -149,6 +148,15 @@ describe('LoginPage e troca de senha', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar e entrar' }));
     expect(screen.getByRole('alert')).toHaveTextContent('não são iguais');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a tela só oferece matrícula e senha: sem abas de CPF ou email', async () => {
+    renderizar('/login');
+    expect(screen.getByLabelText('Matrícula')).toBeInTheDocument();
+    expect(screen.getByLabelText('Senha')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'CPF' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Email' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Matrícula' })).not.toBeInTheDocument();
   });
 
   it('UT-117 Entrar com os campos vazios → não envia e destaca os campos', async () => {

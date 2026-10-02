@@ -99,8 +99,8 @@ test('E2E-009 — Atendimento em iframe e alternativa', async ({ page }) => {
 });
 
 test('E2E-010 — jornada da Gestão: canal, unidade e supervisor', async ({ page }) => {
-  const g = await controle<{ gestor: { email: string; senha: string }; prosioUrl: string; outraUnidadeId: string }>('/cenarios/gestor', {});
-  await entrarPelaTela(page, g.gestor.email, g.gestor.senha);
+  const g = await controle<{ gestor: { email: string; matricula: string; senha: string }; prosioUrl: string; outraUnidadeId: string }>('/cenarios/gestor', {});
+  await entrarPelaTela(page, g.gestor.matricula, g.gestor.senha);
   await expect(page).toHaveURL(/\/entregas\/cadastro$/);
   await expect(page.getByRole('tab', { name: 'Unidades' })).toHaveAttribute('aria-selected', 'true');
 
@@ -160,7 +160,7 @@ test('E2E-010 — jornada da Gestão: canal, unidade e supervisor', async ({ pag
   // O supervisor entra e vê só a própria unidade.
   await page.getByRole('button', { name: 'Sair' }).click();
   await expect(page).toHaveURL(/\/login$/);
-  await entrarPelaTela(page, 'rogerio@e2e.local', 'senha-rogerio');
+  await entrarPelaTela(page, '83910047', 'senha-rogerio');
   await expect(page).toHaveURL(/\/entregas\/carregar$/);
   const menu = page.getByRole('navigation', { name: 'Menu principal' });
   await expect(menu).toContainText('CDD Taguatinga');

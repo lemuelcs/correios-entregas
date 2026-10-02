@@ -132,6 +132,8 @@ export interface ResultadoImportacaoSaida {
   rotasSemCarteiro: string[];
   rotasLiberadas: string[];
   carteirosNaoEncontrados: Array<{ rota: string; valor: string }>;
+  /** Pacotes aceitos sem WhatsApp porque o número do arquivo veio malformado. */
+  whatsappInvalidos: number;
   avisos: AvisoPlanilha[];
 }
 

@@ -284,8 +284,10 @@ export function CarregarDadosPage() {
     setImportando(true);
     try {
       const r = await importar({ arquivo, numero: numeroImp, horario: impHorario, data, unidadeId: unidadeDaAcao });
-      const frase = `Saída ${numeroImp} importada: ${plural(r.aceitos, 'aceito', 'aceitos')}, ${plural(r.descartados, 'descartado', 'descartados')}.`;
-      if (r.descartados > 0) toast(frase, { duration: 8000 });
+      const semZap = r.whatsappInvalidos ?? 0;
+      const frase = `Saída ${numeroImp} importada: ${plural(r.aceitos, 'aceito', 'aceitos')}, ${plural(r.descartados, 'descartado', 'descartados')}.`
+        + (semZap > 0 ? ` ${plural(semZap, 'pacote entrou', 'pacotes entraram')} sem WhatsApp: o número do arquivo é inválido.` : '');
+      if (r.descartados > 0 || semZap > 0) toast(frase, { duration: 8000 });
       else toast.success(frase);
       setUltima(r);
       setAbaEscolhida(numeroImp);
@@ -589,13 +591,19 @@ export function CarregarDadosPage() {
                     </span>
                   )}
                   <ResumoImportacao key={`${aba.aba}-${aba.saidas.map((s) => s.importadaEm).join()}`} saidas={aba.saidas} agregado={agregado} />
-                  {ultima && ultima.saida.numero === aba.aba && (ultima.rotasCriadas.length > 0 || ultima.carteirosNaoEncontrados.length > 0 || ultima.rotasLiberadas.length > 0) && (
+                  {ultima && ultima.saida.numero === aba.aba && (ultima.rotasCriadas.length > 0 || ultima.carteirosNaoEncontrados.length > 0 || ultima.rotasLiberadas.length > 0 || (ultima.whatsappInvalidos ?? 0) > 0) && (
                     <ul data-avisos-importacao className="m-0 flex list-none flex-col gap-1 rounded-lg bg-ce-linha-fraca px-3 py-2.5 text-sm text-ce-tinta-2">
                       {ultima.rotasCriadas.length > 0 && (
                         <li>{ultima.rotasCriadas.length === 1 ? 'Rota criada' : 'Rotas criadas'} no Cadastro: <strong>{ultima.rotasCriadas.join(', ')}</strong>.</li>
                       )}
                       {ultima.rotasLiberadas.length > 0 && (
                         <li>{ultima.rotasLiberadas.length === 1 ? 'Rota já liberada, mantida' : 'Rotas já liberadas, mantidas'} como estava: <strong>{ultima.rotasLiberadas.join(', ')}</strong>.</li>
+                      )}
+                      {(ultima.whatsappInvalidos ?? 0) > 0 && (
+                        <li>
+                          {plural(ultima.whatsappInvalidos, 'pacote entrou', 'pacotes entraram')} <strong>sem WhatsApp</strong> porque o número do arquivo é inválido.
+                          {' '}Abra a rota e corrija em “Editar”; o selo “WhatsApp inválido” marca cada um.
+                        </li>
                       )}
                       {ultima.carteirosNaoEncontrados.map((c) => (
                         <li key={c.rota}>Rota <strong>{c.rota}</strong>: o carteiro “{c.valor}” do arquivo não foi encontrado entre os carteiros ativos da unidade.</li>

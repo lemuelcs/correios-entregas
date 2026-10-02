@@ -38,6 +38,11 @@ const SINAIS: Record<string, Omit<Sinal, 'codigo'>> = {
     detalhe: 'A mediação ficou retida: o destinatário ainda não aceitou receber mensagens.',
     tom: 'atencao',
   },
+  whatsapp_invalido: {
+    rotulo: 'WhatsApp inválido',
+    detalhe: 'O número veio malformado no arquivo; o pacote entrou sem WhatsApp. Corrija em "Editar".',
+    tom: 'atencao',
+  },
   descadastrado: {
     rotulo: 'Descadastrado',
     detalhe: 'O destinatário pediu para não receber mensagens.',
