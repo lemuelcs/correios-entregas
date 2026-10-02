@@ -414,7 +414,14 @@ describe('entregas — carga do dia', () => {
       expect(p1.status).toBe(200);
       expect(p1.body).toEqual(expect.objectContaining({ total: 500, pagina: 1, porPagina: 50, totalPaginas: 10, liberada: true, statusCarga: 'EM_ENTREGA' }));
       expect(p1.body.pacotes).toHaveLength(50);
-      expect(p1.body.resumo).toEqual({ total: 500, comWhatsapp: 500, porStatus: { LIDO: 7, ENVIADO: 493 } });
+      expect(p1.body.resumo).toEqual(expect.objectContaining({ total: 500, comWhatsapp: 500, porStatus: { LIDO: 7, ENVIADO: 493 } }));
+      // Cabeçalho da lista: o carteiro padrão da rota, pela mesma regra do quadro.
+      const padrao = await prisma.carteiro.findUniqueOrThrow({ where: { id: d.carteiroPadraoId! } });
+      expect(p1.body.resumo).toEqual(expect.objectContaining({ carteiro: { id: padrao.id, nome: padrao.nome }, semCarteiro: false }));
+      expect(p1.body.resumo).toHaveProperty('liberadoEm');
+      const noQuadro = (await get('/api/v1/entregas/quadro', c.auth)).body.distritos.find((x: { cargaId: string }) => x.cargaId === grande.id);
+      expect(p1.body.resumo.carteiro).toEqual(noQuadro.carteiro);
+      expect(p1.body.resumo.liberadoEm).toEqual(noQuadro.liberadoEm);
       const p10 = await get(`/api/v1/entregas/cargas/${grande.id}/pacotes?pagina=10`, c.auth);
       expect(p10.body.pacotes).toHaveLength(50);
       expect(new Set([...p1.body.pacotes, ...p10.body.pacotes].map((p: { id: string }) => p.id)).size).toBe(100);
@@ -432,6 +439,14 @@ describe('entregas — carga do dia', () => {
       const listaPronta = await get(`/api/v1/entregas/cargas/${pronta.id}/pacotes`, c.auth);
       expect(listaPronta.body.liberada).toBe(false);
       expect(listaPronta.body.pacotes.map((p: { rotulo: string }) => p.rotulo)).toEqual(['Lista pronta', 'Lista pronta']);
+      // Troca do dia vence o padrão; carteiro inativo vira "sem carteiro".
+      const substituto = await criarCarteiro({ unidadeId: c.unidade.id, nome: 'Substituto da Lista' });
+      await prisma.escalaDistrito.create({ data: { distritoId: d2.id, data: hoje, carteiroId: substituto.id } });
+      const comTroca = await get(`/api/v1/entregas/cargas/${pronta.id}/pacotes`, c.auth);
+      expect(comTroca.body.resumo).toEqual(expect.objectContaining({ carteiro: { id: substituto.id, nome: 'Substituto da Lista' }, semCarteiro: false, liberadoEm: null }));
+      await prisma.carteiro.update({ where: { id: substituto.id }, data: { ativo: false } });
+      const inativo = await get(`/api/v1/entregas/cargas/${pronta.id}/pacotes`, c.auth);
+      expect(inativo.body.resumo).toEqual(expect.objectContaining({ carteiro: null, semCarteiro: true }));
 
       const outra = await cenario();
       expect((await get(`/api/v1/entregas/cargas/${grande.id}/pacotes`, outra.auth)).status).toBe(404);

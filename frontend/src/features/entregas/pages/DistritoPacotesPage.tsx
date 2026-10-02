@@ -13,8 +13,7 @@ import { ApiError } from '@/services/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { useEntregasContextoStore } from '@/stores/entregas-contexto.store';
 import { useEntregasPacotesStore, type FiltroPacotes } from '@/stores/entregas-pacotes.store';
-import { entregasApi } from '../entregas.api';
-import type { CartaoDistrito, PacoteDistrito, StatusPacote } from '../entregas.types';
+import type { PacoteDistrito, StatusPacote } from '../entregas.types';
 import {
   ORDEM_STATUS_PACOTE,
   STATUS_PACOTE,
@@ -93,8 +92,6 @@ export function DistritoPacotesPage() {
   // Atualização automática: falhas seguidas e a hora da última resposta boa.
   const [falhasSeguidas, setFalhasSeguidas] = useState(0);
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
-  // Carteiro e hora da liberação: vêm do quadro do dia (a lista de pacotes não os traz).
-  const [cartao, setCartao] = useState<CartaoDistrito | null>(null);
   const ehGestao = user?.role === 'GESTAO';
   const unidadeId = ehGestao ? unidadeGestaoId ?? undefined : undefined;
 
@@ -104,7 +101,6 @@ export function DistritoPacotesPage() {
     if (unidadeAnterior.current === unidadeId) return;
     unidadeAnterior.current = unidadeId;
     limpar();
-    setCartao(null);
     setFalha(null);
     setFalhasSeguidas(0);
     setAtualizadoEm(null);
@@ -150,23 +146,8 @@ export function DistritoPacotesPage() {
   const dados = lista && lista.cargaId === cargaId ? lista : null;
   const porStatus = dados?.resumo.porStatus ?? {};
 
-  // Cabeçalho: carteiro da rota e hora da liberação, relidos quando a rota muda de situação.
-  const dataDaLista = dados?.data ?? null;
-  const situacao = dados ? `${dados.statusCarga}:${dados.liberada}` : null;
-  useEffect(() => {
-    if (!dataDaLista) return undefined;
-    let vivo = true;
-    entregasApi.quadro({ data: dataDaLista, unidadeId })
-      .then((q) => {
-        if (vivo) setCartao(q.distritos?.find((d) => d.cargaId === cargaId) ?? null);
-      })
-      .catch(() => {
-        // Informação de apoio: sem ela o cabeçalho só fica mais curto.
-      });
-    return () => {
-      vivo = false;
-    };
-  }, [cargaId, dataDaLista, situacao, unidadeId]);
+  // Cabeçalho: carteiro da rota e hora da liberação vêm com a própria lista.
+  const cabecalho = dados?.resumo ?? null;
 
   const desatualizado = !!dados && falhasSeguidas >= FALHAS_PARA_DESATUALIZADO;
   const podeRemover = !!dados && !dados.somenteLeitura && user?.role === 'UNIDADE';
@@ -195,13 +176,13 @@ export function DistritoPacotesPage() {
                 {formatarDataCurta(dados.data)} · {dados.resumo.total} pacotes, {dados.resumo.comWhatsapp} com WhatsApp
                 {!dados.liberada && ' · lista pronta, ainda não liberada'}
               </span>
-              {cartao && (cartao.carteiro || cartao.semCarteiro || (dados.liberada && cartao.liberadoEm)) && (
+              {cabecalho && (cabecalho.carteiro || cabecalho.semCarteiro || (dados.liberada && cabecalho.liberadoEm)) && (
                 <span data-cabecalho-rota className="text-[15px] text-ce-suave">
-                  {cartao.carteiro
-                    ? <>Carteiro: <strong className="font-semibold text-ce-tinta">{cartao.carteiro.nome ?? 'sem nome'}</strong></>
-                    : cartao.semCarteiro ? 'Sem carteiro hoje' : null}
-                  {dados.liberada && cartao.liberadoEm && (
-                    <>{cartao.carteiro || cartao.semCarteiro ? ' · ' : ''}liberada às {horaMinuto(cartao.liberadoEm)}</>
+                  {cabecalho.carteiro
+                    ? <>Carteiro: <strong className="font-semibold text-ce-tinta">{cabecalho.carteiro.nome ?? 'sem nome'}</strong></>
+                    : cabecalho.semCarteiro ? 'Sem carteiro hoje' : null}
+                  {dados.liberada && cabecalho.liberadoEm && (
+                    <>{cabecalho.carteiro || cabecalho.semCarteiro ? ' · ' : ''}liberada às {horaMinuto(cabecalho.liberadoEm)}</>
                   )}
                 </span>
               )}

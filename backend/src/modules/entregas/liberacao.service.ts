@@ -52,6 +52,7 @@ import {
   type DadosJobResumo,
   type JobEntregas,
 } from './aviso.builder';
+import { escolherCarteiroDoDia } from './carteiro-do-dia';
 
 const MINUTO_MS = 60_000;
 /** Reenvio por limite do canal: 30 min depois, até as 20h (US-011.EC-3). */
@@ -254,7 +255,8 @@ export class LiberacaoService {
       where: { distritoId_data: { distritoId, data } },
       include: { carteiro: true },
     });
-    const c = escala?.carteiro ?? padrao;
+    // Antes da liberação não há snapshot: vale a troca do dia, senão o padrão.
+    const c = escolherCarteiroDoDia({ escala: escala?.carteiro, padrao });
     return c && c.ativo ? c : null;
   }
 
