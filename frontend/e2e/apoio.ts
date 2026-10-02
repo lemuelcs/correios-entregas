@@ -14,7 +14,7 @@ export async function controle<T = unknown>(caminho: string, corpo?: unknown, me
 }
 
 export interface CenarioSupervisor {
-  supervisor: { email: string; senha: string };
+  supervisor: { email: string; matricula: string; senha: string };
   unidadeId: string;
   distritos: Record<'D-01' | 'D-03' | 'D-04' | 'D-06', { id: string; cargaId: string | null }>;
   pacotesD01: Array<{ id: string; codigo: string }>;
@@ -38,11 +38,10 @@ export async function planilha(nome: string): Promise<{ name: string; mimeType: 
   };
 }
 
-/** Login pela tela (aba "Email"). */
-export async function entrarPelaTela(page: Page, email: string, senha: string): Promise<void> {
+/** Login pela tela: só matrícula e senha. */
+export async function entrarPelaTela(page: Page, matricula: string, senha: string): Promise<void> {
   if (!page.url().includes('/login')) await page.goto('/login');
-  await page.getByRole('button', { name: 'Email' }).click();
-  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Matrícula').fill(matricula);
   await page.getByLabel('Senha').fill(senha);
   await page.getByRole('button', { name: 'Entrar' }).click();
 }

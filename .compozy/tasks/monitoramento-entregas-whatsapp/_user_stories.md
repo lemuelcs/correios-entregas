@@ -789,7 +789,7 @@ Acceptance criteria:
 Edge cases:
 
 - EC-1: O resumo gravado guarda só linha, rota, código e motivo: nunca o nome nem o telefone do destinatário. Uma coluna trocada (nome no lugar do código) não leva o nome para o resumo.
-- EC-2: WhatsApp malformado (sem DDD, por exemplo) → a linha é descartada com o motivo. WhatsApp vazio → aceita, "sem WhatsApp".
+- EC-2: WhatsApp malformado (sem DDD, por exemplo) → a linha NÃO é descartada: o pacote entra "sem WhatsApp", com o selo "WhatsApp inválido", e o resultado diz quantos foram (decisão do dono em 02/10). O supervisor corrige em "Editar" ou reimporta. WhatsApp vazio → aceita, "sem WhatsApp", sem selo.
 - EC-3: Código com dígito verificador errado, código repetido no arquivo, linha sem rota, linha sem nome → descartadas, cada uma com seu motivo.
 - EC-4: Todas as linhas recusadas → a saída fica registrada com "0 aceitos, M descartados" e sem rotas, para a lista poder ser consultada e o arquivo reimportado.
 

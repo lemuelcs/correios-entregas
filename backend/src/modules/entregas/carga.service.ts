@@ -475,6 +475,12 @@ export async function editarPacote(pacote: PacoteAlvo, edicao: EdicaoPacote) {
   }
 
   const atualizado = await prisma.pacoteDia.update({ where: { id: pacote.id }, data: dados });
+  // O supervisor mexeu no WhatsApp: o aviso de "número inválido no arquivo" deixa de valer.
+  if (edicao.whatsapp !== undefined) {
+    await prisma.$executeRaw`
+      UPDATE "pacotes_dia" SET "sinais" = array_remove("sinais", 'whatsapp_invalido')
+       WHERE "id" = ${pacote.id} AND 'whatsapp_invalido' = ANY(coalesce("sinais", ARRAY[]::text[]))`;
+  }
 
   const cargaLiberada = pacote.carga.status !== 'CARREGADO';
   if (ganhouWhatsapp && cargaLiberada) await aoAdicionarPacotesEmCargaLiberada([pacote.id]);

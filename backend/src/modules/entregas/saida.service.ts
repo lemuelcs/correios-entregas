@@ -92,6 +92,8 @@ export interface ResultadoImportacao {
   rotasLiberadas: string[];
   /** Valor da coluna `carteiro` que não casou com nenhum carteiro ativo da unidade. */
   carteirosNaoEncontrados: Array<{ rota: string; valor: string }>;
+  /** Pacotes aceitos SEM WhatsApp porque o número do arquivo veio malformado. */
+  whatsappInvalidos: number;
   avisos: AvisoParser[];
 }
 
@@ -157,6 +159,9 @@ interface AlvoRota {
   cargaId: string | null;
 }
 
+/** Sinal do pacote que entrou sem WhatsApp por número malformado no arquivo. */
+export const SINAL_WHATSAPP_INVALIDO = 'whatsapp_invalido';
+
 const CAMPOS_COMPARADOS = ['nome', 'whatsappE164', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'cep', 'enderecoTexto', 'referencia'] as const;
 
 /**
@@ -169,7 +174,8 @@ const CAMPOS_COMPARADOS = ['nome', 'whatsappE164', 'logradouro', 'numero', 'comp
  *   (atualiza os que continuam, cria os novos, apaga os que saíram do arquivo);
  *   rota liberada fica intocada e as linhas dela são descartadas;
  * - o pacote já conferido pela foto do carteiro é mantido como está;
- * - WhatsApp malformado descarta a linha (sem prévia, não há como corrigir na hora);
+ * - WhatsApp malformado NÃO descarta a linha: o pacote entra sem WhatsApp, com o
+ *   sinal `whatsapp_invalido`, e o supervisor corrige o número na lista da rota;
  * - carteiro da rota: coluna `carteiro` casada → carteiro do dia; senão o padrão
  *   da rota; senão a rota fica sem carteiro.
  */
@@ -286,11 +292,16 @@ export async function importarSaida(e: EntradaImportacao, agora = new Date()): P
       consultasPrisma({ data, unidadeId, db: tx, ignorarCargaIds: cargasEmJogo }),
     );
     const aceitaveis: LinhaClassificada[] = [];
+    // Códigos cuja linha trouxe WhatsApp malformado: entram sem WhatsApp, sinalizados.
+    const whatsappInvalido = new Set<string>();
     for (const l of classificadas) {
       const rota = rotaDe.get(l.n)!;
-      if (l.situacao === 'invalida' || l.situacao === 'corrigir') {
+      if (l.situacao === 'corrigir') {
+        whatsappInvalido.add(l.codigo);
+        aceitaveis.push(l);
+      } else if (l.situacao === 'invalida') {
         const codigo = l.motivo === 'faltam_campos' || l.motivo === 'codigo_invalido' ? codigoParaDescarte(l.codigo) : l.codigo;
-        descartes.push({ n: l.n, rota, codigo, motivo: l.motivo!, ...(l.situacao === 'invalida' && l.detalhe ? { detalhe: l.detalhe } : {}) });
+        descartes.push({ n: l.n, rota, codigo, motivo: l.motivo!, ...(l.detalhe ? { detalhe: l.detalhe } : {}) });
       } else {
         aceitaveis.push(l);
       }
@@ -337,6 +348,9 @@ export async function importarSaida(e: EntradaImportacao, agora = new Date()): P
       : [];
     const existentePorCodigo = new Map(existentes.map((p) => [p.codigo, p]));
     const manter = new Set<string>();
+    // Reimportação: o sinal acompanha o que o arquivo novo traz para o pacote.
+    const sinalizar: string[] = [];
+    const limparSinal: string[] = [];
     const criar: Prisma.PacoteDiaCreateManyInput[] = [];
     const linhaDoCodigo = new Map<string, LinhaClassificada>();
     let aceitos = 0;
@@ -347,7 +361,7 @@ export async function importarSaida(e: EntradaImportacao, agora = new Date()): P
       const dados = dadosDoPacote(l, cargaId, data);
       const atual = existentePorCodigo.get(l.codigo);
       if (!atual) {
-        criar.push(dados);
+        criar.push(whatsappInvalido.has(l.codigo) ? { ...dados, sinais: [SINAL_WHATSAPP_INVALIDO] } : dados);
         linhaDoCodigo.set(l.codigo, l);
         continue;
       }
@@ -363,6 +377,7 @@ export async function importarSaida(e: EntradaImportacao, agora = new Date()): P
       }
       manter.add(atual.id);
       aceitos += 1;
+      (whatsappInvalido.has(l.codigo) ? sinalizar : limparSinal).push(atual.id);
       const antesDoEnvio = atual.status === 'AGUARDANDO_LIBERACAO' || atual.status === 'SEM_WHATSAPP';
       const mudou = atual.cargaId !== cargaId
         || CAMPOS_COMPARADOS.some((c) => (atual[c] ?? null) !== ((dados as Record<string, unknown>)[c] ?? null))
@@ -371,6 +386,17 @@ export async function importarSaida(e: EntradaImportacao, agora = new Date()): P
         const campos = Object.fromEntries(CAMPOS_COMPARADOS.map((c) => [c, (dados as Record<string, unknown>)[c] ?? null]));
         await tx.pacoteDia.update({ where: { id: atual.id }, data: { ...campos, cargaId, ...(antesDoEnvio ? { status: dados.status } : {}) } });
       }
+    }
+
+    if (sinalizar.length > 0) {
+      await tx.$executeRaw`
+        UPDATE "pacotes_dia" SET "sinais" = array_append(coalesce("sinais", ARRAY[]::text[]), ${SINAL_WHATSAPP_INVALIDO})
+         WHERE "id" = ANY(${sinalizar}::text[]) AND NOT (${SINAL_WHATSAPP_INVALIDO} = ANY(coalesce("sinais", ARRAY[]::text[])))`;
+    }
+    if (limparSinal.length > 0) {
+      await tx.$executeRaw`
+        UPDATE "pacotes_dia" SET "sinais" = array_remove("sinais", ${SINAL_WHATSAPP_INVALIDO})
+         WHERE "id" = ANY(${limparSinal}::text[]) AND ${SINAL_WHATSAPP_INVALIDO} = ANY(coalesce("sinais", ARRAY[]::text[]))`;
     }
 
     // Reimportação: o pacote de planilha que saiu do arquivo sai da rota (só nas não liberadas).
@@ -469,6 +495,7 @@ export async function importarSaida(e: EntradaImportacao, agora = new Date()): P
       rotasSemCarteiro: rotasSemCarteiro.sort(),
       rotasLiberadas: rotasLiberadas.sort(),
       carteirosNaoEncontrados,
+      whatsappInvalidos: whatsappInvalido.size,
     };
   }, { timeout: 120_000, maxWait: 15_000 });
 

@@ -6,16 +6,11 @@ import { destinoAposLogin } from '@/hooks/useAuthGuard';
 
 export const MENSAGEM_PRIMEIRO_ACESSO_OFFLINE = 'Sem conexão. O primeiro acesso precisa de internet.';
 
-type IdentifierType = 'cpf' | 'matricula' | 'email';
-
-const IDENTIFIER_CONFIG: Record<IdentifierType, { label: string; placeholder: string; maxLength?: number; type: string; vazio: string }> = {
-  cpf: { label: 'CPF', placeholder: '00000000000', maxLength: 11, type: 'text', vazio: 'Informe o CPF.' },
-  matricula: { label: 'Matrícula', placeholder: '00000000', maxLength: 8, type: 'text', vazio: 'Informe a matrícula.' },
-  email: { label: 'Email', placeholder: 'usuario@correios.local', type: 'email', vazio: 'Informe o email.' },
-};
+// A tela só oferece matrícula e senha. A API ainda aceita CPF e email (contas
+// antigas e testes), mas a interface não mostra mais esses modos.
+const MATRICULA = { label: 'Matrícula', placeholder: '00000000', maxLength: 8, vazio: 'Informe a matrícula.' };
 
 export function LoginPage() {
-  const [identifierType, setIdentifierType] = useState<IdentifierType>('cpf');
   const [identifier, setIdentifier] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
@@ -29,17 +24,7 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
 
   function handleIdentifierChange(value: string) {
-    if (identifierType === 'cpf' || identifierType === 'matricula') {
-      setIdentifier(value.replace(/\D/g, ''));
-    } else {
-      setIdentifier(value);
-    }
-  }
-
-  function switchIdentifierType(type: IdentifierType) {
-    setIdentifierType(type);
-    setIdentifier('');
-    setCamposVazios((c) => ({ ...c, identificador: false }));
+    setIdentifier(value.replace(/\D/g, ''));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -55,9 +40,7 @@ export function LoginPage() {
     }
     setLoading(true);
     try {
-      const credentials: { cpf?: string; matricula?: string; email?: string; senha: string } = { senha };
-      credentials[identifierType] = identifier;
-      const user = await login(credentials);
+      const user = await login({ matricula: identifier, senha });
       if (user.role === 'CARTEIRO' && user.senhaTemporaria) {
         // App de captura; a senha inicial do supervisor é trocada antes (US-001 AC-1).
         navigate('/carteiro/criar-senha', { replace: true, state: { senhaAtual: senha } });
@@ -74,7 +57,7 @@ export function LoginPage() {
     }
   }
 
-  const config = IDENTIFIER_CONFIG[identifierType];
+  const config = MATRICULA;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-correios-blue">
@@ -84,30 +67,14 @@ export function LoginPage() {
           <p className="text-gray-500 mt-2">Sistema de Gestão de Distribuição</p>
         </div>
 
-        <div className="flex rounded-xl bg-slate-100 p-1 mb-6">
-          {(['cpf', 'matricula', 'email'] as const).map(type => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => switchIdentifierType(type)}
-              className={[
-                'flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-all',
-                identifierType === type
-                  ? 'bg-white text-correios-blue shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700',
-              ].join(' ')}
-            >
-              {IDENTIFIER_CONFIG[type].label}
-            </button>
-          ))}
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label htmlFor="login-identificador" className="block text-sm font-medium text-gray-700 mb-1">{config.label}</label>
             <input
               id="login-identificador"
-              type={config.type}
+              type="text"
+              inputMode="numeric"
+              autoComplete="username"
               value={identifier}
               onChange={(e) => handleIdentifierChange(e.target.value)}
               className={[
@@ -130,6 +97,7 @@ export function LoginPage() {
             <input
               id="login-senha"
               type="password"
+              autoComplete="current-password"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               className={[

@@ -61,7 +61,7 @@ async function main(): Promise<void> {
     const canal = await f.criarCanal({ nome: 'Canal CDD Taguatinga', baseUrl: prosio.url });
     canalAtual = { id: canal.canal.id, callbackSecret: canal.callbackSecret };
     const unidade = await f.criarUnidade({ nome: 'CDD Taguatinga', canalProsioId: canal.canal.id });
-    await f.criarSupervisor({ unidadeId: unidade.id, nome: 'Ana Ribeiro', email: 'ana.ribeiro@e2e.local', senha: SENHA });
+    await f.criarSupervisor({ unidadeId: unidade.id, nome: 'Ana Ribeiro', email: 'ana.ribeiro@e2e.local', matricula: '80000011', senha: SENHA });
 
     const carteiro = (nome: string) => f.criarCarteiro({ unidadeId: unidade.id, nome });
     const marcos = await carteiro('Marcos Paulo Lima');
@@ -122,23 +122,23 @@ async function main(): Promise<void> {
     });
     await prisma.cargaDistrito.updateMany({ where: { id: { in: cargaIds } }, data: { saidaId: saida.id } });
 
-    return { supervisor: { email: 'ana.ribeiro@e2e.local', senha: SENHA }, unidadeId: unidade.id, distritos, pacotesD01 };
+    return { supervisor: { email: 'ana.ribeiro@e2e.local', matricula: '80000011', senha: SENHA }, unidadeId: unidade.id, distritos, pacotesD01 };
   }
 
   async function cenarioVazio() {
     const canal = await f.criarCanal({ nome: 'Canal CDD Ceilândia', baseUrl: prosio.url });
     canalAtual = { id: canal.canal.id, callbackSecret: canal.callbackSecret };
     const unidade = await f.criarUnidade({ nome: 'CDD Ceilândia', canalProsioId: canal.canal.id });
-    await f.criarSupervisor({ unidadeId: unidade.id, nome: 'Luana Teixeira', email: 'luana@e2e.local', senha: SENHA });
-    return { supervisor: { email: 'luana@e2e.local', senha: SENHA }, unidadeId: unidade.id };
+    await f.criarSupervisor({ unidadeId: unidade.id, nome: 'Luana Teixeira', email: 'luana@e2e.local', matricula: '80000012', senha: SENHA });
+    return { supervisor: { email: 'luana@e2e.local', matricula: '80000012', senha: SENHA }, unidadeId: unidade.id };
   }
 
   async function cenarioGestor() {
-    await f.criarGestor({ nome: 'Gestão Sede', email: 'gestor@e2e.local', senha: SENHA });
+    await f.criarGestor({ nome: 'Gestão Sede', email: 'gestor@e2e.local', matricula: '80000013', senha: SENHA });
     // Outra unidade, com distrito: o supervisor novo não pode enxergá-la.
     const outra = await f.criarUnidade({ nome: 'CEE Águas Claras', tipo: 'CEE' });
     await f.criarDistrito({ unidadeId: outra.id, codigo: 'D-50', nome: 'Arniqueiras' });
-    return { gestor: { email: 'gestor@e2e.local', senha: SENHA }, prosioUrl: prosio.url, outraUnidadeId: outra.id };
+    return { gestor: { email: 'gestor@e2e.local', matricula: '80000013', senha: SENHA }, prosioUrl: prosio.url, outraUnidadeId: outra.id };
   }
 
   async function cenarioCarteiro() {
@@ -154,7 +154,7 @@ async function main(): Promise<void> {
       },
     });
     await f.criarCarteiro({ unidadeId: unidade.id, nome: 'Carteiro Legado', usuarioId: u.id });
-    return { carteiro: { email: 'carteiro@e2e.local', senha: SENHA } };
+    return { carteiro: { email: 'carteiro@e2e.local', matricula: '80000001', senha: SENHA } };
   }
 
   // ——— Planilhas de exemplo ———————————————————————————————————————

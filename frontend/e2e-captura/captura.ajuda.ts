@@ -21,7 +21,6 @@ export async function semear(opcoes: { senhaTemporaria: boolean }): Promise<void
 /** Login por matrícula na tela /login. */
 export async function entrar(page: Page, senha: string): Promise<void> {
   await page.goto('/login');
-  await page.getByRole('button', { name: 'Matrícula' }).click();
   await page.getByLabel('Matrícula').fill(C1.matricula);
   await page.getByLabel('Senha').fill(senha);
   await page.getByRole('button', { name: 'Entrar' }).click();
