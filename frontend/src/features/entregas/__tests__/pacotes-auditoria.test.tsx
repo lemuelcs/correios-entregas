@@ -32,7 +32,7 @@ function lista(extra: Partial<ListaPacotes> = {}): ListaPacotes {
     cargaId: 'c1', data: '2026-09-30', somenteLeitura: false,
     distrito: { id: 'd1', codigo: 'D-01', nome: 'Taguatinga Norte' },
     statusCarga: 'EM_ENTREGA', liberada: true,
-    resumo: { total: 2, comWhatsapp: 1, porStatus: { ENVIADO: 1, SEM_WHATSAPP: 1 } },
+    resumo: { total: 2, comWhatsapp: 1, porStatus: { ENVIADO: 1, SEM_WHATSAPP: 1 }, carteiro: { id: 'k1', nome: 'Marcos Paulo Lima' }, semCarteiro: false, liberadoEm: '2026-09-30T11:12:00.000Z' },
     pagina: 1, porPagina: 50, total: 2, totalPaginas: 1,
     pacotes: [
       pacote('p1', 'AA123456785BR', { sinais: ['divergencia', 'caso_recusado:opt_out'] }),
@@ -96,11 +96,10 @@ describe('Lista de pacotes da rota (auditoria)', () => {
     expect(document.body).not.toHaveTextContent(/distrito/i);
   });
 
-  it('o cabeçalho traz o carteiro e a hora da liberação (do quadro do dia)', async () => {
+  it('o cabeçalho traz o carteiro e a hora da liberação da própria lista, sem consultar o quadro do dia', async () => {
     abrir();
     await waitFor(() => expect(document.querySelector('[data-cabecalho-rota]')).toHaveTextContent('Carteiro: Marcos Paulo Lima · liberada às 08:12'));
-    const chamada = fetchMock.mock.calls.find(([url]) => url.includes('/entregas/quadro'));
-    expect(chamada?.[0]).toBe('/api/v1/entregas/quadro?data=2026-09-30');
+    expect(fetchMock.mock.calls.some(([url]) => url.includes('/entregas/quadro'))).toBe(false);
   });
 
   it('edição: avisa antes que o WhatsApp novo dispara o aviso, manda só o que mudou e confirma o envio', async () => {

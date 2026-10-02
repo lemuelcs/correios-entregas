@@ -293,7 +293,15 @@ export interface ListaPacotes {
   distrito: { id: string; codigo: string; nome: string };
   statusCarga: StatusQuadro;
   liberada: boolean;
-  resumo: { total: number; comWhatsapp: number; porStatus: ContagemPorStatus };
+  resumo: {
+    total: number;
+    comWhatsapp: number;
+    porStatus: ContagemPorStatus;
+    /** Carteiro da rota no dia (mesma regra do quadro); `null` = sem carteiro ativo. */
+    carteiro: { id: string; nome: string | null } | null;
+    semCarteiro: boolean;
+    liberadoEm: string | null;
+  };
   pagina: number;
   porPagina: number;
   total: number;

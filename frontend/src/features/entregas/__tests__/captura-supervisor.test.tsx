@@ -44,7 +44,7 @@ const LISTA: ListaPacotes = {
   distrito: { id: 'd1', codigo: 'D-01', nome: 'Taguatinga Norte' },
   statusCarga: 'DADOS_CARREGADOS',
   liberada: false,
-  resumo: { total: 3, comWhatsapp: 3, porStatus: { AGUARDANDO_LIBERACAO: 3 } },
+  resumo: { total: 3, comWhatsapp: 3, porStatus: { AGUARDANDO_LIBERACAO: 3 }, carteiro: null, semCarteiro: true, liberadoEm: null },
   pagina: 1,
   porPagina: 50,
   total: 3,

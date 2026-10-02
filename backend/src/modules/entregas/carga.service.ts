@@ -13,6 +13,7 @@ import { formatarData, hojeBrasilia } from './datas';
 import { derivarStatusCarga, lerFiltroStatusQuadro, rotuloStatusPacote, type ContagemPorStatus, type StatusQuadro } from './status';
 import { aoAdicionarPacotesEmCargaLiberada } from './ganchos';
 import { fotosDosPacotes, pendenciasPorDistrito, transferenciasPorDistrito } from '../captura/captura-supervisao.service';
+import { escolherCarteiroDoDia } from './carteiro-do-dia';
 
 export const PACOTES_POR_PAGINA = 50;
 
@@ -238,7 +239,7 @@ export async function cartoesDoDia(where: Prisma.DistritoWhereInput, data: Date,
     const porStatus = carga ? porStatusDe.get(carga.id) ?? {} : {};
     const total = Object.values(porStatus).reduce((a, n) => a + (n ?? 0), 0);
     const liberada = carga !== null && carga.status !== 'CARREGADO';
-    const carteiroDoDia = (liberada && carga?.carteiro) || d.escalas[0]?.carteiro || d.carteiroPadrao;
+    const carteiroDoDia = escolherCarteiroDoDia({ snapshot: liberada ? carga?.carteiro : null, escala: d.escalas[0]?.carteiro, padrao: d.carteiroPadrao });
     const carteiro = carteiroDoDia && carteiroDoDia.ativo ? { id: carteiroDoDia.id, nome: carteiroDoDia.nome } : null;
     const status: StatusQuadro = derivarStatusCarga({ carga, porStatus, agora });
     return {
@@ -357,6 +358,27 @@ export async function listarPacotes(carga: CargaAlvo, filtros: FiltrosPacotes = 
   const liberada = carga.status !== 'CARREGADO';
   const temFotoDe = await fotosDosPacotes(pacotes.map((p) => p.id)); // captura (extensão aditiva)
 
+  // Cabeçalho da lista: o carteiro da rota no dia, pela mesma regra do quadro.
+  const CARTEIRO = { id: true, nome: true, ativo: true } as const;
+  const contexto = await prisma.cargaDistrito.findUnique({
+    where: { id: carga.id },
+    select: {
+      carteiro: { select: CARTEIRO },
+      distrito: {
+        select: {
+          carteiroPadrao: { select: CARTEIRO },
+          escalas: { where: { data: carga.data }, select: { carteiro: { select: CARTEIRO } } },
+        },
+      },
+    },
+  });
+  const doDia = escolherCarteiroDoDia({
+    snapshot: liberada ? contexto?.carteiro : null,
+    escala: contexto?.distrito.escalas[0]?.carteiro,
+    padrao: contexto?.distrito.carteiroPadrao,
+  });
+  const carteiro = doDia && doDia.ativo ? { id: doDia.id, nome: doDia.nome } : null;
+
   return {
     cargaId: carga.id,
     data: formatarData(carga.data),
@@ -364,7 +386,14 @@ export async function listarPacotes(carga: CargaAlvo, filtros: FiltrosPacotes = 
     distrito: { id: carga.distrito.id, codigo: carga.distrito.codigo, nome: carga.distrito.nome },
     statusCarga: derivarStatusCarga({ carga: { status: carga.status as never, data: carga.data }, porStatus, agora }),
     liberada,
-    resumo: { total: Object.values(porStatus).reduce((a, n) => a + (n ?? 0), 0), comWhatsapp, porStatus },
+    resumo: {
+      total: Object.values(porStatus).reduce((a, n) => a + (n ?? 0), 0),
+      comWhatsapp,
+      porStatus,
+      carteiro,
+      semCarteiro: carteiro === null,
+      liberadoEm: carga.liberadoEm,
+    },
     pagina,
     porPagina: PACOTES_POR_PAGINA,
     total,

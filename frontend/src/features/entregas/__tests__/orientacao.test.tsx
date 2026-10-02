@@ -43,7 +43,7 @@ function lista(extra: Partial<ListaPacotes> = {}): ListaPacotes {
     distrito: { id: 'd1', codigo: 'D-01', nome: 'Taguatinga Norte' },
     statusCarga: 'EM_ENTREGA',
     liberada: true,
-    resumo: { total: 2, comWhatsapp: 2, porStatus: { ENVIADO: 1, ENTREGUE: 1 } },
+    resumo: { total: 2, comWhatsapp: 2, porStatus: { ENVIADO: 1, ENTREGUE: 1 }, carteiro: null, semCarteiro: true, liberadoEm: null },
     pagina: 1,
     porPagina: 50,
     total: 2,

@@ -39,6 +39,7 @@ import {
   textosDestinatario,
   type MotivoNaoFoiPossivel,
 } from './textos';
+import { escolherCarteiroDoDia } from './carteiro-do-dia';
 
 export type { TipoOrientacao } from '@prisma/client';
 
@@ -140,7 +141,7 @@ export async function carteiroDoDia(pacote: PacoteComContexto): Promise<Carteiro
     const escala = await prisma.escalaDistrito.findUnique({
       where: { distritoId_data: { distritoId: carga.distritoId, data: carga.data } },
     });
-    id = escala?.carteiroId ?? carga.distrito.carteiroPadraoId;
+    id = escolherCarteiroDoDia({ escala: escala?.carteiroId, padrao: carga.distrito.carteiroPadraoId });
   }
   return id ? prisma.carteiro.findUnique({ where: { id } }) : null;
 }
