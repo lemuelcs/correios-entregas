@@ -135,6 +135,8 @@ services:
       # só no .env da raiz (gitignored); vazio aqui sobrescreve o backend/.env.
       ENTREGAS_CRYPTO_KEY: ${CORREIOS_ENTREGAS_CRYPTO_KEY:-}
       SEU_RASTREIO_TOKEN: ${CORREIOS_SEU_RASTREIO_TOKEN:-}
+      # Rastreio dos Correios via PacoteVicio.dev (tem precedência sobre o Seu Rastreio quando preenchida).
+      PACOTEVICIO_API_KEY: ${CORREIOS_PACOTEVICIO_API_KEY:-}
       # Domínio do iframe do Chatwoot na tela Atendimento (ex.: correiosdev.com):
       # vai como `dominio` na sessão pedida ao Prosio. Vazio = URL padrão do
       # Prosio (chat.prosio.com.br), que recusa ser embutida.

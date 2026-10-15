@@ -131,5 +131,20 @@ export class SeuRastreioClient implements RastreioClient {
   }
 }
 
-/** Instância padrão (token e origem lidos do ambiente a cada chamada). */
-export const rastreioClient: RastreioClient = new SeuRastreioClient();
+const seuRastreio = new SeuRastreioClient();
+let pacoteVicio: RastreioClient | null = null;
+
+/**
+ * Instância padrão. Com `PACOTEVICIO_API_KEY` no ambiente, a fonte é o PacoteVicio.dev;
+ * sem ela, o Seu Rastreio (`SEU_RASTREIO_TOKEN`). Lido a cada chamada.
+ */
+export const rastreioClient: RastreioClient = {
+  async consultar(codigo) {
+    if (process.env.PACOTEVICIO_API_KEY) {
+      // Import tardio: `pacotevicio.client` importa tipos e `RastreioError` deste arquivo.
+      pacoteVicio ??= new (await import('./pacotevicio.client')).PacoteVicioClient();
+      return pacoteVicio.consultar(codigo);
+    }
+    return seuRastreio.consultar(codigo);
+  },
+};
