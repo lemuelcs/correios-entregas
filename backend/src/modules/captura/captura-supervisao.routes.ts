@@ -1,7 +1,7 @@
 /**
  * Supervisor da captura (TechSpec › API Endpoints › Supervisor; ADR-014): montado
  * no roteador autenticado do módulo `entregas` em `/api/v1/entregas/captura`.
- * Leitura: UNIDADE e GESTAO (`?unidadeId=`); escrita: UNIDADE, na própria unidade.
+ * Leitura: UNIDADE e GESTAO (`?unidadeId=`); escrita: UNIDADE (na própria unidade) e GESTAO (`?unidadeId=`).
  */
 import { Router } from 'express';
 import { requireRole } from '../../shared/middleware/auth.middleware';
@@ -10,7 +10,7 @@ import { capturaSupervisaoController as c } from './captura-supervisao.controlle
 export const capturaSupervisaoRoutes = Router();
 
 const leitura = requireRole('UNIDADE', 'GESTAO');
-const escrita = requireRole('UNIDADE');
+const escrita = requireRole('UNIDADE', 'GESTAO');
 
 capturaSupervisaoRoutes.get('/pacotes/:id/historico', leitura, c.historico);
 capturaSupervisaoRoutes.get('/pacotes/:id/foto', leitura, c.foto);

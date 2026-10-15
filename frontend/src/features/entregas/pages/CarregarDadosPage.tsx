@@ -50,11 +50,13 @@ function BarraProgresso({ valor, total, cor, rotulo }: { valor: number; total: n
   );
 }
 
-function CartaoDaRota({ r, mostrarUnidade, podeLiberar, podeAtribuir, aoLiberar, aoDefinirCarteiro }: {
+function CartaoDaRota({ r, mostrarUnidade, podeLiberar, podeAtribuir, matriculaNova, aoLiberar, aoDefinirCarteiro }: {
   r: CartaoRota;
   mostrarUnidade: boolean;
   podeLiberar: boolean;
   podeAtribuir: boolean;
+  /** Matrícula que veio no arquivo e não está cadastrada: o botão passa a cadastrar o carteiro. */
+  matriculaNova?: string | null;
   aoLiberar: (r: CartaoRota) => void;
   aoDefinirCarteiro: (r: CartaoRota) => void;
 }) {
@@ -101,7 +103,12 @@ function CartaoDaRota({ r, mostrarUnidade, podeLiberar, podeAtribuir, aoLiberar,
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             {!r.semCarteiro && podeLiberar && r.cargaId && <Botao onClick={() => aoLiberar(r)}>Liberar rota</Botao>}
-            {r.semCarteiro && podeAtribuir && (
+            {r.semCarteiro && podeAtribuir && matriculaNova && (
+              <BotaoLink variante="perigo" to={`/entregas/cadastro?${new URLSearchParams({ aba: 'carteiros', matricula: matriculaNova, rota: r.codigo })}`}>
+                Cadastrar carteiro
+              </BotaoLink>
+            )}
+            {r.semCarteiro && podeAtribuir && !matriculaNova && (
               <Botao variante="perigo" onClick={() => aoDefinirCarteiro(r)}>Definir carteiro</Botao>
             )}
             {pacotes && <BotaoLink variante="secundario" to={pacotes}>Ver pacotes</BotaoLink>}
@@ -246,9 +253,19 @@ export function CarregarDadosPage() {
   const somenteLeitura = quadro?.somenteLeitura ?? false;
   const agregado = quadro?.agregado ?? todas;
   const podeImportar = !somenteLeitura && !agregado;
-  const podeLiberar = user?.role === 'UNIDADE' && !somenteLeitura;
+  const podeLiberar = (user?.role === 'UNIDADE' || user?.role === 'GESTAO') && !somenteLeitura && !agregado;
   const liberaveis = useMemo(() => rotasLiberaveis(rotasDaAba), [rotasDaAba]);
   const semCarteiro = useMemo(() => rotasDaAba.filter((r) => r.semCarteiro && statusDaRota(r) === 'DADOS_CARREGADOS'), [rotasDaAba]);
+
+  // Matrículas do arquivo que não casaram com nenhum carteiro cadastrado, por rota.
+  const matriculasNovas = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const n of ultima?.carteirosNaoEncontrados ?? []) {
+      const digitos = n.valor.replace(/\D/g, '');
+      if (/^[\d.\-\s]+$/.test(n.valor) && digitos.length >= 6) m.set(n.rota, n.valor.trim());
+    }
+    return m;
+  }, [ultima]);
 
   // ——— Importação ———
 
@@ -661,6 +678,7 @@ export function CarregarDadosPage() {
                     mostrarUnidade={agregado}
                     podeLiberar={podeLiberar}
                     podeAtribuir={podeImportar}
+                    matriculaNova={matriculasNovas.get(r.codigo) ?? null}
                     aoLiberar={abrirLiberacao}
                     aoDefinirCarteiro={(rota) => setCarteiros({ foco: rota.distritoId })}
                   />

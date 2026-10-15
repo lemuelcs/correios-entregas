@@ -101,7 +101,9 @@ function CargaSoDoSupervisor() {
 
 export function CargaDistritoPage() {
   const papel = useAuthStore((s) => s.user?.role);
-  return papel === 'GESTAO' ? <CargaSoDoSupervisor /> : <CargaDoSupervisor />;
+  const unidadeGestaoId = useEntregasContextoStore((s) => s.unidadeGestaoId);
+  // A Gestão carrega a planilha na unidade em foco; sem unidade escolhida, pede para escolher.
+  return papel === 'GESTAO' && !unidadeGestaoId ? <CargaSoDoSupervisor /> : <CargaDoSupervisor />;
 }
 
 function CargaDoSupervisor() {

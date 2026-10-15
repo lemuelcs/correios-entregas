@@ -1,7 +1,7 @@
 /**
  * Rotas do cadastro da unidade e do atendimento (task_03). Registradas no
  * roteador autenticado de `entregas.routes.ts`. Leitura: UNIDADE e GESTAO
- * (`?unidadeId=`); escrita: UNIDADE, sempre na própria unidade.
+ * (`?unidadeId=`); escrita: UNIDADE (na própria unidade) e GESTAO (`?unidadeId=`).
  */
 import type { Router } from 'express';
 import { requireRole } from '../../shared/middleware/auth.middleware';
@@ -10,7 +10,7 @@ import { atendimentoController } from './atendimento.controller';
 
 export function registrarRotasCadastro(router: Router): void {
   const leitura = requireRole('UNIDADE', 'GESTAO');
-  const escrita = requireRole('UNIDADE');
+  const escrita = requireRole('UNIDADE', 'GESTAO');
 
   router.get('/cadastro/distritos', leitura, c.listarDistritos);
   router.post('/cadastro/distritos', escrita, c.criarDistrito);

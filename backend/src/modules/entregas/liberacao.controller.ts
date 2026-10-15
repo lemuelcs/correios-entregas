@@ -22,5 +22,5 @@ async function liberar(req: Request, res: Response, next: NextFunction): Promise
 }
 
 export function registrarRotasLiberacao(router: Router): void {
-  router.post('/cargas/:cargaId/liberar', requireRole('UNIDADE'), liberar);
+  router.post('/cargas/:cargaId/liberar', requireRole('UNIDADE', 'GESTAO'), liberar);
 }

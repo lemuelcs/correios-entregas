@@ -130,12 +130,19 @@ export function CarteiroDoDia({ distritos, carteiros, quadro, aoMudar }: { distr
 
 // ——— Carteiros ———————————————————————————————————————————————————————
 
-export function FormCarteiro({ carteiro, distritos, aoFechar, aoSalvar }: { carteiro: CarteiroCadastro | null; distritos: Distrito[]; aoFechar: () => void; aoSalvar: () => Promise<void> }) {
+export function FormCarteiro({ carteiro, distritos, aoFechar, aoSalvar, inicial }: {
+  carteiro: CarteiroCadastro | null;
+  distritos: Distrito[];
+  aoFechar: () => void;
+  aoSalvar: () => Promise<void>;
+  /** Cadastro novo aberto a partir da importação: matrícula (e rota) já preenchidas. */
+  inicial?: { matricula?: string; rota?: string };
+}) {
   const [base, setBase] = useState(carteiro);
   const [nome, setNome] = useState(carteiro?.nome ?? '');
-  const [matricula, setMatricula] = useState(carteiro?.matricula ?? '');
+  const [matricula, setMatricula] = useState(carteiro?.matricula ?? inicial?.matricula ?? '');
   const [whatsapp, setWhatsapp] = useState(whatsappParaCampo(carteiro?.whatsapp));
-  const [distritoPadraoId, setDistrito] = useState(carteiro?.distritosPadrao[0]?.id ?? '');
+  const [distritoPadraoId, setDistrito] = useState(carteiro?.distritosPadrao[0]?.id ?? (inicial?.rota ? distritos.find((d) => d.codigo === inicial.rota)?.id ?? '' : ''));
   const [ativo, setAtivo] = useState(carteiro?.ativo ?? true);
 
   function recarregar(atual: CarteiroCadastro) {

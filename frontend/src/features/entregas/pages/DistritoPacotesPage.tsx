@@ -150,7 +150,7 @@ export function DistritoPacotesPage() {
   const cabecalho = dados?.resumo ?? null;
 
   const desatualizado = !!dados && falhasSeguidas >= FALHAS_PARA_DESATUALIZADO;
-  const podeRemover = !!dados && !dados.somenteLeitura && user?.role === 'UNIDADE';
+  const podeRemover = !!dados && !dados.somenteLeitura && (user?.role === 'UNIDADE' || user?.role === 'GESTAO');
   // `PATCH /entregas/pacotes/:id` é do supervisor; datas passadas ficam só para consulta.
   const podeEditar = podeRemover;
   const podeOrientar = !!dados && !dados.somenteLeitura && (user?.role === 'UNIDADE' || user?.role === 'GESTAO');
@@ -197,7 +197,7 @@ export function DistritoPacotesPage() {
                 onChange={(e) => setBusca(e.target.value)}
                 className={`${CLASSE_ENTRADA} sm:w-64`}
               />
-              {!dados.somenteLeitura && user?.role === 'UNIDADE' && (
+              {!dados.somenteLeitura && (user?.role === 'UNIDADE' || user?.role === 'GESTAO') && (
                 <BotaoLink variante="secundario" to={`/entregas/carregar/${dados.distrito.id}`}>Adicionar pacotes</BotaoLink>
               )}
             </div>

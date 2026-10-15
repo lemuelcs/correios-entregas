@@ -18,7 +18,7 @@ import { useEntregasContextoStore } from '@/stores/entregas-contexto.store';
 import { entregasApi } from '../entregas.api';
 import type { CanalProsio, CarteiroCadastro, Distrito, Pagina, PontoRetirada, Quadro, Supervisor, UnidadeGestao } from '../entregas.types';
 import { avisarErro, formatarWhatsapp } from '../mensagens';
-import { Botao, CLASSE_ENTRADA, CabecalhoPagina, Cartao, Carregando, FOCO, Pilula } from '../components/ui';
+import { Botao, CLASSE_ENTRADA, CabecalhoPagina, Cartao, Carregando, FOCO } from '../components/ui';
 import { CarteiroDoDia, FormCarteiro, FormDistrito, FormPonto, FormSenhaCarteiro } from '../components/FormulariosCadastro';
 import { DialogoConfirmar, DialogoToken, FormCanal, FormSupervisor, FormUnidade, rotuloTipoCanal } from '../components/FormulariosGestao';
 
@@ -101,7 +101,7 @@ export function paginarPontos(pontos: PontoRetirada[], busca: string, pagina: nu
 
 type Edicao =
   | { tipo: 'distrito'; item: Distrito | null }
-  | { tipo: 'carteiro'; item: CarteiroCadastro | null }
+  | { tipo: 'carteiro'; item: CarteiroCadastro | null; inicial?: { matricula?: string; rota?: string } }
   | { tipo: 'senha'; item: CarteiroCadastro }
   | { tipo: 'ponto'; item: PontoRetirada | null }
   | { tipo: 'unidade'; item: UnidadeGestao | null }
@@ -134,7 +134,7 @@ export function CadastroPage() {
 
   const unidadeId = ehGestao ? unidadeGestaoId ?? undefined : undefined;
   const operacional = !ABAS[aba].gestao;
-  const podeEditar = !ehGestao || ABAS[aba].gestao;
+  const podeEditar = true; // a Gestão faz tudo, na unidade em foco
   const unidadeFoco = ehGestao ? cad.unidades?.find((u) => u.id === unidadeGestaoId) : null;
 
   // Outra aba ou outra unidade: a busca recomeça e as listas da unidade anterior saem da tela.
@@ -169,8 +169,8 @@ export function CadastroPage() {
         if (meu !== pedido.current) return;
         if (aba === 'distritos') setPaginaDistritos(pagina as Pagina<Distrito>);
         if (aba === 'carteiros') setPaginaCarteiros(pagina as Pagina<CarteiroCadastro>);
-        if (aba === 'distritos' && !ehGestao) {
-          const q = await entregasApi.quadro({});
+        if (aba === 'distritos') {
+          const q = await entregasApi.quadro({ unidadeId });
           if (meu === pedido.current) setQuadro(q);
         }
       } else if (aba === 'canais') {
@@ -194,6 +194,16 @@ export function CadastroPage() {
   useEffect(() => {
     void recarregar();
   }, [recarregar]);
+
+  // Vindo da importação ("Cadastrar carteiro"): abre o cadastro com a matrícula já preenchida.
+  const matriculaPedida = params.get('matricula');
+  const rotaPedida = params.get('rota');
+  useEffect(() => {
+    if (!matriculaPedida || aba !== 'carteiros' || !cad.distritos) return;
+    setEdicao({ tipo: 'carteiro', item: null, inicial: { matricula: matriculaPedida, rota: rotaPedida ?? undefined } });
+    setParams({ aba: 'carteiros' }, { replace: true });
+    // `cad` é o store inteiro; só interessam os distritos já carregados.
+  }, [matriculaPedida, rotaPedida, aba, cad.distritos]);
 
   const fechar = () => setEdicao(null);
   const salvarERecarregar = async () => {
@@ -349,7 +359,6 @@ export function CadastroPage() {
         <p className="m-0 text-[15px] text-ce-suave">Escolha a unidade em foco no menu para consultar {ABAS[aba].rotulo.toLowerCase()}.</p>
       ) : (
         <div role="tabpanel" aria-label={ABAS[aba].rotulo} className="flex flex-col gap-5">
-          {operacional && ehGestao && <Pilula classe="bg-ce-linha-fraca text-ce-tinta-2" className="self-start">Somente consulta · o supervisor da unidade faz as alterações</Pilula>}
           {rotuloBusca && (
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <div className="w-full sm:w-80">
@@ -378,14 +387,14 @@ export function CadastroPage() {
               aoMudar={(p) => setFiltro((f) => ({ ...f, pagina: p }))}
             />
           )}
-          {aba === 'distritos' && !ehGestao && cad.distritos && cad.carteiros && (
+          {aba === 'distritos' && cad.distritos && cad.carteiros && (
             <CarteiroDoDia distritos={cad.distritos} carteiros={cad.carteiros} quadro={quadro} aoMudar={recarregar} />
           )}
         </div>
       )}
 
       {edicao?.tipo === 'distrito' && <FormDistrito distrito={edicao.item} carteiros={cad.carteiros ?? []} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
-      {edicao?.tipo === 'carteiro' && <FormCarteiro carteiro={edicao.item} distritos={cad.distritos ?? []} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
+      {edicao?.tipo === 'carteiro' && <FormCarteiro carteiro={edicao.item} inicial={edicao.inicial} distritos={cad.distritos ?? []} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
       {edicao?.tipo === 'senha' && <FormSenhaCarteiro carteiro={edicao.item} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
       {edicao?.tipo === 'ponto' && <FormPonto ponto={edicao.item} aoFechar={fechar} aoSalvar={salvarERecarregar} />}
       {edicao?.tipo === 'canal' && (
