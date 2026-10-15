@@ -229,6 +229,14 @@ export function formatarHora(iso: string | null | undefined): string {
   return new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).format(d).replace(':', 'h');
 }
 
+/** `dd/mm hh:mm` em Brasília. */
+export function formatarDataHoraCurta(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }).format(d).replace(',', '');
+}
+
 export function formatarDataLonga(iso: string): string {
   const d = new Date(`${iso}T12:00:00Z`);
   const s = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(d);

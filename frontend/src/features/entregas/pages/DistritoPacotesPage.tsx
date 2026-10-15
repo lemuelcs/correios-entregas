@@ -13,6 +13,7 @@ import { ApiError } from '@/services/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { useEntregasContextoStore } from '@/stores/entregas-contexto.store';
 import { useEntregasPacotesStore, type FiltroPacotes } from '@/stores/entregas-pacotes.store';
+import { entregasApi } from '../entregas.api';
 import type { PacoteDistrito, StatusPacote } from '../entregas.types';
 import {
   ORDEM_STATUS_PACOTE,
@@ -22,6 +23,7 @@ import {
   formatarDataCurta,
   formatarEndereco,
   formatarHora,
+  formatarDataHoraCurta,
   formatarWhatsapp,
   mensagemDeErro,
 } from '../mensagens';
@@ -92,6 +94,8 @@ export function DistritoPacotesPage() {
   // Atualização automática: falhas seguidas e a hora da última resposta boa.
   const [falhasSeguidas, setFalhasSeguidas] = useState(0);
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
+  // Rastreio (Seu Rastreio): atualizado a cada entrada na página.
+  const [rastreio, setRastreio] = useState<{ fase: 'atualizando' | 'ok' | 'indisponivel'; falhas: number } | null>(null);
   const ehGestao = user?.role === 'GESTAO';
   const unidadeId = ehGestao ? unidadeGestaoId ?? undefined : undefined;
 
@@ -136,6 +140,23 @@ export function DistritoPacotesPage() {
   }, [atualizar]);
 
   usePolling(() => void atualizar(true));
+
+  // Ao entrar na página (ou trocar de rota), dispara a atualização do rastreio de todos os pacotes
+  // e, quando termina, recarrega a lista com o último evento de cada um.
+  useEffect(() => {
+    let ativo = true;
+    setRastreio({ fase: 'atualizando', falhas: 0 });
+    entregasApi.atualizarRastreio(cargaId)
+      .then(async (r) => {
+        if (!ativo) return;
+        setRastreio({ fase: r.erro ? 'indisponivel' : 'ok', falhas: r.falhas });
+        if (r.consultados > 0) await atualizar(true);
+      })
+      .catch(() => { if (ativo) setRastreio({ fase: 'indisponivel', falhas: 0 }); });
+    return () => { ativo = false; };
+    // `atualizar` muda com o filtro; a consulta é só por entrada na página.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargaId, unidadeId]);
 
   // Busca aplicada com uma pequena espera, sem uma chamada por tecla.
   useEffect(() => {
@@ -202,6 +223,14 @@ export function DistritoPacotesPage() {
               )}
             </div>
           </header>
+
+          {rastreio && (
+            <div role="status" data-rastreio={rastreio.fase} className="text-[13px] text-ce-suave">
+              {rastreio.fase === 'atualizando' && 'Atualizando o rastreio dos Correios…'}
+              {rastreio.fase === 'ok' && (rastreio.falhas > 0 ? `Rastreio atualizado · ${rastreio.falhas} pacote(s) sem resposta.` : 'Rastreio atualizado.')}
+              {rastreio.fase === 'indisponivel' && 'Rastreio indisponível agora; mostrando o último status conhecido.'}
+            </div>
+          )}
 
           {desatualizado && (
             <div role="status" data-desatualizado className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-ce-corrigir-bg bg-ce-corrigir-bg px-4 py-3 text-ce-corrigir">
@@ -276,7 +305,11 @@ export function DistritoPacotesPage() {
                             ))}
                           </ul>
                         )}
-                        {p.rastreio && <div className="mt-1 text-xs text-ce-suave">Rastreio: {p.rastreio.descricao}</div>}
+                        {p.rastreio && (
+                          <div className="mt-1 text-xs text-ce-suave" data-rastreio-pacote>
+                            Rastreio: {p.rastreio.descricao}{p.rastreio.em ? ` · ${formatarDataHoraCurta(p.rastreio.em)}` : ''}
+                          </div>
+                        )}
                       </td>
                       <td className="max-w-[280px] px-3 py-3.5">{p.orientacaoVigente?.texto ?? '—'}</td>
                       <td className="px-3 py-3.5 text-ce-tinta-2">

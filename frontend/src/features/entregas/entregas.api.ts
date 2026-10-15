@@ -117,6 +117,9 @@ export const entregasApi = {
   liberar: (cargaId: string, confirmarSemAvisos = false) =>
     escrita.post<RespostaLiberacao>(`/entregas/cargas/${cargaId}/liberar`, confirmarSemAvisos ? { confirmarSemAvisos: true } : {}),
 
+  /** Dispara a consulta ao Seu Rastreio de todos os pacotes da rota. */
+  atualizarRastreio: (cargaId: string) =>
+    escrita.post<{ consultados: number; atualizados: number; falhas: number; erro: string | null; recente: boolean }>(`/entregas/cargas/${cargaId}/rastreio/atualizar`, {}),
   pacotes: (cargaId: string, p: { status?: string; busca?: string; pagina?: number; unidadeId?: string }) =>
     api.get<ListaPacotes>(`/entregas/cargas/${cargaId}/pacotes${query(p)}`),
 

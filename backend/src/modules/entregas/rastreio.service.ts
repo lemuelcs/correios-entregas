@@ -188,3 +188,82 @@ export async function processarRastreio(
   logger.info({ ...resumo, varredura: !!janela.varredura }, 'entregas.rastreio rodada');
   return resumo;
 }
+
+// ——— Atualização sob demanda (página dos pacotes da rota) ———————————————
+
+export interface ResumoAtualizacaoCarga {
+  consultados: number;
+  /** Pacotes cujo último evento do rastreio mudou. */
+  atualizados: number;
+  falhas: number;
+  /** Primeiro erro que interrompeu a rodada (`sem_credencial`, `http_402`…), se houve. */
+  erro: string | null;
+  /** Consulta pulada: outra rodada da mesma carga começou há pouco. */
+  recente: boolean;
+}
+
+const CONCORRENCIA_ATUALIZACAO = 8;
+const INTERVALO_MINIMO_MS = 20_000;
+const ERROS_QUE_ENCERRAM = new Set(['sem_credencial', 'nao_autorizado', 'http_402']);
+const ultimaRodadaDaCarga = new Map<string, number>();
+
+/**
+ * Consulta o rastreio de TODOS os pacotes da carga e grava o último evento
+ * (`rastreioDescricao`/`rastreioEm`). Em carga liberada, aplica também o avanço
+ * de status da regra normal; em carga ainda não liberada só registra o evento
+ * (o status do pacote não muda antes da liberação). Falha não lança.
+ */
+export async function atualizarRastreioDaCarga(
+  carga: { id: string; status: string },
+  deps: DepsRastreio = {},
+  agora = new Date(),
+): Promise<ResumoAtualizacaoCarga> {
+  const anterior = ultimaRodadaDaCarga.get(carga.id);
+  if (anterior !== undefined && agora.getTime() - anterior < INTERVALO_MINIMO_MS) {
+    return { consultados: 0, atualizados: 0, falhas: 0, erro: null, recente: true };
+  }
+  ultimaRodadaDaCarga.set(carga.id, agora.getTime());
+
+  const cliente = deps.rastreio ?? rastreioPadrao;
+  const liberada = carga.status !== 'CARREGADO';
+  const pacotes = await prisma.pacoteDia.findMany({
+    where: { cargaId: carga.id },
+    select: { id: true, codigo: true, rastreioDescricao: true },
+    orderBy: { criadoEm: 'asc' },
+  });
+  const resumo: ResumoAtualizacaoCarga = { consultados: 0, atualizados: 0, falhas: 0, erro: null, recente: false };
+  let proximo = 0;
+
+  async function trabalhador(): Promise<void> {
+    while (resumo.erro === null) {
+      const p = pacotes[proximo];
+      proximo += 1;
+      if (!p) return;
+      resumo.consultados += 1;
+      try {
+        const resultado = await cliente.consultar(p.codigo);
+        rastreioConsultasTotal.inc({ resultado: resultado ? (resultado.classificacao ?? 'sem_classificacao') : 'nao_encontrado' });
+        if (!resultado) continue;
+        if (liberada) {
+          await aplicarResultadoRastreio(p.id, resultado, deps);
+        } else {
+          const descricao = resultado.eventoMaisRecente?.descricao ?? null;
+          if (descricao) {
+            await prisma.pacoteDia.update({ where: { id: p.id }, data: { rastreioDescricao: descricao, rastreioEm: instanteDoEvento(resultado) ?? new Date() } });
+          }
+        }
+        if ((resultado.eventoMaisRecente?.descricao ?? null) !== p.rastreioDescricao) resumo.atualizados += 1;
+      } catch (err) {
+        const codigo = err instanceof RastreioError ? err.code : (err as Error).message;
+        resumo.falhas += 1;
+        rastreioConsultasTotal.inc({ resultado: 'erro' });
+        if (ERROS_QUE_ENCERRAM.has(codigo)) resumo.erro = codigo;
+        logger.warn({ pacoteId: p.id, erro: codigo }, 'entregas.rastreio atualização da carga falhou');
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(CONCORRENCIA_ATUALIZACAO, pacotes.length) }, () => trabalhador()));
+  logger.info({ cargaId: carga.id, ...resumo }, 'entregas.rastreio atualização da carga');
+  return resumo;
+}
