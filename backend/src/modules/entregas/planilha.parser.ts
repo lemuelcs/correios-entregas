@@ -92,9 +92,9 @@ const CABECALHOS: Record<string, Campo> = {};
 function aceitar(campo: Campo, nomes: string[]): void {
   for (const n of nomes) CABECALHOS[normalizarCabecalho(n)] = campo;
 }
-aceitar('codigo', ['código', 'codigo', 'objeto', 'rastreio', 'código de rastreio', 'código do objeto', 'etiqueta', 'cod', 'codigo rastreio', 'rastreamento']);
-aceitar('nome', ['nome', 'destinatário', 'destinatario', 'nome do destinatário', 'cliente', 'nome destinatario']);
-aceitar('whatsapp', ['whatsapp', 'whats', 'zap', 'telefone', 'celular', 'fone', 'tel', 'telefone celular', 'contato']);
+aceitar('codigo', ['código', 'codigo', 'objeto', 'rastreio', 'código de rastreio', 'código do objeto', 'etiqueta', 'cod', 'codigo_objeto', 'codigo rastreio', 'rastreamento']);
+aceitar('nome', ['nome', 'destinatário', 'destinatario', 'nome do destinatário', 'cliente', 'nome destinatario', 'nome_destinatario']);
+aceitar('whatsapp', ['whatsapp', 'whats', 'zap', 'telefone', 'celular', 'fone', 'tel', 'telefone celular', 'contato', 'telefone destinatario', 'telefone_destinatario']);
 aceitar('endereco', ['endereço', 'endereco', 'endereço completo', 'endereco completo']);
 aceitar('logradouro', ['logradouro', 'rua', 'avenida']);
 aceitar('numero', ['número', 'numero', 'nº', 'no', 'num', 'nro', 'n']);
@@ -103,7 +103,7 @@ aceitar('bairro', ['bairro']);
 aceitar('cidade', ['cidade', 'município', 'municipio', 'localidade']);
 aceitar('uf', ['uf', 'estado']);
 aceitar('cep', ['cep']);
-aceitar('rota', ['rota', 'código da rota', 'codigo da rota', 'cód rota', 'cod rota', 'número da rota', 'numero da rota', 'nº da rota', 'nº rota', 'distrito', 'código do distrito', 'codigo do distrito', 'cod distrito']);
+aceitar('rota', ['rota', 'código da rota', 'codigo da rota', 'cód rota', 'cod rota', 'número da rota', 'numero da rota', 'nº da rota', 'nº rota', 'distrito', 'código do distrito', 'codigo do distrito', 'cod distrito', 'codigo rota distrito', 'codigo_rota_distrito']);
 aceitar('carteiro', ['carteiro', 'matrícula', 'matricula', 'matrícula do carteiro', 'matricula do carteiro', 'matricula carteiro', 'nome do carteiro', 'carteiro da rota', 'entregador']);
 aceitar('referencia', ['referência', 'referencia', 'ponto de referência', 'ponto de referencia', 'observação', 'observacao', 'obs']);
 

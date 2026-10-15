@@ -43,6 +43,16 @@ async function xlsx(abas: Array<{ nome: string; linhas: ExcelJS.CellValue[][] }>
 }
 
 describe('planilha.parser', () => {
+  it('lê o CSV do distrito (DATA;MCU_UNIDADE;CODIGO_ROTA_DISTRITO;...)', () => {
+    const csv = [
+      'DATA;MCU_UNIDADE;CODIGO_ROTA_DISTRITO;MATRICULA_CARTEIRO;CODIGO_OBJETO;NOME_DESTINATARIO;TELEFONE_DESTINATARIO',
+      '2026-10-02;00055863;25035065;89170288;AD972713337BR;Jaqueline Bertoncelo;11996953670',
+    ].join('\n');
+    const { linhas, avisos } = lerCsv(csv);
+    expect(avisos).toEqual([]);
+    expect(linhas[0]).toMatchObject({ codigo: 'AD972713337BR', nome: 'Jaqueline Bertoncelo', whatsapp: '11996953670', rota: '25035065', carteiro: '89170288' });
+  });
+
   it('UT-014 CSV com ";" e cabeçalhos equivalentes mapeia codigo, nome e whatsapp', () => {
     const csv = [
       'rastreio;destinatario;celular;rua;numero;bairro;cidade;uf;cep',
