@@ -257,16 +257,6 @@ export function CarregarDadosPage() {
   const liberaveis = useMemo(() => rotasLiberaveis(rotasDaAba), [rotasDaAba]);
   const semCarteiro = useMemo(() => rotasDaAba.filter((r) => r.semCarteiro && statusDaRota(r) === 'DADOS_CARREGADOS'), [rotasDaAba]);
 
-  // Matrículas do arquivo que não casaram com nenhum carteiro cadastrado, por rota.
-  const matriculasNovas = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const n of ultima?.carteirosNaoEncontrados ?? []) {
-      const digitos = n.valor.replace(/\D/g, '');
-      if (/^[\d.\-\s]+$/.test(n.valor) && digitos.length >= 6) m.set(n.rota, n.valor.trim());
-    }
-    return m;
-  }, [ultima]);
-
   // ——— Importação ———
 
   const numerosImportados = useMemo(() => [...new Set((quadro?.saidas ?? []).map((s) => s.numero))].sort((a, b) => a - b), [quadro]);
@@ -678,7 +668,7 @@ export function CarregarDadosPage() {
                     mostrarUnidade={agregado}
                     podeLiberar={podeLiberar}
                     podeAtribuir={podeImportar}
-                    matriculaNova={matriculasNovas.get(r.codigo) ?? null}
+                    matriculaNova={r.matriculaNaoCadastrada ?? null}
                     aoLiberar={abrirLiberacao}
                     aoDefinirCarteiro={(rota) => setCarteiros({ foco: rota.distritoId })}
                   />

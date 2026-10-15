@@ -104,6 +104,8 @@ export interface SaidaDoDia {
 
 /** Cartão de uma rota no dia. `saidaNumero: null` = carga fora de uma saída (aba "Sem saída"). */
 export interface CartaoRota extends CartaoDistrito {
+  /** Matrícula do arquivo ainda sem carteiro cadastrado (rota sem carteiro): o cartão oferece "Cadastrar carteiro". */
+  matriculaNaoCadastrada?: string | null;
   saidaNumero: number | null;
   unidade: { id: string; nome: string };
 }

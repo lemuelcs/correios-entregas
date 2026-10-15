@@ -482,6 +482,7 @@ export async function importarSaida(e: EntradaImportacao, agora = new Date()): P
         aceitos,
         descartados: descartes.length,
         descartes: descartes as unknown as Prisma.InputJsonValue,
+        carteirosNaoEncontrados: carteirosNaoEncontrados as unknown as Prisma.InputJsonValue,
       },
       include: { unidade: { select: { nome: true } } },
     });
@@ -508,6 +509,8 @@ export interface CartaoRotaSaida extends CartaoRota {
   /** Número da saída da rota; `null` = carga sem saída (aba "Sem saída"). */
   saidaNumero: number | null;
   unidade: { id: string; nome: string };
+  /** Matrícula (ou valor) do arquivo que não casou com carteiro cadastrado; só em rota sem carteiro. */
+  matriculaNaoCadastrada: string | null;
 }
 
 const ordemNatural = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' });
@@ -534,6 +537,19 @@ export async function listarSaidas(escopo: { unidadeId: string | null }, data: D
     agregado ? null : prisma.unidade.findUnique({ where: { id: escopo.unidadeId! }, select: { id: true, nome: true } }),
   ]);
 
+  // Rotas sem carteiro cujo arquivo trouxe uma matrícula ainda não cadastrada (some ao cadastrar).
+  const naoEncontradas = new Map<string, string>();
+  const unidadesComPendencia = new Set<string>();
+  for (const s of saidas) {
+    for (const n of Array.isArray(s.carteirosNaoEncontrados) ? (s.carteirosNaoEncontrados as unknown as Array<{ rota: string; valor: string }>) : []) {
+      naoEncontradas.set(`${s.unidadeId}:${s.numero}:${n.rota}`, n.valor);
+      unidadesComPendencia.add(s.unidadeId);
+    }
+  }
+  const cadastrados = unidadesComPendencia.size
+    ? await prisma.carteiro.findMany({ where: { unidadeId: { in: [...unidadesComPendencia] }, ativo: true }, select: { id: true, nome: true, matricula: true, unidadeId: true } })
+    : [];
+
   const rotas: CartaoRotaSaida[] = doDia
     .filter(({ cartao: c, saida }) => {
       if (saida) return true;
@@ -547,6 +563,13 @@ export async function listarSaidas(escopo: { unidadeId: string | null }, data: D
       status: cartao.status === 'PENDENTE_UPLOAD' ? 'DADOS_CARREGADOS' as const : cartao.status,
       saidaNumero: saida?.numero ?? null,
       unidade: u,
+      matriculaNaoCadastrada: (() => {
+        if (!cartao.semCarteiro || !saida) return null;
+        const valor = naoEncontradas.get(`${u.id}:${saida.numero}:${cartao.codigo}`);
+        if (!valor) return null;
+        // Já cadastrado depois da importação: não é mais "não cadastrada" (a rota segue para atribuir).
+        return casarCarteiro(valor, cadastrados.filter((c) => c.unidadeId === u.id)) ? null : valor;
+      })(),
     }))
     .sort((a, b) => ordemNatural.compare(a.unidade.nome, b.unidade.nome) || ordemNatural.compare(a.codigo, b.codigo));
 

@@ -818,6 +818,8 @@ model Saida {
   aceitos        Int      @default(0)
   descartados    Int      @default(0)
   descartes      Json     @default("[]")
+  // Valor da coluna do carteiro que não casou com carteiro cadastrado, por rota (`[{rota, valor}]`).
+  carteirosNaoEncontrados Json @default("[]")
   criadoEm       DateTime @default(now())
   atualizadoEm   DateTime @default(now()) @updatedAt
 
