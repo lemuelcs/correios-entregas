@@ -76,7 +76,8 @@ export default defineConfig({
       clientPort: 443,
     },
     watch: {
-      usePolling: true,
+      // Polling por padrão (hosts sem inotify); VITE_WATCH_POLLING=0 usa inotify (hot reload em Docker/Linux).
+      usePolling: process.env.VITE_WATCH_POLLING !== '0',
       interval: 3000,
       binaryInterval: 5000,
       ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],

@@ -1,0 +1,46 @@
+# Hot reload (opt-in). Sobrepõe o docker-compose.yml: backend com `tsx watch` e
+# frontend com Vite HMR, ambos lendo o código do host por bind mount.
+#
+#   npm run docker:up:hot      # sobe com hot reload
+#   npm run docker:up          # volta ao build de produção
+#
+# ATENÇÃO: os mesmos domínios (correiosdev.com etc.) passam a servir o Vite dev
+# server e o `tsx watch`. Use só enquanto desenvolve; depois volte ao `docker:up`.
+# Mudanças em package.json/lockfile ou no schema do Prisma exigem rebuild
+# (`--build`, já incluso no script) e, no schema, `prisma migrate`.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    mem_limit: 768m
+    volumes:
+      - ./backend/src:/app/backend/src
+      - ./backend/prisma:/app/backend/prisma
+      - correios_fotos:/data/fotos
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+    mem_limit: 768m
+    mem_reservation: 128m
+    environment:
+      # Proxy do Vite → backend (só vale ao acessar o Vite direto).
+      VITE_API_TARGET: http://backend:3002
+      # inotify funciona em bind mount no Linux; sem o polling de 3s o HMR é imediato.
+      VITE_WATCH_POLLING: "0"
+    volumes:
+      - ./frontend/src:/app/frontend/src
+      - ./frontend/public:/app/frontend/public
+      - ./frontend/index.html:/app/frontend/index.html
+      - ./frontend/vite.config.ts:/app/frontend/vite.config.ts
+    labels:
+      - "traefik.http.services.correios-web.loadbalancer.server.port=5180"
+    healthcheck:
+      # Imagem node não tem wget/curl.
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:5180/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

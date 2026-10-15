@@ -17,6 +17,7 @@
     "db:studio": "cd backend && npx prisma studio",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d --build",
+    "docker:up:hot": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend frontend",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:up:infra": "docker compose -f infra/docker-compose.yml up -d",
