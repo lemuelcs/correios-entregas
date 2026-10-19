@@ -12,7 +12,7 @@ Este repositório concentra o que é específico do produto Correios Entregas:
 
 ## O que Não Deve Ficar Aqui
 
-- infraestrutura compartilhada como gateway, Postgres, Redis, observabilidade, OSRM e VROOM
+- infraestrutura compartilhada como gateway, Postgres, Redis, observabilidade
 - microserviços reutilizáveis por mais de um sistema
 - duplicação local de domínios já centralizados, como WhatsApp e address engine
 

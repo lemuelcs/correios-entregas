@@ -10,12 +10,12 @@ import WhatsAppBotTab from '@/features/unidade/pages/comunicacao/components/What
 import WhatsAppLlmTab from '@/features/unidade/pages/comunicacao/components/WhatsAppLlmTab';
 import QrCodeModal from '@/features/unidade/pages/comunicacao/components/QrCodeModal';
 
-type Tab = 'integracoes' | 'whatsapp-bot' | 'ia-llm' | 'vroom-osrm';
+type Tab = 'integracoes' | 'whatsapp-bot' | 'ia-llm' | 'pyvrp';
 const tabs: Array<{ id: Tab; label: string; icon?: typeof Bot }> = [
   { id: 'integracoes', label: 'Integracoes' },
   { id: 'whatsapp-bot', label: 'Bot WhatsApp', icon: Bot },
   { id: 'ia-llm', label: 'IA / LLM', icon: Brain },
-  { id: 'vroom-osrm', label: 'VROOM / OSRM' },
+  { id: 'pyvrp', label: 'PyVRP' },
 ];
 
 const INTEGRATION_KEYS = [
@@ -35,11 +35,7 @@ const INTEGRATION_KEYS = [
   { chave: 'VIACEP_URL', label: 'ViaCEP URL', group: 'Geocoding' },
 ];
 
-const VROOM_OSRM_KEYS = [
-  { chave: 'OSRM_URL', label: 'OSRM URL', group: 'OSRM' },
-  { chave: 'OSRM_TIMEOUT_MS', label: 'OSRM Timeout (ms)', group: 'OSRM' },
-  { chave: 'VROOM_URL', label: 'VROOM URL', group: 'VROOM' },
-  { chave: 'VROOM_TIMEOUT_MS', label: 'VROOM Timeout (ms)', group: 'VROOM' },
+const PYVRP_KEYS = [
   { chave: 'PYVRP_URL', label: 'PyVRP URL', group: 'PyVRP' },
   { chave: 'PYVRP_TIMEOUT_MS', label: 'PyVRP Timeout (ms)', group: 'PyVRP' },
 ];
@@ -136,7 +132,7 @@ export function GestaoAjustesPage() {
         ))}
       </div>
 
-      {loading && activeTab === 'integracoes' || loading && activeTab === 'vroom-osrm' ? (
+      {loading && activeTab === 'integracoes' || loading && activeTab === 'pyvrp' ? (
         <p className="py-8 text-center text-sm text-slate-400">Carregando...</p>
       ) : (
         <>
@@ -225,11 +221,11 @@ export function GestaoAjustesPage() {
             </div>
           )}
 
-          {activeTab === 'vroom-osrm' && (
-            <Panel title="VROOM / OSRM / PyVRP" description="Configuracoes dos servicos de roteirizacao e otimizacao.">
+          {activeTab === 'pyvrp' && (
+            <Panel title="PyVRP" description="Configuracoes do servico de roteirizacao e otimizacao.">
               <div className="space-y-6">
-                {renderKeyGroup(VROOM_OSRM_KEYS)}
-                <button onClick={() => handleSaveAll(VROOM_OSRM_KEYS)} className="rounded-lg bg-correios-blue px-6 py-2 text-sm font-semibold text-white hover:bg-correios-blue-mid">Salvar Todas</button>
+                {renderKeyGroup(PYVRP_KEYS)}
+                <button onClick={() => handleSaveAll(PYVRP_KEYS)} className="rounded-lg bg-correios-blue px-6 py-2 text-sm font-semibold text-white hover:bg-correios-blue-mid">Salvar Todas</button>
               </div>
             </Panel>
           )}

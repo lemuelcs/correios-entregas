@@ -18,7 +18,6 @@ const connection = {
   maxRetriesPerRequest: null,
 };
 
-export const vroomQueue = new Queue('vroom', { connection });
 export const pyvrpQueue = new Queue('pyvrp', { connection });
 export const geocoderQueue = new Queue('geocoder', { connection });
 export const dneSyncQueue = new Queue('dne-sync', { connection });

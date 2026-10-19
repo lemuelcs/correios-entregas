@@ -42,7 +42,7 @@ export const gestaoNavItems: GestaoNavItem[] = [
   {
     path: '/gestao/ajustes',
     title: 'Ajustes',
-    subtitle: 'Integracoes, VROOM/OSRM e configuracoes globais.',
+    subtitle: 'Integracoes, PyVRP e configuracoes globais.',
     group: 'Sistema',
     shortLabel: 'AJ',
   },

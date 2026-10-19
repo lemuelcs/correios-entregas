@@ -44,45 +44,6 @@ services:
       retries: 5
       start_period: 10s
 
-  osrm:
-    build:
-      context: .
-      dockerfile: osrm/Dockerfile
-    container_name: correiosentrega-osrm
-    profiles: ["legacy"]
-    restart: unless-stopped
-    volumes:
-      - osrm-data:/data
-    environment:
-      OSM_REGION_URL: https://download.geofabrik.de/south-america/brazil/centro-oeste-latest.osm.pbf
-      OSRM_DATASET: centro-oeste-latest
-      OSRM_PROFILE: /opt/car.lua
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:5000/nearest/v1/driving/-47.8825,-15.7942 >/dev/null || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 300s
-
-  vroom:
-    build:
-      context: .
-      dockerfile: vroom/Dockerfile
-    container_name: correiosentrega-vroom
-    profiles: ["legacy"]
-    restart: unless-stopped
-    environment:
-      VROOM_ROUTER: osrm
-    depends_on:
-      osrm:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:3000/ >/dev/null || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
   backend:
     # Build de PRODUÇÃO desde 2026-07-28. Antes usava `backend/Dockerfile.dev`
     # (`tsx watch src/server.ts`) para servir correiosdev.com, um domínio
@@ -121,8 +82,6 @@ services:
       NODE_ENV: production
       DATABASE_URL: ${CORREIOS_DATABASE_URL}
       REDIS_URL: ${CORREIOS_REDIS_URL}
-      OSRM_URL: http://host.docker.internal:5001
-      VROOM_URL: http://host.docker.internal:3000
       # WhatsApp via hub centralizado (delivyo-services/microservices/ms-whatsapp)
       WHATSAPP_HUB_BASE_URL: http://host.docker.internal/services/whatsapp
       WHATSAPP_HUB_API_PREFIX: /api/v1/comunicacao
@@ -308,7 +267,6 @@ services:
       start_period: 30s
 
 volumes:
-  osrm-data:
   correios_redis_data:
   correios_fotos:
 

@@ -1,8 +1,7 @@
 import { prisma } from '../../shared/utils/prisma';
 import { AppError } from '../../shared/middleware/error-handler.middleware';
-import { vroomQueue, pyvrpQueue } from '../../queue';
+import { pyvrpQueue } from '../../queue';
 import { ModoOtimizacao, SolverUsado, ModeloTriagem } from '@prisma/client';
-import type { VroomInput, VroomResult, VroomRoute } from '../../integrations/vroom/vroom.client';
 import type { PyvrpInput, PyvrpResult, PyvrpRoute } from '../../integrations/pyvrp/pyvrp.client';
 
 interface ObjectMapping {
@@ -34,30 +33,20 @@ interface JobMetadata {
   vehicleMapping: VehicleMapping[];
 }
 
-interface VroomJobResultPayload {
-  vroomResult: VroomResult;
-  metadata: JobMetadata;
-}
-
 interface PyvrpJobResultPayload {
   pyvrpResult: PyvrpResult;
   metadata: JobMetadata;
 }
 
-type JobResultPayload = VroomJobResultPayload | PyvrpJobResultPayload;
-
 export class RoteirizacaoService {
-  /** Large vehicle modal types that get cost preference in LARGE_VAN mode */
-  private static LARGE_VEHICLE_MODALS = new Set(['FURGAO', 'VAN', 'SPRINTER']);
-
   /**
-   * Build solver input from available resources and enqueue a solver job.
-   * Supports VROOM and PyVRP solvers with ABSOLUTO, LARGE_VAN, and BALANCEADO modes.
+   * Build the PyVRP input from available resources and enqueue a solver job.
+   * Supports the ABSOLUTO, LARGE_VAN, and BALANCEADO modes.
    */
   async executar(
     unidadeId: string,
     modo: ModoOtimizacao = 'ABSOLUTO',
-    solver: SolverUsado = 'VROOM',
+    solver: SolverUsado = 'PYVRP',
     _atorId: string,
   ) {
     // 1. Fetch geocoded objects ready for routing
@@ -190,79 +179,29 @@ export class RoteirizacaoService {
       vehicleMapping,
     };
 
-    // 6. Build solver-specific input and enqueue
-    if (solver === 'PYVRP') {
-      const pyvrpInput: PyvrpInput = {
-        vehicles: vehicleMapping.map((v) => ({
-          id: v.index,
-          start: unidadeCoords,
-          end: unidadeCoords,
-          capacity: Math.round(v.capacidade),
-          ...(maxTasksPerVehicle ? { max_duration: maxTasksPerVehicle * 120 } : {}),
-        })),
-        jobs: objectMapping.map((o) => ({
-          id: o.index,
-          location: [o.longitude, o.latitude] as [number, number],
-          demand: Math.round(o.cubagem),
-          service_time: 120, // 2 minutes per delivery
-        })),
-        options: {
-          mode: modo,
-          ...(maxTasksPerVehicle ? { max_duration_hours: (maxTasksPerVehicle * 120) / 3600 } : {}),
-        },
-      };
-
-      const job = await pyvrpQueue.add('solve', {
-        pyvrpInput,
-        metadata,
-      }, {
-        removeOnComplete: { age: 3600 * 24 },
-        removeOnFail: { age: 3600 * 24 },
-      });
-
-      return {
-        jobId: job.id,
-        veiculos: pairCount,
-        objetos: objetos.length,
-        message: `Roteirização PyVRP (${modo}) enfileirada com ${pairCount} veículos e ${objetos.length} objetos`,
-      };
-    }
-
-    // VROOM solver path
-    const vroomVehicles = vehicleMapping.map((v) => {
-      const isLargeVehicle = v.modal
-        ? RoteirizacaoService.LARGE_VEHICLE_MODALS.has(v.modal)
-        : false;
-
-      return {
+    // 6. Build the PyVRP input and enqueue
+    const pyvrpInput: PyvrpInput = {
+      vehicles: vehicleMapping.map((v) => ({
         id: v.index,
         start: unidadeCoords,
         end: unidadeCoords,
-        capacity: [Math.round(v.capacidade)] as [number],
-        // LARGE_VAN mode: penalize small vehicles so solver prefers large ones
-        ...(modo === 'LARGE_VAN'
-          ? { costs_fixed: isLargeVehicle ? 0 : 100000 }
-          : {}),
-        // BALANCEADO mode: cap tasks per vehicle to distribute evenly
-        ...(maxTasksPerVehicle ? { max_tasks: maxTasksPerVehicle } : {}),
-      };
-    });
-
-    const vroomJobs = objectMapping.map((o) => ({
-      id: o.index,
-      location: [o.longitude, o.latitude] as [number, number],
-      amount: [Math.round(o.cubagem)] as [number],
-      service: 120, // 2 minutes per delivery
-    }));
-
-    const vroomInput: VroomInput = {
-      vehicles: vroomVehicles,
-      jobs: vroomJobs,
-      options: { g: true }, // request geometry
+        capacity: Math.round(v.capacidade),
+        ...(maxTasksPerVehicle ? { max_duration: maxTasksPerVehicle * 120 } : {}),
+      })),
+      jobs: objectMapping.map((o) => ({
+        id: o.index,
+        location: [o.longitude, o.latitude] as [number, number],
+        demand: Math.round(o.cubagem),
+        service_time: 120, // 2 minutes per delivery
+      })),
+      options: {
+        mode: modo,
+        ...(maxTasksPerVehicle ? { max_duration_hours: (maxTasksPerVehicle * 120) / 3600 } : {}),
+      },
     };
 
-    const job = await vroomQueue.add('solve', {
-      vroomInput,
+    const job = await pyvrpQueue.add('solve', {
+      pyvrpInput,
       metadata,
     }, {
       removeOnComplete: { age: 3600 * 24 },
@@ -273,17 +212,14 @@ export class RoteirizacaoService {
       jobId: job.id,
       veiculos: pairCount,
       objetos: objetos.length,
-      message: `Roteirização VROOM (${modo}) enfileirada com ${pairCount} veículos e ${objetos.length} objetos`,
+      message: `Roteirização PyVRP (${modo}) enfileirada com ${pairCount} veículos e ${objetos.length} objetos`,
     };
   }
 
   /**
-   * Look up a job in both solver queues (VROOM first, then PyVRP).
+   * Look up a job in the PyVRP queue.
    */
   private async findJob(jobId: string) {
-    const vroomJob = await vroomQueue.getJob(jobId);
-    if (vroomJob) return { job: vroomJob, solver: 'VROOM' as const };
-
     const pyvrpJob = await pyvrpQueue.getJob(jobId);
     if (pyvrpJob) return { job: pyvrpJob, solver: 'PYVRP' as const };
 
@@ -323,87 +259,18 @@ export class RoteirizacaoService {
       throw new AppError(404, 'Job não encontrado');
     }
 
-    const { job, solver } = found;
+    const { job } = found;
     const state = await job.getState();
     if (state !== 'completed') {
       throw new AppError(422, `Job ainda não concluído (estado: ${state})`);
     }
 
-    const result = job.returnvalue as JobResultPayload;
+    const result = job.returnvalue as PyvrpJobResultPayload;
     if (!result) {
       throw new AppError(500, 'Resultado do job não disponível');
     }
 
-    if (solver === 'PYVRP') {
-      return this.mapPyvrpResultado(jobId, result as PyvrpJobResultPayload);
-    }
-
-    return this.mapVroomResultado(jobId, result as VroomJobResultPayload);
-  }
-
-  private mapVroomResultado(jobId: string, result: VroomJobResultPayload) {
-    const { vroomResult, metadata } = result;
-
-    if (!vroomResult) {
-      throw new AppError(500, 'Resultado VROOM do job não disponível');
-    }
-
-    const objectMap = new Map(metadata.objectMapping.map((m) => [m.index, m]));
-    const vehicleMap = new Map(metadata.vehicleMapping.map((m) => [m.index, m]));
-
-    const rotas = vroomResult.routes.map((route: VroomRoute) => {
-      const vehicle = vehicleMap.get(route.vehicle);
-      const stops = route.steps
-        .filter((s) => s.type === 'job' && s.id !== undefined)
-        .map((s) => {
-          const obj = objectMap.get(s.id!);
-          return {
-            objetoId: obj?.objetoId,
-            codigoRastreio: obj?.codigoRastreio,
-            cep: obj?.cep,
-            logradouro: obj?.logradouro,
-            location: s.location,
-            arrival: s.arrival,
-            duration: s.duration,
-            distance: s.distance,
-          };
-        });
-
-      return {
-        vehicleIndex: route.vehicle,
-        carteiroId: vehicle?.carteiroId,
-        matricula: vehicle?.matricula,
-        veiculoId: vehicle?.veiculoId,
-        veiculoCodigo: vehicle?.veiculoCodigo,
-        totalObjetos: stops.length,
-        distanciaKm: Math.round(route.distance / 1000 * 100) / 100,
-        duracaoMin: Math.round(route.duration / 60),
-        stops,
-      };
-    });
-
-    const unassigned = vroomResult.unassigned.map((u) => {
-      const obj = objectMap.get(u.id);
-      return {
-        objetoId: obj?.objetoId,
-        codigoRastreio: obj?.codigoRastreio,
-        location: u.location,
-      };
-    });
-
-    return {
-      jobId,
-      summary: vroomResult.summary,
-      rotas,
-      unassigned,
-      metadata: {
-        unidadeId: metadata.unidadeId,
-        modo: metadata.modo,
-        solver: metadata.solver,
-        totalVeiculos: metadata.vehicleMapping.length,
-        totalObjetos: metadata.objectMapping.length,
-      },
-    };
+    return this.mapPyvrpResultado(jobId, result);
   }
 
   private mapPyvrpResultado(jobId: string, result: PyvrpJobResultPayload) {
@@ -477,7 +344,7 @@ export class RoteirizacaoService {
 
   /**
    * Approve a solved result: persist Rotas, Paradas, SortPlans to the database.
-   * Handles both VROOM and PyVRP result formats.
+   * Reads the PyVRP result format.
    */
   async aprovar(jobId: string, _atorId: string) {
     const found = await this.findJob(jobId);
@@ -485,25 +352,19 @@ export class RoteirizacaoService {
       throw new AppError(404, 'Job não encontrado');
     }
 
-    const { job, solver } = found;
+    const { job } = found;
     const state = await job.getState();
     if (state !== 'completed') {
       throw new AppError(422, `Job ainda não concluído (estado: ${state})`);
     }
 
-    const result = job.returnvalue as JobResultPayload;
+    const result = job.returnvalue as PyvrpJobResultPayload;
     if (!result) {
       throw new AppError(500, 'Resultado do job não disponível');
     }
 
-    // Normalize routes from both solver formats into a common shape
-    const normalizedRoutes = solver === 'PYVRP'
-      ? this.normalizePyvrpRoutes(result as PyvrpJobResultPayload)
-      : this.normalizeVroomRoutes(result as VroomJobResultPayload);
-
-    const metadata = solver === 'PYVRP'
-      ? (result as PyvrpJobResultPayload).metadata
-      : (result as VroomJobResultPayload).metadata;
+    const normalizedRoutes = this.normalizePyvrpRoutes(result);
+    const { metadata } = result;
 
     const objectMap = new Map(metadata.objectMapping.map((m) => [m.index, m]));
     const vehicleMap = new Map(metadata.vehicleMapping.map((m) => [m.index, m]));
@@ -681,23 +542,6 @@ export class RoteirizacaoService {
       message: `${createdRotas.length} rota(s) criada(s) com sucesso`,
       rotas: createdRotas,
     };
-  }
-
-  /**
-   * Normalize VROOM routes into a common shape for the aprovar transaction.
-   */
-  private normalizeVroomRoutes(result: VroomJobResultPayload) {
-    return result.vroomResult.routes.map((route) => ({
-      vehicleIndex: route.vehicle,
-      distance: route.distance,
-      duration: route.duration,
-      stops: route.steps
-        .filter((s) => s.type === 'job' && s.id !== undefined)
-        .map((s) => ({
-          jobId: s.id!,
-          location: s.location as [number, number],
-        })),
-    }));
   }
 
   /**

@@ -63,7 +63,7 @@ Também entrega as quatro jornadas ponta a ponta de API, que só são possíveis
 Novos arquivos em `backend/src/modules/entregas/`: `liberacao.service.ts`, `liberacao.controller.ts` e `aviso.builder.ts`. Worker em `backend/src/workers/entregas-aviso.worker.ts`, fila em `backend/src/queue.ts`. As jornadas ficam em `backend/src/__tests__/e2e/`. Ver TechSpec: "Component Overview" (fluxo principal), "API Endpoints › Carga (liberar)", "Integration Points › API de mensagens e mediação" e "Development Sequencing" (passos 8 e 15).
 
 ### Relevant Files
-- `backend/src/queue.ts`, `backend/src/workers/index.ts`, `backend/src/workers/vroom.worker.ts` — padrão de fila, worker e `start`/`stop`.
+- `backend/src/queue.ts`, `backend/src/workers/index.ts`, `backend/src/workers/pyvrp.worker.ts` — padrão de fila, worker e `start`/`stop`.
 - `backend/src/modules/entregas/textos.ts`, `orientacao.service.ts` (task_05) — textos e envio ao carteiro.
 - `backend/src/modules/entregas/carga.service.ts`, `status.ts` (task_04) — ganchos e derivação de status.
 - `backend/src/modules/entregas/cadastro.service.ts` (task_03) — gancho de troca de carteiro e dados da escala.

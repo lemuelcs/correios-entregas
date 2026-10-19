@@ -81,7 +81,7 @@ export const triagePlan = [
 
 export const routeScenarios = [
   { name: 'Balanceado', solver: 'PyVRP', gain: '11% menos km', commitment: 'SLA 93,4%', recommended: true },
-  { name: 'Absoluto', solver: 'VROOM', gain: '13% menos km', commitment: 'SLA 91,8%', recommended: false },
+  { name: 'Absoluto', solver: 'PyVRP', gain: '13% menos km', commitment: 'SLA 91,8%', recommended: false },
   { name: 'Large Van', solver: 'PyVRP', gain: '8% menos km', commitment: 'Maior consolidacao', recommended: false },
 ];
 
@@ -188,7 +188,7 @@ export const unidadeConfiguracoes = [
   { label: 'Modelo de triagem', value: 'PTL com contingencia manual' },
   { label: 'Faixas de CEP', value: '01000-999 a 01599-999' },
   { label: 'Integracao SRO', value: 'Ativa e sincronizada' },
-  { label: 'Integracao solver', value: 'PyVRP primario, VROOM contingencia' },
+  { label: 'Integracao solver', value: 'PyVRP' },
   { label: 'Janela de despacho', value: '09:10 ate 09:40' },
 ];
 
