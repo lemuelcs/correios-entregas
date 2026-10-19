@@ -10,5 +10,4 @@ frontend/dist
 frontend/node_modules
 temp
 uploads
-infra/osrm-data
 

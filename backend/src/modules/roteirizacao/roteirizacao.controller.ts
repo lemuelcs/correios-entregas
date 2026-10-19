@@ -5,7 +5,7 @@ import { AppError } from '../../shared/middleware/error-handler.middleware';
 
 const executarSchema = z.object({
   modoOtimizacao: z.enum(['ABSOLUTO', 'LARGE_VAN', 'BALANCEADO']).default('ABSOLUTO'),
-  solver: z.enum(['VROOM', 'PYVRP']).default('VROOM'),
+  solver: z.enum(['PYVRP']).default('PYVRP'),
 });
 
 const editarRotaSchema = z.object({

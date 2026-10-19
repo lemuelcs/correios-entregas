@@ -11,10 +11,10 @@ Sistema de gestao logistica para operacoes de entrega dos Correios brasileiros. 
 - **Frontend**: React 19 + Vite 6 + Tailwind CSS 4 + Zustand 5
 - **WhatsApp**: consome o hub centralizado em `delivyo-services/microservices/ms-whatsapp` via `/api/v1/comunicacao/*` (proxy HTTP). Nao ha mais fork local.
 - **Auth**: JWT + refresh tokens
-- **Jobs assincronos**: BullMQ (Redis) — VROOM, PyVRP, geocoding, DnE sync, NPS
+- **Jobs assincronos**: BullMQ (Redis) — PyVRP, geocoding, DnE sync, NPS
 - **Real-time**: SSE (Server-Sent Events) para monitoramento ao vivo
-- **Routing engines**: OSRM + VROOM + PyVRP (otimizacao de rotas)
-- **Infraestrutura compartilhada**: consome servicos do `delivyo-services` (gateway, Postgres, Redis, OSRM, VROOM)
+- **Routing engine**: PyVRP (otimizacao de rotas)
+- **Infraestrutura compartilhada**: consome servicos do `delivyo-services` (gateway, Postgres, Redis)
 
 ## Estrutura de Diretorios
 
@@ -25,7 +25,7 @@ backend/src/
     unidade/            # Gestao de unidades/instalacoes
     recebimento/        # Recebimento de objetos
     triagem/            # Triagem manual/PTL/ADTA
-    roteirizacao/       # Otimizacao de rotas (VROOM/PyVRP)
+    roteirizacao/       # Otimizacao de rotas (PyVRP)
     despacho/           # Despacho de rotas
     carteiro/           # App do carteiro (coleta, entrega)
     destinatario/       # Portal do destinatario (rastreio, reagendamento)
@@ -34,14 +34,11 @@ backend/src/
     gestao/             # Administracao/sede
     unitizadores/       # Gestao de containers/sacas
   integrations/         # Clientes de APIs externas
-    vroom/              # VROOM VRP solver
     pyvrp/              # PyVRP solver
-    osrm/               # OSRM routing
     correios-cws/       # API CWS dos Correios
     dne/                # Base de enderecos DNE
     sgod/               # Exportacao SGOD
   workers/              # Processadores BullMQ
-    vroom.worker.ts
     pyvrp.worker.ts
     geocoder.worker.ts
     dne-sync.worker.ts
@@ -71,8 +68,6 @@ frontend/src/
   main.tsx              # Entry point React
 
 infra/                  # Configs de infra compartilhada
-osrm/                   # Docker files OSRM
-vroom/                  # Docker files VROOM
 redis/                  # Docker files Redis
 temp/                   # Codigo experimental
 docs/                   # Documentacao
@@ -149,14 +144,12 @@ cd frontend && npm run lint            # eslint src/
 - **ORM**: Prisma v6.7.0
 - **Schema**: `backend/prisma/schema.prisma` com 30+ modelos
 - **Modelos principais**: Usuario, Unidade, Carteiro, Objeto, Unitizador, Rota, Parada, ObjetoEvento
-- **Credenciais**: `correios_user` / `Correios@135`
+- **Credenciais**: nunca neste arquivo; ver `.env` (gitignored) e `/root/infra/dev/`
 - **Migrations**: Prisma migrate (sem SQL manual)
 - **Seed**: `backend/prisma/seed.ts`
 
 ## Infraestrutura Docker
 
-- `osrm` — Open Street Routing Machine (perfil legacy)
-- `vroom` — VROOM VRP solver (perfil legacy)
 - `backend` — Express API (porta 3002)
 - `frontend` — Vite dev server (porta 5181)
 - `redis` (container `correiosentrega-redis`) — Redis 8 dedicado a este
@@ -176,7 +169,7 @@ Postgres segue compartilhado, Redis não é mais.)
 
 **Perfis Docker:**
 - Sem perfil = sempre ativo (backend, frontend)
-- `legacy` = servicos opcionais locais (osrm, vroom)
+- `legacy` = servicos opcionais locais (nenhum no momento)
 
 ## Variaveis de Ambiente
 
@@ -196,8 +189,6 @@ CORREIOS_CWS_URL          # API CWS Correios
 VIACEP_URL                 # Fallback de enderecos
 
 # Routing/VRP
-OSRM_URL                  # OSRM endpoint
-VROOM_URL                 # VROOM endpoint
 PYVRP_URL                 # PyVRP endpoint
 
 # WhatsApp Hub (proxy para delivyo-services/ms-whatsapp)

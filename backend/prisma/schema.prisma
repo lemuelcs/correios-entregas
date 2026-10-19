@@ -108,7 +108,6 @@ enum ModoOtimizacao {
 }
 
 enum SolverUsado {
-  VROOM
   PYVRP
 }
 
@@ -511,7 +510,7 @@ model Rota {
   statusAtual         StatusRota     @default(CRIADA)
   modeloTriagem       ModeloTriagem
   modoOtimizacao      ModoOtimizacao @default(ABSOLUTO)
-  solverUsado         SolverUsado    @default(VROOM)
+  solverUsado         SolverUsado    @default(PYVRP)
   totalParadas        Int            @default(0)
   totalObjetos        Int            @default(0)
   totalEntregues      Int            @default(0)

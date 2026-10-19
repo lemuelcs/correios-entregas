@@ -54,7 +54,7 @@ export type StatusRota =
 
 export type StatusParada = 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDA';
 export type ModoOtimizacao = 'ABSOLUTO' | 'LARGE_VAN' | 'BALANCEADO';
-export type SolverUsado = 'VROOM' | 'PYVRP';
+export type SolverUsado = 'PYVRP';
 
 // ── Entity interfaces ─────────────────────────────────────────────────
 

@@ -6,7 +6,7 @@ const VIACEP_URL = process.env.VIACEP_URL || 'https://viacep.com.br/ws';
 
 // Approximate coordinates for major Brazilian UF capitals.
 // Used as fallback since ViaCEP does not return lat/lng.
-// Phase 2 will use OSRM/Nominatim or Correios CWS for precise geocoding.
+// Phase 2 will use Nominatim or Correios CWS for precise geocoding.
 const UF_APPROX_COORDS: Record<string, { lat: number; lng: number }> = {
   AC: { lat: -9.97499, lng: -67.80999 },
   AL: { lat: -9.66599, lng: -35.73509 },
