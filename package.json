@@ -26,6 +26,9 @@
   "devDependencies": {
     "turbo": "^2.5.0"
   },
+  "overrides": {
+    "vite": "8.3.4"
+  },
   "packageManager": "npm@10.9.2",
   "engines": {
     "node": ">=22.0.0"
