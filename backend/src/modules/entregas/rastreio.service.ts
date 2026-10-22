@@ -75,6 +75,25 @@ export function instanteDoEvento(r: ResultadoRastreio | null): Date | null {
 }
 
 /**
+ * O rastreio (SRO) diz o desfecho da orientação, no lugar do "Feito" / "Não foi possível" do
+ * carteiro: `ENTREGUE` → FEITA; `INSUCESSO` → NÃO FOI POSSÍVEL (motivo `OUTRO`). Só mexe nas que
+ * ainda aguardam resposta (ENVIADA / VISTA); a que o carteiro já respondeu fica como está.
+ */
+async function fecharOrientacoesPeloRastreio(pacoteId: string, status: StatusPacote): Promise<void> {
+  if (status !== 'ENTREGUE' && status !== 'INSUCESSO') return;
+  const feita = status === 'ENTREGUE';
+  const { count } = await prisma.orientacao.updateMany({
+    where: { pacoteId, estado: { in: ['ENVIADA', 'VISTA'] } },
+    data: {
+      estado: feita ? 'FEITA' : 'NAO_FOI_POSSIVEL',
+      respostaCarteiro: feita ? 'FEITO' : 'OUTRO',
+      respondidoEm: new Date(),
+    },
+  });
+  if (count > 0) await registrarEvento(pacoteId, 'orientacao_fechada_rastreio', { estado: feita ? 'FEITA' : 'NAO_FOI_POSSIVEL', origem: 'rastreio' });
+}
+
+/**
  * Grava o resultado no pacote (`rastreioDescricao`, `rastreioEm`) e avança o
  * status. Em `ENTREGUE` (transição nova), cancela o caso de mediação.
  */
@@ -116,6 +135,7 @@ export async function aplicarResultadoRastreio(
   if (!mudou) return { status: pacote.status, mudou: false };
 
   await registrarEvento(pacoteId, 'rastreio', { classificacao, descricao, status: avanco.status });
+  await fecharOrientacoesPeloRastreio(pacoteId, avanco.status);
   if (avanco.status === 'ENTREGUE' && pacote.mediacaoCaseId) {
     const alvo = canalDoPacote(pacote);
     if (alvo) {

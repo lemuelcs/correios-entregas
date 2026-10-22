@@ -447,8 +447,10 @@ describe('Casos de mediação', () => {
         providerPhone: c.carteiro.whatsappE164,
         recipientPhone: p.whatsappE164,
         resumo: `Maria · QNA 12 ${p.numero}`,
+        motivo: 'destinatario_ausente',
+        prestadorNome: expect.any(String),
+        etiquetaAjuda: p.codigo.trim(),
       }));
-      expect(a.corpo.motivo).toBeUndefined();
       expect((await recarregar(p.id)).mediacaoCaseId).toBe(prosio.caseIdDe(ref));
     }
     expect(avisos()).toHaveLength(2);
@@ -480,7 +482,7 @@ describe('Casos de mediação', () => {
       await liberar(c);
       await drenarAvisos();
       const [a] = prosio.aberturasDeCaso();
-      expect(Object.keys(a.corpo).sort()).toEqual(['externalRef', 'providerPhone', 'recipientPhone']);
+      expect(Object.keys(a.corpo).sort()).toEqual(['externalRef', 'motivo', 'providerPhone', 'recipientPhone']);
       expect(a.resposta?.status).toBe(201);
       expect((await recarregar(c.pacotes[0].id)).mediacaoCaseId).toBeTruthy();
     } finally {

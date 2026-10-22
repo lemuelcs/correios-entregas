@@ -257,10 +257,11 @@ describe('Jornadas de API', () => {
     });
     expect(desfecho.status).toBe(204);
 
-    const [orientacao] = para(await telefoneDe(carteiro.id));
-    expect(orientacao.corpo.body).toContain('Deixar com Dona Célia, casa 47');
-    expect(ids(orientacao).map((id) => id.split('.').pop())).toEqual(['VI', 'FEITO', 'NAO']);
-    expect(ids(orientacao).every((id) => id.startsWith('CE_CT:'))).toBe(true);
+    // O carteiro já confirmou na mediação: a orientação nasce VISTA e ele não recebe mais nada (22/10).
+    expect(para(await telefoneDe(carteiro.id))).toHaveLength(0);
+    const o = await prisma.orientacao.findFirstOrThrow({ where: { origem: 'MEDIACAO' }, orderBy: { criadaEm: 'desc' } });
+    expect(o.texto).toContain('Deixar com Dona Célia, casa 47');
+    expect(o).toEqual(expect.objectContaining({ estado: 'VISTA', respostaCarteiro: 'VI' }));
   });
 
   it('E2E-004 descadastro: no dia seguinte a prévia mostra descadastrado e a liberação não avisa o telefone', async () => {

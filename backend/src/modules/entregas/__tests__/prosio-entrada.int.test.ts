@@ -185,17 +185,15 @@ describe('Webhook do canal', () => {
     expect((await prosio.enviarCallbackDesfecho(urlWebhook(c), c.canal.callbackSecret, dados)).status).toBe(204);
 
     const [o] = await orientacoesDe(p.id);
-    expect(o).toEqual(expect.objectContaining({ tipo: 'VIZINHO', estado: 'ENVIADA', origem: 'MEDIACAO' }));
+    // O carteiro já confirmou na mediação: a orientação nasce VISTA e nada é enviado a ele (22/10).
+    expect(o).toEqual(expect.objectContaining({ tipo: 'VIZINHO', estado: 'VISTA', respostaCarteiro: 'VI', origem: 'MEDIACAO' }));
     expect(o.texto).toContain('Deixar com Dona Célia, casa 47');
     expect(o.texto).not.toContain('123.456');
-    const msgs = paraCarteiro(c);
-    expect(msgs).toHaveLength(1);
-    expect(msgs[0].corpo.body).toContain('Deixar com Dona Célia, casa 47');
-    expect(idsBotoes(msgs[0])).toContain(`CE_CT:${o.id}.VI`);
+    expect(paraCarteiro(c)).toHaveLength(0);
 
     expect((await prosio.enviarCallbackDesfecho(urlWebhook(c), c.canal.callbackSecret, dados)).status).toBe(204);
     expect(await prisma.orientacao.count({ where: { pacoteId: p.id } })).toBe(1);
-    expect(paraCarteiro(c)).toHaveLength(1);
+    expect(paraCarteiro(c)).toHaveLength(0);
   });
 
   it('IT-044 mediation.outcome de pacote ENTREGUE → sem orientação e evento desfecho_ignorado', async () => {
