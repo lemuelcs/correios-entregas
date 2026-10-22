@@ -35,13 +35,15 @@ const brasilia = (iso: string) => new Date(`${iso}-03:00`);
 describe('Aviso ao destinatário', () => {
   it('UT-041 nome em maiúsculas → primeiro nome capitalizado e o texto do PRD', () => {
     const { body } = montarAviso({ pacoteId: PACOTE, nome: 'MARIA APARECIDA', codigo: 'OY526018152BR' });
-    expect(body.startsWith('Olá, Maria, sua encomenda OY526018152BR já saiu para entrega.')).toBe(true);
-    expect(body).toContain('Se tiver alguma dificuldade para receber sua encomenda, nos avise.');
+    expect(body.startsWith('Correios: Olá, Maria. Sua encomenda OY526018152BR saiu para entrega hoje.')).toBe(true);
+    expect(body).toContain('Se não houver ninguém para receber, avise agora');
+    expect(body).toContain('deixar com um vizinho, entregar amanhã ou deixar numa agência ou locker para você retirar');
+    expect(body.endsWith('Toque em uma das opções abaixo.')).toBe(true);
   });
 
-  it('UT-042 nome vazio → "Olá, sua encomenda"', () => {
-    expect(montarAviso({ pacoteId: PACOTE, nome: '', codigo: 'OY526018152BR' }).body.startsWith('Olá, sua encomenda OY526018152BR')).toBe(true);
-    expect(montarAviso({ pacoteId: PACOTE, nome: '   ', codigo: 'OY526018152BR' }).body.startsWith('Olá, sua encomenda')).toBe(true);
+  it('UT-042 nome vazio → "Correios: Olá. Sua encomenda"', () => {
+    expect(montarAviso({ pacoteId: PACOTE, nome: '', codigo: 'OY526018152BR' }).body.startsWith('Correios: Olá. Sua encomenda OY526018152BR')).toBe(true);
+    expect(montarAviso({ pacoteId: PACOTE, nome: '   ', codigo: 'OY526018152BR' }).body.startsWith('Correios: Olá. Sua encomenda')).toBe(true);
   });
 
   it('UT-043 unidade sem agência ativa → AMANHA, VIZINHO, LOCKER e OUTRA com ids CE_OP:<pacoteId>.<OPCAO>', () => {
@@ -59,6 +61,9 @@ describe('Aviso ao destinatário', () => {
     }
     const semNenhum = montarAviso({ pacoteId: PACOTE, nome: 'Ana', codigo: 'OY526018152BR', pontosAtivos: { agencia: false, locker: false } });
     expect(semNenhum.buttons.map((b) => b.id.split('.').pop())).toEqual(['AMANHA', 'VIZINHO', 'OUTRA']);
+    expect(semNenhum.body).toContain('deixar com um vizinho ou entregar amanhã.');
+    expect(semNenhum.body).not.toMatch(/agência|locker/);
+    expect(montarAviso({ pacoteId: PACOTE, nome: 'Ana', codigo: 'X', pontosAtivos: { agencia: false, locker: true } }).body).toContain('num locker para você retirar');
     const padrao = montarAviso({ pacoteId: PACOTE, nome: 'Ana', codigo: 'OY526018152BR' });
     expect(padrao.buttons).toHaveLength(5);
   });
@@ -66,7 +71,8 @@ describe('Aviso ao destinatário', () => {
   it('UT-044 com orientação guardada → "Vamos seguir sua orientação: …" e mantém as opções', () => {
     const { body, buttons } = montarAviso({ pacoteId: PACOTE, nome: 'Maria', codigo: 'OY526018152BR', orientacao: 'Deixar com Dona Célia, casa 47' });
     expect(body).toContain('Vamos seguir sua orientação: Deixar com Dona Célia, casa 47');
-    expect(body).not.toContain('Se tiver alguma dificuldade');
+    expect(body).toContain('Para mudar, toque em outra opção abaixo.');
+    expect(body).not.toContain('Se não houver ninguém');
     expect(buttons).toHaveLength(5);
   });
 

@@ -157,9 +157,8 @@ describe('Jornadas de API', () => {
     expect(lib.body.avisosAgendados).toBe(1);
     await drenarAvisos();
     const [aviso] = para(destinatario);
-    expect(aviso.corpo.body).toBe(
-      'Olá, Maria, sua encomenda OY526018152BR já saiu para entrega. Se tiver alguma dificuldade para receber sua encomenda, nos avise.',
-    );
+    expect(aviso.corpo.body).toContain('Correios: Olá, Maria. Sua encomenda OY526018152BR saiu para entrega hoje.');
+    expect(aviso.corpo.body).toContain('Se não houver ninguém para receber, avise agora');
     const pacoteId = aviso.corpo.reference as string;
     expect(ids(aviso)).toContain(`CE_OP:${pacoteId}.AGENCIA`);
 

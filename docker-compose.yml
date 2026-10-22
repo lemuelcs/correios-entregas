@@ -96,6 +96,9 @@ services:
       SEU_RASTREIO_TOKEN: ${CORREIOS_SEU_RASTREIO_TOKEN:-}
       # Rastreio dos Correios via PacoteVicio.dev (tem precedência sobre o Seu Rastreio quando preenchida).
       PACOTEVICIO_API_KEY: ${CORREIOS_PACOTEVICIO_API_KEY:-}
+      # Extensões do contrato de mediação do Prosio (R1/R2/R3/R5/P1): o Prosio
+      # recusa o corpo com 422 se não as aceitar, por isso é opt-in.
+      PROSIO_MEDIACAO_EXTENSOES: ${CORREIOS_PROSIO_MEDIACAO_EXTENSOES:-false}
       # Domínio do iframe do Chatwoot na tela Atendimento (ex.: correiosdev.com):
       # vai como `dominio` na sessão pedida ao Prosio. Vazio = URL padrão do
       # Prosio (chat.prosio.com.br), que recusa ser embutida.

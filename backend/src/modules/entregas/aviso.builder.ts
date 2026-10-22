@@ -106,6 +106,15 @@ export function resumoDoCaso(p: { nome: string; logradouro?: string | null; nume
   return endereco ? `${nome} · ${endereco}` : nome;
 }
 
+/** Endereço completo para o carteiro (≤ 200): logradouro, número, complemento, bairro, cidade/UF; ou o texto livre. */
+export function enderecoCompleto(p: { logradouro?: string | null; numero?: string | null; complemento?: string | null; bairro?: string | null; cidade?: string | null; uf?: string | null; enderecoTexto?: string | null }): string | undefined {
+  const rua = [p.logradouro, p.numero, p.complemento].map((s) => (s ?? '').trim()).filter(Boolean).join(' ');
+  const local = [p.bairro, [p.cidade, p.uf].map((s) => (s ?? '').trim()).filter(Boolean).join('/')].map((s) => (s ?? '').trim()).filter(Boolean);
+  const texto = (rua ? [rua, ...local].join(', ') : (p.enderecoTexto ?? '')).replace(/\s+/g, ' ').trim();
+  if (!texto) return undefined;
+  return texto.length > 200 ? `${texto.slice(0, 199).trimEnd()}…` : texto;
+}
+
 /** Prazo do caso: fim do dia de entrega (23:59 em Brasília), R3. */
 export function fimDoDiaDeEntrega(data: Date): Date {
   return new Date(horaDeBrasilia(data, 24).getTime() - MINUTO_MS);

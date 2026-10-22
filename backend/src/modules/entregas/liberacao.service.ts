@@ -39,6 +39,7 @@ import {
 import {
   atrasoNoturno,
   chaveIdempotenciaAviso,
+  enderecoCompleto,
   externalRefDoCaso,
   fimDoDiaDeEntrega,
   idAviso,
@@ -52,6 +53,7 @@ import {
   type DadosJobResumo,
   type JobEntregas,
 } from './aviso.builder';
+import { primeiroNome } from './textos';
 import { escolherCarteiroDoDia } from './carteiro-do-dia';
 
 const MINUTO_MS = 60_000;
@@ -473,6 +475,10 @@ export class LiberacaoService {
         providerPhone: carteiro.whatsappE164,
         recipientPhone: pacote.whatsappE164,
         resumo: resumoDoCaso(pacote),
+        prestadorNome: primeiroNome(carteiro.nome ?? '') || undefined,
+        enderecoEntrega: enderecoCompleto(pacote),
+        etiquetaAjuda: pacote.codigo.trim(),
+        motivo: 'destinatario_ausente',
         respondBy: fimDoDiaDeEntrega(pacote.data),
         ...(alvo.unidadeRef ? { unidadeRef: alvo.unidadeRef } : {}),
       });

@@ -150,7 +150,7 @@ describe('Liberação e envio', () => {
       expect(m).toBeDefined();
       expect(m.headers['idempotency-key']).toBe(`aviso:${p.id}`);
       expect(m.corpo.to).toBe(p.whatsappE164);
-      expect(m.corpo.body).toContain(`sua encomenda ${p.codigo} já saiu para entrega`);
+      expect(m.corpo.body).toContain(`Sua encomenda ${p.codigo} saiu para entrega hoje`);
       expect(m.corpo.buttons.map((b: { id: string }) => b.id)).toEqual(
         ['AMANHA', 'VIZINHO', 'LOCKER', 'OUTRA'].map((o) => `CE_OP:${p.id}.${o}`),
       );
