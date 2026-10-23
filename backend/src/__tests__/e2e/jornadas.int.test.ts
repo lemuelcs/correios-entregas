@@ -245,7 +245,7 @@ describe('Jornadas de API', () => {
     const pacoteId = para(destinatario)[0].corpo.reference as string;
 
     const pergunta = await tocar(s, 'CE_OP', `${pacoteId}.VIZINHO`, destinatario);
-    expect(pergunta).toBe('Qual o nome do vizinho e o número da casa ou apartamento?');
+    expect(pergunta).toBe('Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".');
     const [fatos] = prosio.atualizacoesDeFatos();
     expect(fatos.caminho).toBe(`/api/v1/mediation/cases/${caseId}/facts`);
     expect(fatos.corpo.motivoRelatado).toBe('entrega_indireta');

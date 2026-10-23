@@ -370,10 +370,10 @@ describe('Ações de botão', () => {
 
     process.env.PROSIO_MEDIACAO_EXTENSOES = 'true';
     const r = await tocar(c, 'CE_OP', `${p.id}.VIZINHO`, p.whatsappE164!);
-    expect(r.mensagem).toBe('Qual o nome do vizinho e o número da casa ou apartamento?');
+    expect(r.mensagem).toBe('Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".');
     const [fatos] = prosio.atualizacoesDeFatos();
     expect(fatos.caminho).toBe('/api/v1/mediation/cases/caso_it041_0/facts');
-    expect(fatos.corpo).toEqual({ motivoRelatado: 'entrega_indireta', perguntaAberta: 'Qual o nome do vizinho e o número da casa ou apartamento?' });
+    expect(fatos.corpo).toEqual({ motivoRelatado: 'entrega_indireta', perguntaAberta: 'Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".' });
     expect((await recarregar(p.id)).escalonado).toBe(false);
 
     // O Prosio real ainda não tem a rota de fatos (R2): sem a extensão, o cliente recusa com 501 → atendimento humano.

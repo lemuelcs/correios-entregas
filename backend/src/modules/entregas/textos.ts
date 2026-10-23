@@ -103,7 +103,7 @@ export const textosDestinatario = {
     `Já tentamos entregar a encomenda ${codigo} outras vezes, e ela ficará disponível na unidade para retirada. ` +
     'Vou chamar um atendente da unidade para ajudar você.',
   atendimentoHumano: 'Vou chamar um atendente da unidade. Aguarde, por favor, que já falamos com você por aqui.',
-  perguntaVizinho: 'Qual o nome do vizinho e o número da casa ou apartamento?',
+  perguntaVizinho: 'Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".',
   perguntaOutra: 'Conte como prefere receber.',
   semPontos: (tipo: TipoPontoTexto) =>
     `No momento não há ${tipo === 'AGENCIA' ? 'agência' : 'locker'} disponível. Escolha outra opção no aviso.`,

@@ -66,6 +66,21 @@ describe('Mapeamento do desfecho da mediação', () => {
     expect(r).toEqual({ acao: 'orientacao', orientacao: expect.objectContaining({ tipo: 'OUTRA', texto: 'Deixar na portaria com o Seu João; até 18h' }) });
   });
 
+  it('22/10 "vizinho Valenza, casa 10 (…)" → "Deixar com o vizinho Valenza, casa 10 (…)"; o nome guardado é só Valenza', () => {
+    const r = mapearDesfecho({ disposition: 'decidido', outcome: { motivo: 'entrega_indireta', condicao: { local: 'vizinho Valenza, casa 10 (duas casas à esquerda)' } } as never }, agora);
+    expect(r).toEqual({
+      acao: 'orientacao',
+      orientacao: expect.objectContaining({ tipo: 'VIZINHO', texto: 'Deixar com o vizinho Valenza, casa 10 (duas casas à esquerda)', vizinhoNome: 'Valenza', vizinhoCasa: 'casa 10 (duas casas à esquerda)' }),
+    });
+    const a = mapearDesfecho({ disposition: 'decidido', outcome: { motivo: 'entrega_indireta', condicao: { local: 'vizinha Célia, apto 302' } } as never }, agora);
+    expect(a).toEqual({ acao: 'orientacao', orientacao: expect.objectContaining({ texto: 'Deixar com a vizinha Célia, apto 302', vizinhoNome: 'Célia' }) });
+  });
+
+  it('22/10 prazo de outro dia entra no texto com a data ("até 14h, quinta-feira (01/10)")', () => {
+    const r = mapearDesfecho({ disposition: 'decidido', outcome: { motivo: 'outro', condicao: { local: 'portaria', ate: '2026-10-01T17:00:00Z' } } as never }, agora);
+    expect(r).toEqual({ acao: 'orientacao', orientacao: expect.objectContaining({ texto: 'Deixar na portaria; até 14h, quinta-feira (01/10)' }) });
+  });
+
   it('UT-073 disposition proposto → nenhuma orientação', () => {
     expect(mapearDesfecho({ disposition: 'proposto', outcome: { motivo: 'entrega_indireta', condicao: { local: 'Zé' } } as never }, agora)).toEqual({ acao: 'proposto' });
   });
@@ -243,7 +258,7 @@ describe('Decisões das ações de botão', () => {
 
   it('VIZINHO/OUTRA: com mediação e caso → fatos do caso; sem mediação → atendimento humano', () => {
     expect(decidirOpcao({ ...base, opcao: 'VIZINHO', mediacaoAtiva: true, temCaso: true })).toEqual(
-      expect.objectContaining({ acao: 'mediacao', motivoRelatado: 'entrega_indireta', pergunta: 'Qual o nome do vizinho e o número da casa ou apartamento?' }),
+      expect.objectContaining({ acao: 'mediacao', motivoRelatado: 'entrega_indireta', pergunta: 'Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".' }),
     );
     expect(decidirOpcao({ ...base, opcao: 'OUTRA', mediacaoAtiva: false })).toEqual(expect.objectContaining({ acao: 'atendimento_humano', escalonar: true }));
     expect(decidirOpcao({ ...base, pacoteStatus: 'ENTREGUE' }).acao).toBe('ja_entregue');
