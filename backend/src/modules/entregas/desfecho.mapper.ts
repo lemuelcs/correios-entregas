@@ -12,7 +12,7 @@
  * máximo 300 caracteres (com reticências).
  */
 import type { CallbackDesfechoMediacao } from '../../integrations/prosio/prosio.types';
-import { formatarHora, mesmoDiaBrasilia, proximoDiaDeEntrega } from './calendario';
+import { formatarDiaDeEntrega, formatarHora, mesmoDiaBrasilia, proximoDiaDeEntrega } from './calendario';
 import { limitarTexto, removerDadosSensiveis, textoOrientacaoAmanha } from './textos';
 import { hojeBrasilia } from './datas';
 
@@ -74,7 +74,8 @@ export function mapearDesfecho(
   const local = o.condicao?.local ? removerDadosSensiveis(o.condicao.local).trim() : '';
   const ate = dataValida(o.condicao?.ate);
   const ateHoje = ate ? mesmoDiaBrasilia(ate, hoje) : false;
-  const sufixoAte = ate && ateHoje ? `; até ${formatarHora(ate)}` : '';
+  // Prazo combinado: só a hora se for hoje; com a data quando for outro dia (22/10: "até 14:00 de 23/10" se perdia).
+  const sufixoAte = ate ? (ateHoje ? `; até ${formatarHora(ate)}` : `; até ${formatarHora(ate)}, ${formatarDiaDeEntrega(hojeBrasilia(ate))}`) : '';
 
   if (o.motivo === 'destinatario_ausente' && ate && hojeBrasilia(ate).getTime() > hoje.getTime()) {
     return {
@@ -89,8 +90,12 @@ export function mapearDesfecho(
   }
 
   if (o.motivo === 'entrega_indireta' && local) {
-    const { nome, casa } = separarVizinho(local);
-    const base = casa ? `Deixar com ${nome}, ${casa}` : `Deixar com ${nome}`;
+    const { nome: nomeBruto, casa } = separarVizinho(local);
+    // "vizinho Valenza" → "o vizinho Valenza" no texto; o nome guardado é só "Valenza".
+    const papel = /^(vizinh[oa])\s+(.+)$/i.exec(nomeBruto);
+    const nome = papel ? papel[2]!.trim() : nomeBruto;
+    const quem = papel ? `${papel[1]!.toLowerCase() === 'vizinha' ? 'a' : 'o'} ${papel[1]!.toLowerCase()} ${nome}` : nome;
+    const base = casa ? `Deixar com ${quem}, ${casa}` : `Deixar com ${quem}`;
     return {
       acao: 'orientacao',
       orientacao: {

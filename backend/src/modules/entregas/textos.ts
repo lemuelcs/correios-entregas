@@ -103,7 +103,7 @@ export const textosDestinatario = {
     `Já tentamos entregar a encomenda ${codigo} outras vezes, e ela ficará disponível na unidade para retirada. ` +
     'Vou chamar um atendente da unidade para ajudar você.',
   atendimentoHumano: 'Vou chamar um atendente da unidade. Aguarde, por favor, que já falamos com você por aqui.',
-  perguntaVizinho: 'Qual o nome do vizinho e o número da casa ou apartamento?',
+  perguntaVizinho: 'Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".',
   perguntaOutra: 'Conte como prefere receber.',
   semPontos: (tipo: TipoPontoTexto) =>
     `No momento não há ${tipo === 'AGENCIA' ? 'agência' : 'locker'} disponível. Escolha outra opção no aviso.`,
@@ -229,18 +229,29 @@ export function botoesAviso(pacoteId: string, pontosAtivos: { agencia: boolean; 
 }
 
 /**
- * Corpo do aviso (ADR-007: "Olá, <primeiro nome>", texto neutro, sem link nem
- * pagamento). Com orientação guardada, cita a orientação e mantém as opções.
+ * Corpo do aviso (ADR-007: identifica o remetente, "Olá, <primeiro nome>", texto
+ * curto e neutro, sem link nem pagamento). Com orientação guardada, cita a orientação e mantém as opções.
  */
 export function montarAviso(d: DadosAviso): { body: string; buttons: BotaoMensagem[] } {
   const nome = primeiroNome(d.nome);
-  const saudacao = nome ? `Olá, ${nome}, sua encomenda` : 'Olá, sua encomenda';
+  const abertura = nome
+    ? `Correios: Olá, ${nome}. Sua encomenda ${d.codigo} saiu para entrega hoje.`
+    : `Correios: Olá. Sua encomenda ${d.codigo} saiu para entrega hoje.`;
   const orientacao = d.orientacao ? limitarTexto(removerDadosSensiveis(d.orientacao)).replace(/[.…]+$/, '') : '';
-  const cauda = orientacao
-    ? `Vamos seguir sua orientação: ${orientacao}. Se quiser mudar, escolha outra opção.`
-    : 'Se tiver alguma dificuldade para receber sua encomenda, nos avise.';
+  if (orientacao) {
+    return {
+      body: `${abertura}\n\nVamos seguir sua orientação: ${orientacao}. Para mudar, toque em outra opção abaixo.`,
+      buttons: botoesAviso(d.pacoteId, d.pontosAtivos),
+    };
+  }
+  const pontos = d.pontosAtivos ?? { agencia: true, locker: true };
+  const retirada = pontos.agencia && pontos.locker ? 'numa agência ou locker' : pontos.agencia ? 'numa agência' : pontos.locker ? 'num locker' : '';
+  const alternativas = ['deixar com um vizinho', 'entregar amanhã', ...(retirada ? [`deixar ${retirada} para você retirar`] : [])];
+  const lista = alternativas.length > 1 ? `${alternativas.slice(0, -1).join(', ')} ou ${alternativas[alternativas.length - 1]}` : alternativas[0];
   return {
-    body: `${saudacao} ${d.codigo} já saiu para entrega. ${cauda}`,
+    body:
+      `${abertura}\n\nSe não houver ninguém para receber, avise agora e combinamos outra forma de entrega: ${lista}.` +
+      '\n\nToque em uma das opções abaixo.',
     buttons: botoesAviso(d.pacoteId, d.pontosAtivos),
   };
 }

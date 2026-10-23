@@ -157,9 +157,8 @@ describe('Jornadas de API', () => {
     expect(lib.body.avisosAgendados).toBe(1);
     await drenarAvisos();
     const [aviso] = para(destinatario);
-    expect(aviso.corpo.body).toBe(
-      'Olá, Maria, sua encomenda OY526018152BR já saiu para entrega. Se tiver alguma dificuldade para receber sua encomenda, nos avise.',
-    );
+    expect(aviso.corpo.body).toContain('Correios: Olá, Maria. Sua encomenda OY526018152BR saiu para entrega hoje.');
+    expect(aviso.corpo.body).toContain('Se não houver ninguém para receber, avise agora');
     const pacoteId = aviso.corpo.reference as string;
     expect(ids(aviso)).toContain(`CE_OP:${pacoteId}.AGENCIA`);
 
@@ -246,7 +245,7 @@ describe('Jornadas de API', () => {
     const pacoteId = para(destinatario)[0].corpo.reference as string;
 
     const pergunta = await tocar(s, 'CE_OP', `${pacoteId}.VIZINHO`, destinatario);
-    expect(pergunta).toBe('Qual o nome do vizinho e o número da casa ou apartamento?');
+    expect(pergunta).toBe('Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".');
     const [fatos] = prosio.atualizacoesDeFatos();
     expect(fatos.caminho).toBe(`/api/v1/mediation/cases/${caseId}/facts`);
     expect(fatos.corpo.motivoRelatado).toBe('entrega_indireta');
@@ -258,10 +257,11 @@ describe('Jornadas de API', () => {
     });
     expect(desfecho.status).toBe(204);
 
-    const [orientacao] = para(await telefoneDe(carteiro.id));
-    expect(orientacao.corpo.body).toContain('Deixar com Dona Célia, casa 47');
-    expect(ids(orientacao).map((id) => id.split('.').pop())).toEqual(['VI', 'FEITO', 'NAO']);
-    expect(ids(orientacao).every((id) => id.startsWith('CE_CT:'))).toBe(true);
+    // O carteiro já confirmou na mediação: a orientação nasce VISTA e ele não recebe mais nada (22/10).
+    expect(para(await telefoneDe(carteiro.id))).toHaveLength(0);
+    const o = await prisma.orientacao.findFirstOrThrow({ where: { origem: 'MEDIACAO' }, orderBy: { criadaEm: 'desc' } });
+    expect(o.texto).toContain('Deixar com Dona Célia, casa 47');
+    expect(o).toEqual(expect.objectContaining({ estado: 'VISTA', respostaCarteiro: 'VI' }));
   });
 
   it('E2E-004 descadastro: no dia seguinte a prévia mostra descadastrado e a liberação não avisa o telefone', async () => {

@@ -109,4 +109,21 @@ describe('RastreioWorker', () => {
     expect((await prisma.pacoteDia.findUniqueOrThrow({ where: { id: p.id } })).status).toBe('ENTREGUE');
     expect(await prisma.eventoPacote.count({ where: { pacoteId: p.id, tipo: 'caso_cancelado' } })).toBe(1);
   });
+
+  it('IT-056b o rastreio fecha a orientação: entregue → FEITA; insucesso → NÃO FOI POSSÍVEL; só as que aguardam resposta', async () => {
+    const [entregue, insucesso] = await cargaCom(['INTERAGINDO', 'INTERAGINDO']);
+    for (const p of [entregue, insucesso]) {
+      await prisma.orientacao.create({ data: { codigo: p.codigo, pacoteId: p.id, tipo: 'VIZINHO', texto: 'Deixar com o vizinho', estado: 'VISTA', origem: 'MEDIACAO' } });
+    }
+    rastreio.definirEvento(entregue.codigo, 'Objeto entregue ao destinatário');
+    rastreio.definirEvento(insucesso.codigo, 'Objeto não entregue - carteiro não atendido');
+
+    await rodar({ agora: horaDeBrasilia(hoje, 15).toISOString() });
+    await processarRastreio({ agora: horaDeBrasilia(hoje, 20), varredura: true });
+
+    const a = await prisma.orientacao.findFirstOrThrow({ where: { pacoteId: entregue.id } });
+    expect(a).toEqual(expect.objectContaining({ estado: 'FEITA', respostaCarteiro: 'FEITO' }));
+    const b = await prisma.orientacao.findFirstOrThrow({ where: { pacoteId: insucesso.id } });
+    expect(b.estado).toBe('NAO_FOI_POSSIVEL');
+  });
 });

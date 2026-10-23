@@ -91,8 +91,8 @@ describe('OrientacaoService', () => {
 
   it('UT-050 nova orientação do mesmo código → anterior SUBSTITUIDA e mensagem "ATUALIZADA:"', async () => {
     const c = await cenario();
-    const a = await svc.registrar({ pacoteId: c.pacote.id, tipo: 'OUTRA', texto: 'Deixar na portaria', origem: 'MEDIACAO' });
-    const b = await svc.registrar({ pacoteId: c.pacote.id, tipo: 'OUTRA', texto: 'Deixar com o Zé do 12', origem: 'MEDIACAO' });
+    const a = await svc.registrar({ pacoteId: c.pacote.id, tipo: 'OUTRA', texto: 'Deixar na portaria', origem: 'SUPERVISOR' });
+    const b = await svc.registrar({ pacoteId: c.pacote.id, tipo: 'OUTRA', texto: 'Deixar com o Zé do 12', origem: 'SUPERVISOR' });
 
     expect((await prisma.orientacao.findUniqueOrThrow({ where: { id: a.id } })).estado).toBe('SUBSTITUIDA');
     expect(b.estado).toBe('ENVIADA');

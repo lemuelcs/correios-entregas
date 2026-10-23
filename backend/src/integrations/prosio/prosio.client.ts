@@ -174,6 +174,9 @@ export class ProsioHttpClient implements ProsioClient {
       corpo.resumo = caso.resumo;
       corpo.respondBy = caso.respondBy.toISOString();
       if (caso.unidadeRef) corpo.unidadeRef = caso.unidadeRef;
+      if (caso.prestadorNome) corpo.prestadorNome = caso.prestadorNome;
+      if (caso.enderecoEntrega) corpo.enderecoEntrega = caso.enderecoEntrega;
+      if (caso.etiquetaAjuda) corpo.etiquetaAjuda = caso.etiquetaAjuda;
     }
     const { status, dados } = await this.chamar(canal, 'POST', '/api/v1/mediation/cases', corpo);
     const r = registro(dados);

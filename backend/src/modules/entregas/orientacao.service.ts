@@ -289,7 +289,16 @@ export class OrientacaoServiceImpl implements OrientacaoService {
       'entregas.orientacao',
     );
 
-    if (orientacao.estado === 'ENVIADA') {
+    if (orientacao.estado === 'ENVIADA' && o.origem === 'MEDIACAO') {
+      // O carteiro já confirmou ("Sim, farei a entrega") na própria mediação: não há o que
+      // lhe mandar de novo. A orientação nasce VISTA (= a opção "Vi"); FEITA / NÃO FOI POSSÍVEL
+      // vêm do rastreio (`aplicarResultadoRastreio`).
+      await prisma.orientacao.updateMany({
+        where: { id: orientacao.id, estado: 'ENVIADA' },
+        data: { estado: 'VISTA', respostaCarteiro: 'VI', respondidoEm: agora },
+      });
+      await registrarEvento(pacote.id, 'resposta_carteiro', { orientacaoId: orientacao.id, resposta: 'VI', estado: 'VISTA', automatica: true });
+    } else if (orientacao.estado === 'ENVIADA') {
       await this.enviarAoCarteiro(pacote, orientacao, carteiro, {
         body: mensagemOrientacaoCarteiro({ codigo: pacote.codigo, nomeDestinatario: pacote.nome, texto, atualizada }),
         buttons: botoesOrientacaoCarteiro(orientacao.id),

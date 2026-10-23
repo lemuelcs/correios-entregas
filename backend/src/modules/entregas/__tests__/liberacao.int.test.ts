@@ -150,7 +150,7 @@ describe('Liberação e envio', () => {
       expect(m).toBeDefined();
       expect(m.headers['idempotency-key']).toBe(`aviso:${p.id}`);
       expect(m.corpo.to).toBe(p.whatsappE164);
-      expect(m.corpo.body).toContain(`sua encomenda ${p.codigo} já saiu para entrega`);
+      expect(m.corpo.body).toContain(`Sua encomenda ${p.codigo} saiu para entrega hoje`);
       expect(m.corpo.buttons.map((b: { id: string }) => b.id)).toEqual(
         ['AMANHA', 'VIZINHO', 'LOCKER', 'OUTRA'].map((o) => `CE_OP:${p.id}.${o}`),
       );
@@ -447,8 +447,10 @@ describe('Casos de mediação', () => {
         providerPhone: c.carteiro.whatsappE164,
         recipientPhone: p.whatsappE164,
         resumo: `Maria · QNA 12 ${p.numero}`,
+        motivo: 'destinatario_ausente',
+        prestadorNome: expect.any(String),
+        etiquetaAjuda: p.codigo.trim(),
       }));
-      expect(a.corpo.motivo).toBeUndefined();
       expect((await recarregar(p.id)).mediacaoCaseId).toBe(prosio.caseIdDe(ref));
     }
     expect(avisos()).toHaveLength(2);
@@ -480,7 +482,7 @@ describe('Casos de mediação', () => {
       await liberar(c);
       await drenarAvisos();
       const [a] = prosio.aberturasDeCaso();
-      expect(Object.keys(a.corpo).sort()).toEqual(['externalRef', 'providerPhone', 'recipientPhone']);
+      expect(Object.keys(a.corpo).sort()).toEqual(['externalRef', 'motivo', 'providerPhone', 'recipientPhone']);
       expect(a.resposta?.status).toBe(201);
       expect((await recarregar(c.pacotes[0].id)).mediacaoCaseId).toBeTruthy();
     } finally {

@@ -67,6 +67,12 @@ export interface NovoCaso {
   respondBy: Date;
   /** P1 — só vai para o fio com `extensoesMediacao`. */
   unidadeRef?: string;
+  /** Primeiro nome do carteiro, para o pedido a ele — só com `extensoesMediacao`. */
+  prestadorNome?: string;
+  /** Endereço de entrega (≤ limite do Prosio), só ao carteiro — só com `extensoesMediacao`. */
+  enderecoEntrega?: string;
+  /** Código da encomenda para o texto do pedido ao carteiro (`{etiqueta}`): o `externalRef` leva o `@data`. */
+  etiquetaAjuda?: string;
 }
 
 export interface CasoAberto {

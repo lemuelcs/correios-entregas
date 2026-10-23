@@ -185,17 +185,15 @@ describe('Webhook do canal', () => {
     expect((await prosio.enviarCallbackDesfecho(urlWebhook(c), c.canal.callbackSecret, dados)).status).toBe(204);
 
     const [o] = await orientacoesDe(p.id);
-    expect(o).toEqual(expect.objectContaining({ tipo: 'VIZINHO', estado: 'ENVIADA', origem: 'MEDIACAO' }));
+    // O carteiro já confirmou na mediação: a orientação nasce VISTA e nada é enviado a ele (22/10).
+    expect(o).toEqual(expect.objectContaining({ tipo: 'VIZINHO', estado: 'VISTA', respostaCarteiro: 'VI', origem: 'MEDIACAO' }));
     expect(o.texto).toContain('Deixar com Dona Célia, casa 47');
     expect(o.texto).not.toContain('123.456');
-    const msgs = paraCarteiro(c);
-    expect(msgs).toHaveLength(1);
-    expect(msgs[0].corpo.body).toContain('Deixar com Dona Célia, casa 47');
-    expect(idsBotoes(msgs[0])).toContain(`CE_CT:${o.id}.VI`);
+    expect(paraCarteiro(c)).toHaveLength(0);
 
     expect((await prosio.enviarCallbackDesfecho(urlWebhook(c), c.canal.callbackSecret, dados)).status).toBe(204);
     expect(await prisma.orientacao.count({ where: { pacoteId: p.id } })).toBe(1);
-    expect(paraCarteiro(c)).toHaveLength(1);
+    expect(paraCarteiro(c)).toHaveLength(0);
   });
 
   it('IT-044 mediation.outcome de pacote ENTREGUE → sem orientação e evento desfecho_ignorado', async () => {
@@ -372,10 +370,10 @@ describe('Ações de botão', () => {
 
     process.env.PROSIO_MEDIACAO_EXTENSOES = 'true';
     const r = await tocar(c, 'CE_OP', `${p.id}.VIZINHO`, p.whatsappE164!);
-    expect(r.mensagem).toBe('Qual o nome do vizinho e o número da casa ou apartamento?');
+    expect(r.mensagem).toBe('Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".');
     const [fatos] = prosio.atualizacoesDeFatos();
     expect(fatos.caminho).toBe('/api/v1/mediation/cases/caso_it041_0/facts');
-    expect(fatos.corpo).toEqual({ motivoRelatado: 'entrega_indireta', perguntaAberta: 'Qual o nome do vizinho e o número da casa ou apartamento?' });
+    expect(fatos.corpo).toEqual({ motivoRelatado: 'entrega_indireta', perguntaAberta: 'Combinado! Me diga o nome do vizinho e o número da casa ou apartamento (e uma referência, se quiser). Exemplo: "Dona Célia, casa 47, duas casas à esquerda".' });
     expect((await recarregar(p.id)).escalonado).toBe(false);
 
     // O Prosio real ainda não tem a rota de fatos (R2): sem a extensão, o cliente recusa com 501 → atendimento humano.
