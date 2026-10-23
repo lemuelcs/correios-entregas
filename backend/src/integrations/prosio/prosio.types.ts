@@ -121,8 +121,18 @@ export interface CallbackStatusMensagem {
 }
 
 export interface CondicaoMediacao {
+  /** Fim do prazo/janela (ISO). */
   ate?: string;
+  /** Início da janela (ISO), quando a pessoa disse "das 12h às 14h". Aditivo do Prosio (#62, 22/10/2026). */
+  de?: string;
+  /** Lugar/função: "portaria", "vizinho". Livre em desfechos antigos ("vizinho Valenza, casa 10"). */
   local?: string;
+  /** Quem recebe em nome do destinatário (sem o tratamento). Aditivo (#62). */
+  pessoa?: string;
+  /** Casa/apartamento ("casa 10", "apto 302"). Aditivo (#62). */
+  unidade?: string;
+  /** Como achar ("duas casas à esquerda"). Aditivo (#62). */
+  referencia?: string;
 }
 
 /** `MediationOutcomeCallbackSchema`. */
