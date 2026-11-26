@@ -1,0 +1,183 @@
+# --- base Tevunia: início (tevunia-platform/templates/segredos/betterleaks.toml) ---
+# Configuração base do Betterleaks para todos os repositórios (ADR-012, #47).
+#
+# Cada repositório copia este bloco, sem alterar, para o seu `.betterleaks.toml` e acrescenta
+# depois do marcador "fim" só a sua allowlist. `tools/segredos/sincronizar-regras.sh` confere que a
+# cópia é idêntica e que cada entrada da allowlist tem um comentário `# motivo:` logo acima.
+#
+# O Betterleaks não carrega o `.betterleaks.toml` do alvo sozinho: o hook e o CI passam `-c`.
+#
+# Regras próprias: fornecedores fora do programa de parceiros do GitHub, reconhecidos pelo nome da
+# variável junto de um valor longo (`ZAPSIGN_API_TOKEN=…`, `"clicksignToken": "…"`, e o par
+# `'zapiToken', '…'` de jsonb_build_object em seeds SQL). O valor não
+# aceita `.`, `$` nem `{`, então `process.env.X`, `${X}` e `${{ secrets.X }}` não disparam; o filtro
+# descarta valores de baixa entropia, texto legível e marcadores de exemplo. Fixtures de teste
+# usam valores gerados na hora, nunca chaves reais.
+
+[extend]
+useDefault = true
+
+# Exceções da base, só para as duas regras genéricas que o gitleaks 8.24.3 não tinha e que, medidas em
+# 26/11/2026 nos 9 repositórios, acusavam sobretudo credencial de banco local e senha de teste.
+# Regras específicas (Stripe, AWS, as próprias abaixo etc.) continuam valendo nesses mesmos arquivos.
+[[allowlists]]
+description = "URI de banco local ou de serviço do compose de dev/CI (não é credencial de produção)"
+targetRules = ["generic-credential-uri"]
+regexTarget = "match"
+regexes = [
+  # motivo: loopback e nomes de serviço do compose de dev/CI; `prod_postgres` e hosts reais continuam acusando
+  '''@(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host|db|postgres|redis|pg|mysql|dev_postgres|dev_redis)(?::\d+)?(?:[/?'"\x60\s]|$)''',
+]
+
+[[allowlists]]
+description = "Senha literal em teste, fixture ou mock"
+targetRules = ["generic-password"]
+paths = [
+  # motivo: testes usam senha literal de propósito (login, hash, redação); segredo real em teste cai nas regras específicas
+  '''(?:^|/)(?:test|tests|__tests__|e2e|fixtures?|mocks?)/''',
+  # motivo: idem, pelo sufixo do arquivo de teste
+  '''\.(?:test|spec|e2e|integration\.test)\.[cm]?[jt]sx?$''',
+]
+
+[[rules]]
+id = "voyage-api-key"
+description = "Chave da API da Voyage AI atribuída a uma variável"
+regex = '''(?im)voyage(?:[_.-]?ai)?[\w.-]{0,25}?(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{24,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["voyage"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "dreamhost-api-key"
+description = "Chave da API da DreamHost atribuída a uma variável"
+regex = '''(?im)dream[_.-]?host[\w.-]{0,25}?(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{16,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["dreamhost", "dream_host", "dream-host", "dream.host"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "capgo-api-key"
+description = "Chave da API da Capgo atribuída a uma variável"
+regex = '''(?im)capgo[\w.-]{0,25}?(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{24,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["capgo"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "zapsign-token"
+description = "Token da ZapSign/ZipSign atribuído a uma variável"
+regex = '''(?im)z[ai]p[_.-]?sign[\w.-]{0,25}?(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{24,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["zapsign", "zipsign", "zap_sign", "zip_sign", "zap-sign", "zip-sign", "zap.sign", "zip.sign"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "clicksign-token"
+description = "Token da Clicksign atribuído a uma variável"
+regex = '''(?im)click[_.-]?sign[\w.-]{0,25}?(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{24,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["clicksign", "click_sign", "click-sign", "click.sign"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "serpro-credencial"
+description = "Consumer key/secret ou token do SERPRO atribuído a uma variável"
+regex = '''(?im)serpro[\w.-]{0,25}?(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{20,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["serpro"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "apiplacas-token"
+description = "Token da API Placas atribuído a uma variável"
+regex = '''(?im)(?:api[_.-]?)?placas[\w.-]{0,25}?(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{24,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["placas"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+# Nomes curtos (Z-API, Efí, Stark, Inter): o nome do fornecedor precisa começar um identificador e
+# vir seguido de separador, de maiúscula (camelCase) ou direto da palavra de credencial, para não
+# casar com `lazapi`, `efficient`, `starken` ou `internal`. Por isso o nome não usa `(?i)`.
+
+[[rules]]
+id = "zapi-token"
+description = "Token de instância ou de cliente da Z-API atribuído a uma variável"
+regex = '''(?m)(?:^|[^A-Za-z0-9\n])(?:Z_API|Z-API|ZAPI|ZApi|Zapi|zApi|z_api|z-api|zapi)(?:[_.-](?i:[\w.-]{0,25}?)|[A-Z](?i:[\w.-]{0,24}?)|)(?i:(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?)[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{20,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["zapi", "z_api", "z-api"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "smsdev-api-key"
+description = "Chave da SMSDev atribuída a uma variável"
+regex = '''(?im)sms[_.-]?dev[\w.-]{0,25}?(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{20,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["smsdev", "sms_dev", "sms-dev", "sms.dev"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "efi-credencial"
+description = "Client secret ou senha de certificado da Efí (Gerencianet) atribuído a uma variável"
+regex = '''(?m)(?:(?:^|[^A-Za-z0-9\n])(?:EFI|Efi|efi)(?:PAY|Pay|pay|BANK|Bank|bank)?|(?i:gerencianet))(?:[_.-](?i:[\w.-]{0,25}?)|[A-Z](?i:[\w.-]{0,24}?)|)(?i:(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?)[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}(?:Client_(?:Id|Secret)_)?([A-Za-z0-9_+/=-]{20,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["efi", "gerencianet"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+[[rules]]
+id = "stark-credencial"
+description = "Chave ou token da Stark Bank atribuído a uma variável"
+regex = '''(?m)(?:^|[^A-Za-z0-9\n])(?:STARK|Stark|stark)(?:[_.-]?(?:BANK|Bank|bank))?(?:[_.-](?i:[\w.-]{0,25}?)|[A-Z](?i:[\w.-]{0,24}?)|)(?i:(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?)[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{20,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["stark"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+
+# Inter: só com qualificador do banco (`BANCO_INTER_*`, `INTER_CLIENT_*`, `INTER_PIX_*`, `INTER_API_*`,
+# `INTER_CERT_*`, `INTER_BANKING_*`), para não pegar `INTER_SERVICE_TOKEN` e afins.
+[[rules]]
+id = "inter-credencial"
+description = "Client secret ou senha de certificado do Banco Inter atribuído a uma variável"
+regex = '''(?m)(?:^|[^A-Za-z0-9\n])(?:(?:BANCO|Banco|banco)[_.-]?(?:INTER|Inter|inter)|(?:INTER|Inter|inter)[_.-]?(?i:client|pix|api|cert|banking|bank))(?:[_.-](?i:[\w.-]{0,25}?)|[A-Z](?i:[\w.-]{0,24}?)|)(?i:(?:secret|token|key|senha|password|chave|credencial|credential)[\w-]{0,10}?)[ \t'"\x60]{0,3}(?:=|:=|=>|:|\?=|['"\x60][ \t]*,[ \t]*['"\x60])[ \t'"\x60]{0,5}([A-Za-z0-9_+/=-]{20,200})(?:[ \t'"\x60;,)\]}]|\\[nr]|$)'''
+keywords = ["inter"]
+filter = '''
+filter.entropy(finding["secret"]) < 3.0 ||
+filter.failsTokenEfficiency(finding["secret"]) ||
+filter.containsAny(lower(finding["secret"]), ["example", "exemplo", "changeme", "placeholder", "xxxxxx", "your", "seu-", "sua-", "fake", "dummy", "redacted"])
+'''
+# --- base Tevunia: fim ---
+
+# Allowlist deste repositório. Cada entrada precisa de um comentário '# motivo:' logo acima
+# (tools/segredos/sincronizar-regras.sh confere). Prefira allowlist por VALOR exato: um segredo real
+# colado no mesmo arquivo continua sendo detectado.

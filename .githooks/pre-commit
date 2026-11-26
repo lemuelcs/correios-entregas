@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Tevunia: varredura de segredos no commit (ADR-012, #47).
+# Fonte: tevunia-platform/templates/githooks/pre-commit. Não editar a cópia do repositório:
+# `tools/segredos/sincronizar-regras.sh` confere que ela é idêntica ao modelo. Checagem própria do
+# repositório vai em `.githooks/pre-commit.local`, que este hook executa no fim.
+#
+# Ativação: o script `prepare` do npm roda `git config core.hooksPath .githooks`.
+# Sem o binário `betterleaks` no PATH o hook avisa e deixa passar: o CI é a guarda.
+# Escape consciente: `git commit --no-verify` (o CI continua bloqueando).
+set -uo pipefail
+
+raiz=$(git rev-parse --show-toplevel) || exit 1
+cd "$raiz" || exit 1
+
+if command -v betterleaks >/dev/null 2>&1; then
+  args=(git . --pre-commit --staged --redact --no-banner --verbose --exit-code 1)
+  [ -f .betterleaks.toml ] && args+=(--config .betterleaks.toml)
+  if ! betterleaks "${args[@]}"; then
+    echo "" >&2
+    echo "pre-commit: segredo encontrado nos arquivos preparados (arquivo e linha acima; o valor foi omitido)." >&2
+    echo "Tire o valor do arquivo e use o cofre (segredos gravar). Falso positivo: allowlist com '# motivo:' no .betterleaks.toml." >&2
+    exit 1
+  fi
+else
+  echo "betterleaks ausente: o CI vai checar" >&2
+fi
+
+if [ -f .githooks/pre-commit.local ]; then
+  bash .githooks/pre-commit.local || exit $?
+fi
+exit 0

@@ -1,0 +1,35 @@
+# Segredos (ADR-012 de Tevunia/tevunia-platform#47): Betterleaks nos commits novos de cada PR e de cada push na
+# develop. O script (.github/segredos/varrer-alteracoes.sh) e a base do .betterleaks.toml são cópias dos modelos da
+# plataforma, conferidas por tools/segredos/sincronizar-regras.sh; o binário é fixado por versão e sha256.
+# Runner hospedado, como o resto do CI deste repositório (público: minutos sem custo).
+name: segredos
+
+on:
+  pull_request:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: segredos-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  segredos:
+    name: Segredos (Betterleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          clean: true
+      - name: Varredura de segredos (Betterleaks, commits novos)
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: bash .github/segredos/varrer-alteracoes.sh

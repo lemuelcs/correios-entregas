@@ -6,6 +6,7 @@
     "frontend"
   ],
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
